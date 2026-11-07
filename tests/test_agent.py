@@ -18,6 +18,13 @@ class AgentTests(unittest.TestCase):
         self.assertFalse(result['operations']['ready'])
         self.assertEqual(result['live_acceptance'], 'not verified by this command')
 
+    def test_gi_without_the_gtk_namespace_is_not_desktop_ready(self):
+        from unittest.mock import Mock
+        gi = Mock()
+        gi.require_version.side_effect = ValueError('Namespace Gtk not available')
+        with patch('rsi_agent.wechat.importlib.util.find_spec', return_value=True), patch('rsi_agent.wechat.importlib.import_module', return_value=gi):
+            self.assertFalse(doctor(load())['desktop']['checks']['gtk_installed'])
+
     def test_configuration_paths_use_the_configuration_directory(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / 'config.json'

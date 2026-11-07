@@ -1,8 +1,10 @@
 import os
+import importlib.util
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+from types import SimpleNamespace
 
 import sender
 from operations.driver import NativeDriver
@@ -11,6 +13,23 @@ from operations.windows import parse_app_windows
 
 
 class HostInstallationTests(unittest.TestCase):
+    def test_calibrated_editor_excludes_its_frame_and_still_protects_content(self):
+        from PIL import Image, ImageDraw
+        path = Path(__file__).resolve().parents[1] / 'host_support/file_transport.py'
+        spec = importlib.util.spec_from_file_location('host_file_transport', path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        image = Image.new('RGB', (623, 667), 'white')
+        draw = ImageDraw.Draw(image)
+        draw.line((21, 526, 581, 526), fill=(229, 229, 229))
+        ui = SimpleNamespace(cfg={'header_box': [1, 35, 622, 82], 'editor': [280, 554],
+                                  'send': [573, 635], 'editor_content_top': 532},
+                             ui=SimpleNamespace(screenshot=lambda: image))
+        module.require_empty_editor(ui)
+        draw.rectangle((50, 545, 70, 565), fill='black')
+        with self.assertRaises(ValueError):
+            module.require_empty_editor(ui)
+
     def test_reparented_window_uses_absolute_screen_coordinates(self):
         raw = '  0x400019 "File Transfer": ("wechat" "wechat") 600x642+0+0  +393+300\n'
         window = parse_app_windows(raw)[0]

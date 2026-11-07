@@ -18,6 +18,16 @@ def private_file(path):
             and hasattr(os, 'getuid') and p.stat().st_uid == os.getuid())
 
 
+def gtk_available():
+    try:
+        gi = importlib.import_module('gi')
+        gi.require_version('Gtk', '3.0')
+        importlib.import_module('gi.repository.Gtk')
+        return True
+    except (ImportError, ValueError):
+        return False
+
+
 def doctor(config):
     wx = config['wechat']
     root = Path(wx['runtime_root'])
@@ -30,7 +40,7 @@ def doctor(config):
     }
     desktop = {'linux': linux, 'xauthority_present': private_file(wx['xauthority']),
                'pillow_installed': importlib.util.find_spec('PIL') is not None,
-               'gtk_installed': importlib.util.find_spec('gi') is not None}
+               'gtk_installed': gtk_available()}
     operations = {
         'enabled': wx['operations_enabled'], 'read_ready': all(read.values()),
         'desktop_dependencies_ready': all(desktop.values()), 'ocr_installed': shutil.which('tesseract') is not None,

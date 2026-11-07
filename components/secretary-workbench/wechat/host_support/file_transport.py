@@ -21,7 +21,10 @@ def preview(ui,path):
 def require_empty_editor(ui):
     # The header extends beyond the editor frame. Stay inside the editor's right border;
     # otherwise a blinking caret plus that border can look like an existing attachment.
-    box=ui.cfg['header_box'];im=ui.ui.screenshot().crop((box[0]+20,ui.cfg['editor'][1]-30,box[2]-40,ui.cfg['send'][1]-30)).convert('RGB')
+    box=ui.cfg['header_box'];top=ui.cfg['editor'][1]-30
+    content_top=ui.cfg.get('editor_content_top',top)
+    if type(content_top) is not int or not top<=content_top<=top+12:raise ValueError('editor content calibration changed')
+    im=ui.ui.screenshot().crop((box[0]+20,content_top,box[2]-40,ui.cfg['send'][1]-30)).convert('RGB')
     # A caret is tiny; text, existing file cards and images are not. OCR alone could miss Chinese or an image.
     if sum(min(pixel)<230 for pixel in im.getdata())>80:raise ValueError('editor is not visibly empty; existing contents retained')
 
