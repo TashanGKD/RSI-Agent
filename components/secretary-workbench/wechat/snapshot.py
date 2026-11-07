@@ -101,6 +101,14 @@ def database(source,key,scratch,allow_baseline=False):
         if len(raw)<PAGE or len(raw)%PAGE:raise ValueError('invalid database size')
         salt=raw[:16];wp=Path(str(copied)+'-wal');wal=wp.read_bytes() if wp.exists() else b''
         receipt={'bytesCopied':total,'signature':signature,'consistency':'committed','source':source.name,'gap':None}
+        # SQLite fileformat 1.3.7: trust the authenticated size only when the
+        # change counter matches version-valid-for. WCDB may preallocate zeros.
+        head=page(raw[:PAGE],key,salt,1);physical_pages=len(raw)//PAGE
+        logical_pages=struct.unpack('>I',head[28:32])[0]
+        if 0<logical_pages<physical_pages and head[24:28]==head[92:96]:
+            if any(raw[logical_pages*PAGE:]):raise ValueError('nonzero tail beyond authenticated database size')
+            raw=raw[:logical_pages*PAGE]
+        receipt['preallocatedZeroPages']=physical_pages-len(raw)//PAGE
         try:w=wal_commits(wal)
         except ValueError as e:
             if not allow_baseline:raise
