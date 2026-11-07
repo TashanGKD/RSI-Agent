@@ -14,6 +14,12 @@ The Linux suites use empty account/profile paths, mock drivers and temporary dat
 
 CI executes the same `python -B scripts/check.py --linux` entry on Ubuntu 24.04 / Python 3.12. Its result must be checked separately on GitHub; adding the workflow alone is not proof it passed.
 
-## Remaining acceptance
+## Follow-up host validation, 2026-11-08
 
-Current-account authorization, desktop layout calibration, native send receipts, manual takeover, persistent service migration, disruptive recovery and a 24–72 hour live trial remain installation work. The Mac component still lacks the dependencies documented in its original `docs/BUILD_GAPS.md`. The new repository does not relabel those gaps as completed features.
+- `fcd16a78014c225d6d9833afd5c0a5dba41636c2`: 437 checks passed on Linux: 12 adapter, 325 operations, 10 snapshot, 31 native-tool and 59 reader checks. The notebook HTTP check and Mac source manifest also passed.
+- New regressions first reproduced the missing Gtk namespace, read-only source lock failure, Openbox relative-coordinate error, localized File Transfer identity, input-frame false positive and WCDB zero-preallocation failure. The snapshot cases also reject invalid size counters, zero active pages and nonzero tails, and cover committed WAL growth into preallocated space.
+- [GitHub CI passed for this exact code commit](https://github.com/Yu-Yang-Li/RSI-Agent/actions/runs/42389024933).
+- Real-account testing is separate from these synthetic checks: one text to native peer `filehelper`, one Send click, status 2, exact text/sender/peer proof, unified-CLI readback and same-ID receipt replay. Three earlier preparation requests terminated with explicit no-send evidence before the successful request. No second native attempt was created.
+- The interrupted pre-send request required manual cleanup of its own test draft before cancellation could be verified. This is retained as an unresolved recovery limitation, not counted as autonomous recovery acceptance.
+
+The complete controlled result and deployment limits are in [HORYZON-ACCEPTANCE.md](HORYZON-ACCEPTANCE.md). Ordinary startup after bootstrap, service persistence, additional layouts/recipients/media, disruptive recovery and a 24–72 hour live trial remain installation work. The Mac component still lacks the dependencies documented in its original `docs/BUILD_GAPS.md`.

@@ -67,4 +67,4 @@ python -B scripts/check.py --linux
 测试只使用合成账号、模拟 driver 和临时数据库，不触碰真实微信或调用模型。
 Mac 的 `verify` 只验证静态源码完整性；缺失 PortableCore、OriginalDesktop、资源与 helper 的情况见 [Mac 构建缺口](components/wechat-collector-mac/docs/BUILD_GAPS.md)。
 
-本轮是源码合并与第一轮 Linux 接入打磨，尚不声称 Mac 完整应用可构建、合睿真实微信已自动收发或已通过 24–72 小时长稳。实际账号授权、界面校准、服务持久化和维护窗口恢复验收见 [集成计划](docs/INTEGRATION.md)。
+合睿实机已完成当前账号读取与文件传输助手单条文本发送验收：V2 队列只点击一次发送，原生记录状态为成功，发送者、会话和全文匹配；相同请求 ID 返回原回执。实测记录及尚未完成的普通启动、布局覆盖和长稳验收见 [合睿接入记录](docs/HORYZON-ACCEPTANCE.md)。Mac 构建缺口及服务持久化工作仍按 [集成计划](docs/INTEGRATION.md) 跟进。

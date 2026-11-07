@@ -14,11 +14,17 @@ Linux display and Xauthority are passed as `WECHAT_DISPLAY` and `WECHAT_XAUTHORI
 
 `operations_enabled` is an installation switch, not a replacement for real business authorization. Upstream client labels are attribution fields, not isolated permission tenants. Real source credentials and UI bindings stay outside this repository.
 
+## Horyzon live acceptance
+
+On 2026-11-08, the configured account was read through the unified CLI and one owner-authorized text was sent to File Transfer Assistant through the original V2 queue. The native record matched the exact sender, peer and text, with status 2 and one Send click. Same-ID submission returned the existing receipt. See [the installation record](HORYZON-ACCEPTANCE.md) for scope, bootstrap state and remaining work.
+
+Native control locks now live in the private runtime directory so installed source can remain read-only. Openbox-reparented windows use absolute screen coordinates. File Transfer localization is recognized only for the exact native `filehelper` identity. GTK diagnostics load the actual Gtk namespace. A private `editor_content_top` may exclude up to 12 pixels of the calibrated top frame from empty-composer inspection; visible content remains protected. WCDB snapshots may trim only all-zero preallocation after an authenticated, valid SQLite header size; active pages, committed WAL frames and SQLite integrity are still checked.
+
 ## Horyzon acceptance still to do
 
 1. Persist and validate the existing X/WeChat/noVNC service definitions; check boot directories, Xauthority, ordering, crash recovery and operator handover. Schedule the actual disruptive recovery checks in a maintenance window.
-2. Supply current-account authorization and calibrate the current `:92` desktop. Validate source identity, encrypted snapshot consistency, incremental/late message coverage and unsupported media gaps.
-3. Use an explicitly selected test conversation for native text/image/file receipts, stable-ID replay, dropped responses and interrupted-client recovery.
+2. Finish ordinary, non-debugger startup after the authorized login bootstrap. Recalibrate changed layouts and validate incremental/late message coverage and unsupported media gaps.
+3. Text-to-File-Transfer and stable-ID replay are verified for one controlled sample. Image/file receipts, other conversations, dropped responses, manual takeover and interrupted-client recovery remain unverified on this installation.
 4. Observe a 24–72 hour trial before describing the installation as stable. Record missed reads, duplicate sends, outages and recovery rather than only process uptime.
 
-The first release does not restart or replace Horyzon's live client. No claim of live send, phone receipt or long-run acceptance follows from passing fixture tests.
+The source-import release did not restart the client. The subsequent live test used the owner's explicit restart and test-message authorization. Its native acceptance does not establish a phone-seen receipt or long-run reliability.
