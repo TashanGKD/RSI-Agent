@@ -7,6 +7,7 @@ import sys
 from . import __version__
 from .audit import audit
 from .config import MAC, ROOT, WORKBENCH, load
+from .service_bundle import stage
 from .wechat import call, doctor
 
 
@@ -18,6 +19,11 @@ def main(argv=None):
     commands.add_parser('doctor', help='Report prerequisites without reading messages or operating the GUI.')
     commands.add_parser('audit', help='Inspect the real Linux client process, layout and service persistence without input.')
     commands.add_parser('sources', help='Show the pinned source repositories and commits.')
+    services = commands.add_parser('services', help='Stage service definitions for review; no live activation.')
+    service_commands = services.add_subparsers(dest='mode', required=True)
+    service_stage = service_commands.add_parser('stage')
+    service_stage.add_argument('--release', required=True, help='Absolute Linux path of the source release.')
+    service_stage.add_argument('--output', required=True, help='A NEW directory for the review bundle.')
     wx = commands.add_parser('wechat', help='Use the original on-demand WeChat SDK.')
     wx.add_argument('mode', choices=['read', 'operations'], help='One JSON request from stdin.')
     notebook = commands.add_parser('notebook', help='Start the existing local notebook.')
@@ -32,6 +38,9 @@ def main(argv=None):
         return 0
     if args.command == 'sources':
         print((ROOT / 'SOURCES.lock.json').read_text(encoding='utf-8'))
+        return 0
+    if args.command == 'services':
+        print(json.dumps(stage(args.release, args.output), ensure_ascii=False, indent=2))
         return 0
     if args.command == 'mac':
         return subprocess.call([sys.executable, '-B', 'tools/verify_package.py'], cwd=MAC)

@@ -1,0 +1,15 @@
+[Unit]
+Description=Private noVNC transport
+Requires=wechat-gui-x.service
+After=wechat-gui-x.service
+PartOf=wechat-gui.target
+
+[Service]
+Type=exec
+User=wechat-gui
+Group=wechat-gui
+UMask=0077
+PrivateNetwork=yes
+ExecStart=/usr/bin/websockify --web=/usr/share/novnc --unix-target=/run/wechat-gui/vnc.sock 127.0.0.1:6088
+Restart=on-failure
+RestartSec=3

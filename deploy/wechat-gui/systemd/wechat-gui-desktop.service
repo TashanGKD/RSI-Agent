@@ -1,0 +1,17 @@
+[Unit]
+Description=Official WeChat and window manager
+Requires=wechat-gui-x.service
+After=wechat-gui-x.service
+PartOf=wechat-gui.target
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=exec
+User=wechat-gui
+Group=wechat-gui
+UMask=0077
+Environment=HOME=/home/wechat-gui DISPLAY=:92 XAUTHORITY=/run/wechat-gui/Xauthority XDG_RUNTIME_DIR=/run/wechat-gui
+ExecStart=/usr/bin/dbus-run-session /bin/sh @RELEASE@/deploy/wechat-gui/session.sh
+Restart=on-failure
+RestartSec=3

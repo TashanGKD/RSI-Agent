@@ -4,7 +4,7 @@ The current Harness has two runnable entrypoints:
 
 | Entry | Runs | What it establishes |
 | --- | --- | --- |
-| `python -B scripts/check.py --linux` | Synthetic adapter/native-reader/queue/snapshot regressions, temporary notebook HTTP and Mac manifest | Code regression evidence on Linux |
+| `python -B scripts/check.py --linux` | Synthetic adapter/native-reader/queue/snapshot regressions, isolated X/VNC bootstrap and service-definition verification, temporary notebook HTTP and Mac manifest | Code regression and isolated Linux startup evidence |
 | `python -B -m rsi_agent --config /private/installation.json audit` | Existing X11 window metadata, owning process's TracerPid, service FragmentPath and dependency prerequisites | Current structural runtime findings without reading messages or sending input |
 
 `audit` prints bounded JSON. Exit 0 means the inspected conditions pass; 1 means
@@ -20,6 +20,12 @@ private and retain only sanitized findings supporting a decision. Record exact
 base/head revisions, observed time, validation commands and limitations in the PR.
 Freeze regression cases before evaluating a candidate; a changed test definition
 requires a new baseline and is not comparable to the old result.
+
+The new bootstrap fixture owns a temporary directory and child X server on an
+unused display. It validates X authorization and a VNC handshake without WeChat,
+production data or service installation. See the
+[service bundle](../deploy/wechat-gui/README.md) for the staging entrypoint and
+the still-pending production migration/rollback boundary.
 
 The local operator's SSH and installation bindings can be kept in ignored
 `var/maintenance/operator.json`. They are execution context, not project memory.

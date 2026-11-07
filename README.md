@@ -43,6 +43,9 @@ python -m rsi_agent --config /private/installation.json wechat operations < oper
 
 Linux 原生辅助函数已经统一使用 `WECHAT_DISPLAY` 和 `WECHAT_XAUTHORITY`，不再分别写死显示号。通过 RSI Agent 入口会从配置传入；直接使用原入口时仍保留原 `:97` 默认值，以兼容既有调用方。账号绑定、窗口布局和版本仍需在实际机器上验收。
 
+持久化桌面服务可通过 `python -m rsi_agent services stage` 生成可审查的候选包，详见
+[合睿服务部署说明](deploy/wechat-gui/README.md)。该命令只生成文件；线上服务尚未切换。
+
 ## 两个原项目如何合在一起
 
 ```text
@@ -67,10 +70,12 @@ harness/                          回归/运行时验证入口及Penguin接入�
 python -B scripts/check.py
 # 在独立 Linux 环境安装测试依赖后：
 python -m pip install -r requirements-linux-tests.txt
+# Ubuntu 24.04：隔离 X/VNC bootstrap 和 systemd 定义校验所需依赖
+sudo apt-get install --no-install-recommends tigervnc-standalone-server xauth x11-utils websockify novnc socat
 python -B scripts/check.py --linux
 ```
 
-测试只使用合成账号、模拟 driver 和临时数据库，不触碰真实微信或调用模型。
+测试使用合成账号、模拟 driver、临时数据库和独立显示号的 X/VNC 子进程，不触碰真实微信或调用模型。Linux bootstrap 校验在 Windows 上明确跳过，不能计为通过。
 Mac 的 `verify` 只验证静态源码完整性；缺失 PortableCore、OriginalDesktop、资源与 helper 的情况见 [Mac 构建缺口](components/wechat-collector-mac/docs/BUILD_GAPS.md)。
 
 合睿实机已完成当前账号读取与文件传输助手单条文本发送验收：V2 队列只点击一次发送，原生记录状态为成功，发送者、会话和全文匹配；相同请求 ID 返回原回执。实测记录及尚未完成的普通启动、布局覆盖和长稳验收见 [合睿接入记录](docs/HORYZON-ACCEPTANCE.md)。Mac 构建缺口及服务持久化工作仍按 [集成计划](docs/INTEGRATION.md) 跟进。

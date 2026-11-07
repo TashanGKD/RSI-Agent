@@ -1,0 +1,15 @@
+[Unit]
+Description=Private WeChat gateway socket
+Requires=wechat-gui-web.service
+After=wechat-gui-web.service
+PartOf=wechat-gui.target
+RequiresMountsFor=/data/docker/volumes/teamctx-mattermost_caddy_data/_data
+ConditionPathIsDirectory=/data/docker/volumes/teamctx-mattermost_caddy_data/_data/wechat-gui
+
+[Socket]
+ListenStream=/data/docker/volumes/teamctx-mattermost_caddy_data/_data/wechat-gui/web.sock
+SocketUser=wechat-gui
+SocketGroup=wechat-gui
+SocketMode=0600
+Accept=yes
+RemoveOnStop=yes

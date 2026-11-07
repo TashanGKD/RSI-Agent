@@ -16,4 +16,8 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m pip install -r requirements-linux-tests.txt
+      - name: Install isolated desktop bootstrap dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends tigervnc-standalone-server xauth x11-utils websockify novnc socat
       - run: python -B scripts/check.py --linux
