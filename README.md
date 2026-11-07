@@ -43,6 +43,14 @@ python -m rsi_agent --config /private/installation.json wechat operations < oper
 只读入口仅接受 `resolve/messages/voice/attachments/attachment`，不能夹带发送动作。
 写操作继续走同一 V2 队列、稳定请求 ID、目标/草稿检查和原生回执，不新增第二个发送器；未知结果核原请求，不自动换 ID 重发。
 
+桌面、解密密钥暂不可用或写开关关闭时，仍可查询已有的单条回执：
+
+```json
+{"op":"get","client":"original-client","request_id":"original-request-id"}
+```
+
+把这份 JSON 通过上面的 `wechat operations` 入口传入。Linux 下须由原专用用户持有已有的私有 `operations-state/config.json` 和 `queue.sqlite`；查询不会新建缺失队列或启动执行器。`unknown` 保持原状态，不自动重发；其他 operations 仍受原就绪门禁约束。
+
 Linux 原生辅助函数已经统一使用 `WECHAT_DISPLAY` 和 `WECHAT_XAUTHORITY`，不再分别写死显示号。通过 RSI Agent 入口会从配置传入；直接使用原入口时仍保留原 `:97` 默认值，以兼容既有调用方。账号绑定、窗口布局和版本仍需在实际机器上验收。
 
 持久化桌面服务可通过 `python -m rsi_agent services stage` 生成可审查的候选包，详见

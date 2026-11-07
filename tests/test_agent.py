@@ -44,7 +44,8 @@ class AgentTests(unittest.TestCase):
                     self.assertEqual(result['operations']['ready'], missing is None)
                     if missing:
                         with self.assertRaisesRegex(ValueError, 'prerequisites are incomplete'):
-                            call(config, 'operations', {'op': 'get', 'client': 'fixture', 'request_id': 'original'})
+                            call(config, 'operations', {'op': 'confirm', 'client': 'fixture',
+                                                        'request_id': 'original', 'token': 'fixture-token'})
                         delegate.assert_not_called()
 
     def test_configuration_paths_use_the_configuration_directory(self):
@@ -77,9 +78,11 @@ class AgentTests(unittest.TestCase):
 
     def test_existing_request_id_and_body_are_forwarded_without_rewrite(self):
         request = {'op': 'get', 'client': 'owner', 'request_id': 'original'}
-        with patch('rsi_agent.wechat.doctor', return_value={'operations': {'ready': True}}), patch('rsi_agent.wechat.subprocess.run') as run:
+        with patch('rsi_agent.wechat.sys.platform', 'linux'), patch('rsi_agent.wechat.private_file', return_value=True), \
+                patch('rsi_agent.wechat.doctor') as readiness, patch('rsi_agent.wechat.subprocess.run') as run:
             run.return_value.returncode = 0
             self.assertEqual(call(load(), 'operations', request), 0)
+            readiness.assert_not_called()
             args, kwargs = run.call_args
             self.assertEqual(json.loads(kwargs['input']), request)
             self.assertIn('operations.cli', args[0])

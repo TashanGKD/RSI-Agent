@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "baseline_revision": "e3ddea74b49627d4584618abcb826adf5ee9ecf3",
+  "interface": "python -m rsi_agent --config fixture.json wechat operations",
+  "module": "rsi_agent/wechat.py",
+  "baseline_module_sha256": "6b2f8b95e1782f9fbc06969e1cf6c30cd67c080d4aef7d632ba52fa3c4de5f8b",
+  "candidate_module_sha256": "680e3e857c182a3268223003eede5fa24a515312ae9e15f65dda5bf1173ce7f9",
+  "fixture": "tests/test_receipt_recovery.py",
+  "fixture_sha256": "4fe953ccadb3d3f0300ba3a0c51a5f5ea6c830664256dc34e4ecb4972e465095",
+  "environment": "Temporary synthetic queue, disconnected display, empty executable PATH, no account profile/decryption keys; operations_enabled=false.",
+  "baseline": {
+    "native_sdk_existing_receipts_exit": 0,
+    "unified_existing_receipts_exit": 2,
+    "unified_reason": "WeChat prerequisites are incomplete; run doctor before reading or writing.",
+    "failed_assertions": 3,
+    "cases": ["succeeded-original", "unknown-original", "not-present"]
+  },
+  "candidate": {
+    "existing_receipts_exit": 0,
+    "native_sdk_receipts_equal": true,
+    "original_ids_and_succeeded_unknown_states_preserved": true,
+    "unknown_automatic_replay": false,
+    "missing_receipt": "REQUEST_NOT_FOUND",
+    "missing_queue_created": false,
+    "nonprivate_queue_or_policy": "blocked",
+    "submit_confirm_cancel_reconcile": "blocked",
+    "fixture_file_contents_unchanged": true,
+    "send_attempt_files": 0,
+    "tests_passed": 4
+  },
+  "reproduce": "python -B -m unittest discover -s tests -p test_receipt_recovery.py -v",
+  "boundary": "Real SDK CLI and synthetic SQLite receipts; no mocks, executor, production queue access, native message lookup, GUI input or send. Uses the SDK Store initialization, not a new physical read-only database implementation.",
+  "delivery": "Actual PR receipt and host release metadata determine merge and deployment. This comparison does not predeclare promotion."
+}

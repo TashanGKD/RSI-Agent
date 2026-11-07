@@ -78,9 +78,15 @@ def call(config, mode, request):
         raise ValueError('A JSON object is required.')
     if mode == 'read' and request.get('action') not in READ_ACTIONS:
         raise ValueError('The read entry accepts only resolve/messages/voice/attachments/attachment.')
-    status = doctor(config)
-    if not status['read' if mode == 'read' else 'operations']['ready']:
-        raise ValueError('WeChat prerequisites are incomplete; run doctor before reading or writing.')
+    if mode == 'operations' and request.get('op') == 'get':
+        state = Path(config['wechat']['runtime_root']) / 'operations-state'
+        if not (sys.platform == 'linux' and private_file(state / 'config.json')
+                and private_file(state / 'queue.sqlite')):
+            raise ValueError('Existing private operations configuration and queue required for receipt lookup.')
+    else:
+        status = doctor(config)
+        if not status['read' if mode == 'read' else 'operations']['ready']:
+            raise ValueError('WeChat prerequisites are incomplete; run doctor before reading or writing.')
     source = WORKBENCH / 'wechat'
     command = [sys.executable, '-B', str(source / 'linux_tool.py'), '--execute']
     if mode == 'operations':
