@@ -3,12 +3,12 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-1. **Request identity: reject duplicate JSON keys.** The unified CLI silently
-   overwrites earlier keys before the SDK sees them. Deliver the minimal parser
-   fix with original-ID/peer/nested-payload regressions and a valid-text control;
-   verify normal CI, code-only promotion and actual current-path rejection.
-   PR #1 is already merged and released; read each PR's delivery receipt and host
-   metadata before declaring a release still pending.
+1. **Installation diagnosis: missing X11 tools.** Doctor can report ready while
+   the SDK cannot launch xwininfo or xprop. Deliver the two executable checks,
+   preserve independent database-read readiness and block operations before SDK
+   delegation. Verify normal CI and actual current-path diagnosis after code-only
+   promotion. PR #2's request-identity fix is already released; read the current
+   PR's delivery receipt and host metadata before treating a release as pending.
 2. **Service persistence: awaiting production window.** Bundle/bootstrap and
    isolated transient→persistent→rollback transport paths are verified. Two rounds
    are complete; do not spend another round repeating those checks. Actual X,

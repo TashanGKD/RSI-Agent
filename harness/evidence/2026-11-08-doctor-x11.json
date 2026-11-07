@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "baseline_revision": "722bf55ec33bdbed010166a03b22fc5b46699551",
+  "module": "rsi_agent/wechat.py",
+  "baseline_module_sha256": "bb47c66fc7690073e848c59118465f26dd58d4c48100432b8f6be6c7572f6b4a",
+  "candidate_module_sha256": "6b2f8b95e1782f9fbc06969e1cf6c30cd67c080d4aef7d632ba52fa3c4de5f8b",
+  "comparison": [
+    {
+      "missing": "xwininfo",
+      "native_failure": {
+        "interface": "operations.windows.visible",
+        "missing_executable": "xwininfo"
+      },
+      "baseline": {
+        "read_ready": true,
+        "desktop_ready": true,
+        "operations_ready": true,
+        "sdk_delegated": true,
+        "reason": null
+      },
+      "candidate": {
+        "read_ready": true,
+        "desktop_ready": false,
+        "operations_ready": false,
+        "sdk_delegated": false,
+        "reason": "WeChat prerequisites are incomplete; run doctor before reading or writing."
+      }
+    },
+    {
+      "missing": "xprop",
+      "native_failure": {
+        "interface": "operations.windows.window_identity",
+        "missing_executable": "xprop"
+      },
+      "baseline": {
+        "read_ready": true,
+        "desktop_ready": true,
+        "operations_ready": true,
+        "sdk_delegated": true,
+        "reason": null
+      },
+      "candidate": {
+        "read_ready": true,
+        "desktop_ready": false,
+        "operations_ready": false,
+        "sdk_delegated": false,
+        "reason": "WeChat prerequisites are incomplete; run doctor before reading or writing."
+      }
+    },
+    {
+      "missing": null,
+      "native_failure": null,
+      "baseline": {
+        "read_ready": true,
+        "desktop_ready": true,
+        "operations_ready": true,
+        "sdk_delegated": true,
+        "reason": null
+      },
+      "candidate": {
+        "read_ready": true,
+        "desktop_ready": true,
+        "operations_ready": true,
+        "sdk_delegated": true,
+        "reason": null
+      }
+    }
+  ],
+  "fixture": "Actual X11 inspection functions with an isolated executable PATH and disconnected display; SDK delegation mocked; configuration metadata only, no keys/messages read or GUI input.",
+  "reproduce": "python -B -m unittest discover -s tests -p test_agent.py -k missing_x11 -v",
+  "delivery": "The PR delivery receipt and actual host release metadata determine deployment, not this candidate comparison."
+}

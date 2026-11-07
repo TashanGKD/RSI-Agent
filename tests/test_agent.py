@@ -26,6 +26,27 @@ class AgentTests(unittest.TestCase):
         with patch('rsi_agent.wechat.importlib.util.find_spec', return_value=True), patch('rsi_agent.wechat.importlib.import_module', return_value=gi):
             self.assertFalse(doctor(load())['desktop']['checks']['gtk_installed'])
 
+    def test_missing_x11_tools_block_operations_but_not_database_reads(self):
+        with tempfile.TemporaryDirectory() as folder:
+            (Path(folder) / 'db_storage').mkdir()
+            config = load()
+            config['wechat'].update(account='wxid_fixture_operator', profile=folder, operations_enabled=True)
+            for missing in ('xwininfo', 'xprop', None):
+                with self.subTest(missing=missing), patch('rsi_agent.wechat.sys.platform', 'linux'), \
+                        patch('rsi_agent.wechat.private_file', return_value=True), \
+                        patch('rsi_agent.wechat.importlib.util.find_spec', return_value=True), \
+                        patch('rsi_agent.wechat.gtk_available', return_value=True), \
+                        patch('rsi_agent.wechat.shutil.which', side_effect=lambda name: None if name == missing else '/fixture/bin/' + name), \
+                        patch('rsi_agent.wechat.subprocess.run') as delegate:
+                    result = doctor(config)
+                    self.assertTrue(result['read']['ready'])
+                    self.assertEqual(result['desktop']['dependencies_ready'], missing is None)
+                    self.assertEqual(result['operations']['ready'], missing is None)
+                    if missing:
+                        with self.assertRaisesRegex(ValueError, 'prerequisites are incomplete'):
+                            call(config, 'operations', {'op': 'get', 'client': 'fixture', 'request_id': 'original'})
+                        delegate.assert_not_called()
+
     def test_configuration_paths_use_the_configuration_directory(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / 'config.json'

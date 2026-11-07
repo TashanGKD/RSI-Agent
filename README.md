@@ -15,6 +15,8 @@ python -m rsi_agent mac verify
 
 `doctor` 只检查条件，不读取消息、不操作微信界面。它分别报告桌面依赖、读取条件和写操作条件，不把客户端存活当作真实收发验收。
 
+Linux 的 `xwininfo_installed` 或 `xprop_installed` 为 false 时，桌面操作尚未就绪；Ubuntu 可运行 `sudo apt-get install x11-utils` 后重新检查。这两项不影响独立的数据库读取条件。
+
 `audit` 在 Linux 上进一步检查实际可见窗口、调试器状态和服务持久化，输出脱敏 JSON；它不读取聊天内容、不发送输入，发现退化会返回非零状态。检查通过也不等于完成收发或故障恢复验收。
 
 启动一个新的合成记事本：
