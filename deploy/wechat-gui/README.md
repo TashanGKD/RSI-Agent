@@ -43,16 +43,50 @@ CI 的隔离 bootstrap 不安装或启动微信，只安装 X/VNC/定义校验�
 - target 提供未来的开机入口。现阶段未安装、enable 或 start；定义校验和
   隔离 X/VNC 启动通过不等于主机启动验收或微信自动恢复。
 
-## 切换与回滚仍需演练
+## 独立迁移与回滚演练
+
+在已有上述依赖、`wechat-gui` 用户及 systemd PID 1 的 Linux 主机，以 root 执行：
+
+```sh
+python3 -B scripts/rehearse_service_migration.py --execute
+```
+
+省略 `--execute` 只显示帮助。脚本从实际模板生成随机前缀的独立 unit，使用独立
+显示号、运行目录和 Unix socket；桌面进程用 `sleep` 替身，不启动微信。它临时
+建立 `/run` 和 `/etc/systemd/system` 定义，依次验证 transient、persistent、
+rollback 三阶段，再停止并清理本次对象，不执行 enable。
+
+每阶段都经私有 gateway→网络命名空间→noVNC→VNC 验证 HTTP 200、WebSocket
+101 和 RFB 握手，核对私有权限和真实 FragmentPath。实机三阶段及清理已通过，
+生产三个服务 PID 未变；证据见
+[迁移演练](../../harness/evidence/2026-11-08-horyzon-service-migration.json)。
+
+首次演练发现：`systemctl stop target` 返回时，子服务的停止和 RuntimeDirectory
+清理仍可能进行中。修正后显式请求停止全部本次加载的 unit，再检查目录；不能在
+只等待 target 后立即删除授权或启动替换服务。
+
+## 生产切换的剩余边界
 
 生产切换会中断 X、微信和网页桌面，应在另行确认的维护窗口执行。此前一次
 普通微信重启授权已使用，不能据此周期性重启或再发消息。
 
-切换前需要将当前三个 transient 服务、两个 `/run` 网关定义、普通 session
-脚本及其路径/权限保存到 root 私有备份，并记录当前活动版本与进程。
+维护窗口内的步骤与检查点如下；这些生产步骤尚未执行：
+
+1. 固定已审查且 CI 通过的持久 release，重新生成生产路径的包。将当前三个
+   transient 定义、两个 `/run` 网关定义、普通 session 脚本及运行授权/绑定的
+   路径与权限备份到 root 私有目录，记录活动版本和进程。
+2. 安装候选定义后，显式停止此次切换的全部旧服务、网关 socket 及其连接实例；
+   等待全部请求完成，确认旧 transient 文件已由 manager 卸载。保存旧运行目录
+   后从空目录启动候选 target，确认 FragmentPath 来自 `/etc`。
+3. 验证既有登录网页、普通微信登录、无调试器及窗口/私有绑定。独立演练中的
+   `sleep` 替身没有验收微信重启、缓存登录或布局恢复。
+4. 回滚时同样等待全部新 unit 停止，恢复原网关定义及私有运行资料，再按备份的
+   ExecStart、环境和权限用 systemd-run 重建三个原 transient 服务；不能把备份
+   直接写回 manager 管理的 `/run/systemd/transient`。回滚后的微信验收仍需实机。
+
 `/run/systemd/transient` 的定义优先于 `/etc/systemd/system`；仅复制文件再
-daemon-reload 不能证明已切换。应先在独立名称和显示号下演练停止、旧定义卸载、
-持久定义加载和回滚，再确定准确命令。不要手动改写正在运行的 transient 文件。
+daemon-reload 不能证明已切换，演练已复现这个优先级。不要手动改写正在运行的
+transient 文件。
 加载优先级依据 [systemd v255 的单元加载规则](https://github.com/systemd/systemd/blob/v255/man/systemd.unit.xml)，
 私有目录生命周期依据 [RuntimeDirectory 约定](https://github.com/systemd/systemd/blob/v255/man/systemd.exec.xml)。
 

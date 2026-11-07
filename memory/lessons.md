@@ -19,3 +19,7 @@
 - Persistent service preparation must include private runtime-directory and
   Xauthority creation plus readiness. A generated unit file is not an activated
   service: transient definitions have higher load priority than `/etc` definitions.
+- A target's stop job can return before its propagated child stop jobs finish.
+  Before replacing runtime authorization, explicitly wait for every affected
+  service/socket/connection unit and verify cleanup. This race occurred in the
+  isolated systemd migration rehearsal, without restarting the production client.

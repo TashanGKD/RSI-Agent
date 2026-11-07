@@ -13,40 +13,33 @@ every 45 minutes in the existing Codex chat.
 - One File Transfer text was accepted at 2026-11-08 00:06:05 +08:00. Native sender,
   peer and exact body matched; one terminal attempt and same-ID receipt replay
   were verified. See `docs/HORYZON-ACCEPTANCE.md`.
-- Baseline has 437 synthetic checks plus notebook HTTP and Mac manifest checks.
-  Mac is still a source package with missing build dependencies.
+- Mac is still a source package with missing build dependencies.
 
 ## Active improvement
 
 Branch `codex/rsi-harness-foundation`: the read-only audit, project memory and
-shared maintenance Skill now feed the service-persistence user path. Prepare and
-validate a deployable candidate before interrupting the live desktop.
+shared maintenance Skill support service preparation. The candidate has completed
+isolated transport migration/rollback; production is awaiting a maintenance window.
 
 [PR #1](https://github.com/Yu-Yang-Li/RSI-Agent/pull/1) is open for this work.
-Recheck its current remote head and CI after each push. The requested 45-minute
-heartbeat is ACTIVE in this chat as `rsi-agent-harness`; its first scheduled
-invocation produced the service-bundle candidate below.
+Recheck its current remote head and CI after each push. Heartbeat
+`rsi-agent-harness` has now produced two actual scheduled preparation rounds.
 
-Candidate `8208c84c355c18bf9167b257efc296515a75fcaf` passed 443 Linux checks,
-the notebook HTTP probe and the Mac manifest. Its real-host audit observed
-`degraded` at 2026-11-07 16:26:51 UTC (2026-11-08 00:26:51 +08:00): dependency
-prerequisites passed, but the 623×667 main layout, attached debugger and transient
-desktop services failed the structural checks. See
-[`harness/evidence/2026-11-08-horyzon-audit.json`](../harness/evidence/2026-11-08-horyzon-audit.json).
-An unauthenticated public-terminal request also redirected to the password form.
-Production remained on `fcd16a7`; no UI input, message read or additional send
-was part of this engineering audit.
+Latest code candidate `59b018e45aa2d369b23f15ab658fab0f2ae579dd` includes
+`services stage`, six unit templates, private Xauthority/readiness bootstrap and
+the root/systemd rehearsal. Its exact Git archive passed 450 Linux checks,
+notebook HTTP and Mac manifest checks on Horyzon. The
+[bootstrap fixture](../harness/evidence/2026-11-08-horyzon-service-bundle.json)
+verified authorization, permissions and readiness; the staged graph passed
+systemd verification. This bundle is not activated on production.
 
-Service candidate `2b265c9d958435ac6fb587ee3017944e8b749a27` adds
-`services stage`, six persistent unit templates and private Xauthority/readiness
-bootstrap. An exact Git archive passed 450 Linux checks, notebook HTTP and Mac
-manifest checks on Horyzon. The real isolated X/VNC fixture verified authorization,
-private permissions, handshake and refusal to replace an existing socket's auth;
-the staged graph passed systemd verification. Production service PIDs and release
-were unchanged. See
-[`service-bundle evidence`](../harness/evidence/2026-11-08-horyzon-service-bundle.json).
-The bundle is prepared, not installed or activated; this closes the staging and
-isolated bootstrap path, not boot persistence.
+The separate root rehearsal verified actual transient → persistent → rollback unit
+selection, with HTTP 200, WebSocket 101 and RFB handshake in every phase. The
+desktop was an isolated sleep process. The initial assumption that stopping only
+a target waits for all children was rejected; explicit stop requests for every
+owned unit fixed the cleanup barrier. No fixture definitions, units or runtime
+directories remained, and production service PIDs were unchanged. See
+[`migration evidence`](../harness/evidence/2026-11-08-horyzon-service-migration.json).
 
 ## Known operational limits
 
@@ -65,9 +58,16 @@ cleanup. Server-boot persistence, general recovery and long stability remain
 unverified. The single restart authorization has been used; no additional send
 or repeated restart is implied by the 45-minute maintenance cadence.
 
+The user's report of a message getting no reply exposed a separate product gap:
+this installation has no automatic incoming-message/AI-reply service. The exact
+conversation is awaiting clarification. Existing read/send access is not an
+automatic chat loop or new standing-send authorization.
+
 ## Next checkpoint
 
-After checking PR #1's actual head/CI, rehearse transient-to-persistent migration
-and rollback with independent unit names/display/socket paths. Do not activate
-the production bundle until that plan is concrete and a suitable maintenance
-window is authorized. The live persistence finding stays open.
+Two service-preparation rounds have now closed staging and isolated transport
+migration/rollback. Actual production persistence is blocked on a suitable new
+maintenance window for X/WeChat/noVNC interruption and possible phone confirmation;
+it is not blocked on repeating syntax checks. Preserve the candidate and move to
+the independent cancellation-recovery fixture in todo item 3 while that window
+is unresolved. Check PR #1's actual head/CI first; do not repeat live sends.

@@ -1,6 +1,6 @@
 # Verification Harness
 
-The current Harness has two runnable entrypoints:
+The regular Harness has two entrypoints:
 
 | Entry | Runs | What it establishes |
 | --- | --- | --- |
@@ -26,6 +26,12 @@ unused display. It validates X authorization and a VNC handshake without WeChat,
 production data or service installation. See the
 [service bundle](../deploy/wechat-gui/README.md) for the staging entrypoint and
 the still-pending production migration/rollback boundary.
+
+`python3 -B scripts/rehearse_service_migration.py --execute` is a separate root
+integration fixture for a real systemd host, outside ordinary CI. It creates only
+disposable names and verifies the complete private HTTP/WebSocket/VNC path before,
+during and after rollback. Its desktop is `sleep`; production login, boot and
+layout recovery remain separate acceptance. Without `--execute` it only prints help.
 
 The local operator's SSH and installation bindings can be kept in ignored
 `var/maintenance/operator.json`. They are execution context, not project memory.
