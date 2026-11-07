@@ -40,7 +40,9 @@ def doctor(config):
     }
     desktop = {'linux': linux, 'xauthority_present': private_file(wx['xauthority']),
                'pillow_installed': importlib.util.find_spec('PIL') is not None,
-               'gtk_installed': gtk_available()}
+               'gtk_installed': gtk_available(),
+               'xwininfo_installed': shutil.which('xwininfo') is not None,
+               'xprop_installed': shutil.which('xprop') is not None}
     operations = {
         'enabled': wx['operations_enabled'], 'read_ready': all(read.values()),
         'desktop_dependencies_ready': all(desktop.values()), 'ocr_installed': shutil.which('tesseract') is not None,
