@@ -21,6 +21,12 @@ base/head revisions, observed time, validation commands and limitations in the P
 Freeze regression cases before evaluating a candidate; a changed test definition
 requires a new baseline and is not comparable to the old result.
 
+The local operator's SSH and installation bindings can be kept in ignored
+`var/maintenance/operator.json`. They are execution context, not project memory.
+Inspect the current remote release each time rather than carrying an old SHA
+into the next run. The first sanitized host audit is in
+[`evidence/2026-11-08-horyzon-audit.json`](evidence/2026-11-08-horyzon-audit.json).
+
 For the agent self-improvement layer, see [Penguin integration](PENGUIN.md).
 The regressions and audit are usable engineering gates, not a Penguin Formal
 Baseline or evidence that an optimizer improves itself.

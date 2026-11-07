@@ -13,3 +13,6 @@
   the latter remains the original request and is never blindly replayed.
 - A single successful live text is bounded acceptance. It does not establish
   media coverage, unattended cleanup, ordinary restart or 24–72 hour stability.
+- A passing dependency doctor can coexist with a traced process, changed main
+  layout and transient services. Keep structural runtime findings distinct from
+  dependencies and historical send acceptance; retain nonzero audit status.

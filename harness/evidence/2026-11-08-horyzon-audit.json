@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "checked_at": "2026-11-07T16:26:51.208129+00:00",
+  "health": "degraded",
+  "checks": {
+    "installation_prerequisites": true,
+    "official_client_visible": true,
+    "calibrated_main_geometry": false,
+    "ordinary_process": false,
+    "persistent_desktop_services": false
+  },
+  "findings": [
+    "MAIN_LAYOUT_UNCALIBRATED",
+    "DEBUGGER_ATTACHED",
+    "SERVICES_NOT_PERSISTENT"
+  ],
+  "scope": "Process, layout and installation checks; no message read/send or recovery test.",
+  "main_geometry": [
+    623,
+    667
+  ],
+  "candidate_revision": "8208c84c355c18bf9167b257efc296515a75fcaf",
+  "production_release": "fcd16a7",
+  "exit_code": 1
+}

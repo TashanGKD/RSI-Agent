@@ -22,6 +22,16 @@ Branch `codex/rsi-harness-foundation`: add a read-only runtime audit that expose
 conditions a successful dependency doctor misses; establish project memory and
 the shared maintenance Skill. It is a candidate until its PR is merged.
 
+Candidate `8208c84c355c18bf9167b257efc296515a75fcaf` passed 443 Linux checks,
+the notebook HTTP probe and the Mac manifest. Its real-host audit observed
+`degraded` at 2026-11-07 16:26:51 UTC (2026-11-08 00:26:51 +08:00): dependency
+prerequisites passed, but the 623×667 main layout, attached debugger and transient
+desktop services failed the structural checks. See
+[`harness/evidence/2026-11-08-horyzon-audit.json`](../harness/evidence/2026-11-08-horyzon-audit.json).
+An unauthenticated public-terminal request also redirected to the password form.
+Production remained on `fcd16a7`; no UI input, message read or additional send
+was part of this engineering audit.
+
 ## Known operational limits
 
 Ordinary startup after GDB bootstrap has not been verified. The normal startup
@@ -36,5 +46,6 @@ restarting the live client or sending another test message.
 
 ## Next checkpoint
 
-Run the new audit against the current host, preserve its sanitized result and
-attach CI plus the actual PR. Then select the highest-value item in `todo.md`.
+Attach the actual PR and its remote CI result, then select the highest-value
+independent item in `todo.md`. The host findings remain open until separately
+repaired and rechecked; the audit surfacing them is not a repair.
