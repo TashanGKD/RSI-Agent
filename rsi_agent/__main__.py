@@ -5,6 +5,7 @@ import subprocess
 import sys
 
 from . import __version__
+from .audit import audit
 from .config import MAC, ROOT, WORKBENCH, load
 from .wechat import call, doctor
 
@@ -15,6 +16,7 @@ def main(argv=None):
     parser.add_argument('--config', help='Private installation JSON; never commit real account settings.')
     commands = parser.add_subparsers(dest='command')
     commands.add_parser('doctor', help='Report prerequisites without reading messages or operating the GUI.')
+    commands.add_parser('audit', help='Inspect the real Linux client process, layout and service persistence without input.')
     commands.add_parser('sources', help='Show the pinned source repositories and commits.')
     wx = commands.add_parser('wechat', help='Use the original on-demand WeChat SDK.')
     wx.add_argument('mode', choices=['read', 'operations'], help='One JSON request from stdin.')
@@ -48,6 +50,10 @@ def main(argv=None):
     if args.command == 'doctor':
         print(json.dumps(doctor(config), ensure_ascii=False, indent=2))
         return 0
+    if args.command == 'audit':
+        report = audit(config)
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0 if report['health'] == 'pass' else 2 if report['health'] == 'unsupported' else 1
     raw = sys.stdin.read(1500001)
     if len(raw.encode()) > 1500000:
         raise ValueError('Request too large.')

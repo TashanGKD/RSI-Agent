@@ -9,10 +9,13 @@ Linux 微信是当前运行适配主干；Mac 源码保留独立平台边界与�
 python -m rsi_agent --help
 python -m rsi_agent sources
 python -m rsi_agent --config examples/linux.json doctor
+python -m rsi_agent --config examples/linux.json audit
 python -m rsi_agent mac verify
 ```
 
 `doctor` 只检查条件，不读取消息、不操作微信界面。它分别报告桌面依赖、读取条件和写操作条件，不把客户端存活当作真实收发验收。
+
+`audit` 在 Linux 上进一步检查实际可见窗口、调试器状态和服务持久化，输出脱敏 JSON；它不读取聊天内容、不发送输入，发现退化会返回非零状态。检查通过也不等于完成收发或故障恢复验收。
 
 启动一个新的合成记事本：
 
@@ -49,6 +52,9 @@ components/wechat-collector-mac/   Mac静态源码、worker、来源与依赖缺
 examples/                         不含真实账号的安装示例
 scripts/check.py                  同一套适配检查与Linux合成回归
 docs/                             集成边界、验证结果与后续验收
+memory/                           GitHub管理的项目状态、决策、经验与下一步
+harness/                          回归/运行时验证入口及Penguin接入约定
+.agents/skills/                   Codex与Penguin共用的维护Skill
 ```
 
 这不是给两份源码改名：Linux 的显示/授权路径接到了同一配置，所有入口有统一诊断和测试，原始业务实现继续复用。没有将 macOS 原生界面硬接到 Linux，也没有创建重复队列、影子账号或重复定时任务。
@@ -68,3 +74,7 @@ python -B scripts/check.py --linux
 Mac 的 `verify` 只验证静态源码完整性；缺失 PortableCore、OriginalDesktop、资源与 helper 的情况见 [Mac 构建缺口](components/wechat-collector-mac/docs/BUILD_GAPS.md)。
 
 合睿实机已完成当前账号读取与文件传输助手单条文本发送验收：V2 队列只点击一次发送，原生记录状态为成功，发送者、会话和全文匹配；相同请求 ID 返回原回执。实测记录及尚未完成的普通启动、布局覆盖和长稳验收见 [合睿接入记录](docs/HORYZON-ACCEPTANCE.md)。Mac 构建缺口及服务持久化工作仍按 [集成计划](docs/INTEGRATION.md) 跟进。
+
+## 持续改进
+
+从 [项目记忆](memory/README.md) 恢复当前状态，每轮以一个实际可用性问题为目标，建立假设、验证候选并通过 PR 留下依据。没有合格变化就不制造提交。现有 Codex 循环负责工程迭代，[Penguin 接入约定](harness/PENGUIN.md) 负责将来固定模型下的 Agent/Skill 优化；目前尚无 Penguin 正式基线或 RSI 效果分数。
