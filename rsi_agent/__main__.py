@@ -66,7 +66,14 @@ def main(argv=None):
     raw = sys.stdin.read(1500001)
     if len(raw.encode()) > 1500000:
         raise ValueError('Request too large.')
-    return call(config, args.mode, json.loads(raw))
+    def unique_object(pairs):
+        value = {}
+        for key, item in pairs:
+            if key in value:
+                raise ValueError('Duplicate JSON key in request.')
+            value[key] = item
+        return value
+    return call(config, args.mode, json.loads(raw, object_pairs_hook=unique_object))
 
 
 if __name__ == '__main__':

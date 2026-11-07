@@ -1,4 +1,5 @@
 import importlib.util
+import io
 import json
 import os
 from pathlib import Path
@@ -61,6 +62,27 @@ class AgentTests(unittest.TestCase):
             args, kwargs = run.call_args
             self.assertEqual(json.loads(kwargs['input']), request)
             self.assertIn('operations.cli', args[0])
+
+    def test_cli_rejects_duplicate_request_keys_before_delegation(self):
+        cases = [
+            ('read', '{"action":"resolve","peer":"wxid_fixture_first","peer":"wxid_fixture_second"}'),
+            ('operations', '{"op":"get","client":"fixture","request_id":"original","request_id":"replacement"}'),
+            ('operations', '{"op":"submit","job":{"payload":{"text":"first","text":"replacement"}}}'),
+            ('read', '{"action":"resolve","peer":"wxid_fixture_first","\\u0070eer":"wxid_fixture_second"}'),
+        ]
+        for mode, raw in cases:
+            with self.subTest(raw=raw), patch('sys.stdin', io.StringIO(raw)), patch('rsi_agent.__main__.call', return_value=0) as delegate:
+                with self.assertRaisesRegex(ValueError, '[Dd]uplicate'):
+                    cli.main(['wechat', mode])
+                delegate.assert_not_called()
+
+    def test_cli_preserves_valid_unicode_and_json_like_message_text(self):
+        request = {'op': 'submit', 'job': {'client': 'fixture', 'request_id': 'original',
+                   'peer': 'wxid_fixture_target', 'action': 'send_text',
+                   'payload': {'text': '中文 🧪\n{"peer":"first","peer":"second"}'}}}
+        with patch('sys.stdin', io.StringIO(json.dumps(request, ensure_ascii=False))), patch('rsi_agent.__main__.call', return_value=0) as delegate:
+            self.assertEqual(cli.main(['wechat', 'operations']), 0)
+            self.assertEqual(delegate.call_args.args[2], request)
 
     def test_read_boundary_applies_to_a_ready_installation_too(self):
         with patch('rsi_agent.wechat.doctor', return_value={'read': {'ready': True}}), patch('rsi_agent.wechat.subprocess.run') as run:

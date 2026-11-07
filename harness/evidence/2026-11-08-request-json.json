@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "baseline_revision": "e8dfd084d2053de60b091b9f027e74a4a36311ca",
+  "interface": "python -m rsi_agent wechat read|operations < request.json",
+  "changed_module": "rsi_agent/__main__.py",
+  "original_parsers": [
+    "components/secretary-workbench/wechat/linux_tool.py:parse_request",
+    "components/secretary-workbench/wechat/operations/contract.py:parse_request"
+  ],
+  "hypothesis": "Reject duplicate decoded object keys on the first parse, before reserialization can discard request identity.",
+  "comparison": {
+    "baseline": {
+      "module_sha256": "cbf135ebc7f1538b473491269eca2983599da5893395c364e9faba217c53d175",
+      "cases": [
+        {
+          "case": "duplicate_peer",
+          "delegated": true,
+          "reason": null
+        },
+        {
+          "case": "duplicate_request_id",
+          "delegated": true,
+          "reason": null
+        },
+        {
+          "case": "nested_duplicate_text",
+          "delegated": true,
+          "reason": null
+        },
+        {
+          "case": "escaped_duplicate_peer",
+          "delegated": true,
+          "reason": null
+        }
+      ],
+      "valid_unicode_and_json_like_message_preserved": true
+    },
+    "candidate": {
+      "module_sha256": "2afb15a77b144ec89c7d75493a8c8c65cd5f36a8406f877d5083c10470e980b5",
+      "cases": [
+        {
+          "case": "duplicate_peer",
+          "delegated": false,
+          "reason": "Duplicate JSON key in request."
+        },
+        {
+          "case": "duplicate_request_id",
+          "delegated": false,
+          "reason": "Duplicate JSON key in request."
+        },
+        {
+          "case": "nested_duplicate_text",
+          "delegated": false,
+          "reason": "Duplicate JSON key in request."
+        },
+        {
+          "case": "escaped_duplicate_peer",
+          "delegated": false,
+          "reason": "Duplicate JSON key in request."
+        }
+      ],
+      "valid_unicode_and_json_like_message_preserved": true
+    }
+  },
+  "reproduce": "python -B -m unittest discover -s tests -p test_agent.py -k cli_ -v",
+  "fixture": "tests/test_agent.py:AgentTests.test_cli_rejects_duplicate_request_keys_before_delegation",
+  "scope": "Synthetic JSON with the SDK delegation function mocked; no private config, chat, GUI input or message send.",
+  "delivery_receipt": "Current PR body and host release metadata record deployment; this comparison does not predeclare release."
+}
