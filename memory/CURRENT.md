@@ -8,9 +8,9 @@ every 45 minutes in the existing Codex chat.
 
 ## Verified baseline
 
-- Latest checked main and installed code: `722bf55ec33bdbed010166a03b22fc5b46699551`.
-- PR #2 is merged and its code-only release is complete. Current points to
-  `/opt/rsi-agent/releases/722bf55ec33b`; the prior immutable release is retained.
+- Latest checked main and installed code: `e3ddea74b49627d4584618abcb826adf5ee9ecf3`.
+- PR #3 is merged and its code-only release is complete. Current points to
+  `/opt/rsi-agent/releases/e3ddea74b496`; the prior immutable release is retained.
   Its merged PR body contains the delivery receipt and rollback evidence.
 - One File Transfer text was accepted at 2026-11-08 00:06:05 +08:00. Native sender,
   peer and exact body matched; one terminal attempt and same-ID receipt replay
@@ -19,24 +19,26 @@ every 45 minutes in the existing Codex chat.
 
 ## Active improvement
 
-Correct false-ready installation diagnosis when X11 inspection tools are absent.
-An isolated executable PATH reproduced doctor reporting desktop/operations ready
-while the actual SDK's windows.visible and window_identity failed immediately
-for missing xwininfo or xprop. Hypothesis: include both executable checks in the
-desktop prerequisites so operations is blocked before delegation, while database
-read prerequisites stay ready. The missing-tool cases failed before the fix;
-candidate and all-tools-present control passed. See the
-[native comparison](../harness/evidence/2026-11-08-doctor-x11.json).
+Restore original-receipt lookup when the desktop, decryption keys or write enable
+are unavailable. The original SDK can get stored succeeded/unknown receipts under
+those conditions, but the unified CLI blocks on full operations prerequisites.
+Hypothesis: single get needs the existing private queue and policy, not live-send
+dependencies. Keep SDK validation and original IDs; never create a missing queue
+or start an executor. The frozen synthetic fixture reproduced the baseline block
+and verified candidate recovery, unchanged queue files and protected mutations.
+See [comparison](../harness/evidence/2026-11-08-receipt-recovery.json).
 
 This is the only change under consideration. If its PR is merged and delivered,
-there is no remaining X11-diagnosis WIP. Check its head, CI and delivery receipt;
+there is no remaining receipt-recovery WIP. Check its head, CI and delivery receipt;
 the installed revision is authoritative in `/var/lib/rsi-agent/release.json` and
 `/opt/rsi-agent/current`, rather than the checked baseline above.
 
-PR #2 has already delivered duplicate-request rejection at the current CLI;
-do not keep it as pending. Its
-[delivery receipt](https://github.com/Yu-Yang-Li/RSI-Agent/pull/2) supersedes the
-candidate status in [request evidence](../harness/evidence/2026-11-08-request-json.json).
+PR #3 has delivered X11 dependency diagnosis and contains the eighth-round
+benefit audit: two bounded CLI paths were repaired and published in the last four
+rounds; general delivery, recovery and auto-reply are separate. Its
+[receipt](https://github.com/Yu-Yang-Li/RSI-Agent/pull/3) supersedes the candidate
+status in [X11 evidence](../harness/evidence/2026-11-08-doctor-x11.json).
+PR #2's duplicate-request rejection is also released; do not keep either as WIP.
 The fourth-round audit retuned candidate accumulation to actual delivery. PR #1
 then published the current-path audit and cancellation repair. Its deployed
 source passed the isolated Qt/Openbox cancellation fixture; official WeChat UI
@@ -69,10 +71,10 @@ message/AI-reply service is deployed, and no new standing-send scope was granted
 
 ## Next checkpoint
 
-Until delivered, close the X11-diagnosis WIP through normal CI and code-only promotion,
+Until delivered, close receipt recovery through normal CI and code-only promotion,
 preserving an immutable prior release, private metadata and pointer rollback.
-Verify missing-tool and normal-PATH doctor results at the actual current CLI,
-along with unchanged process, configuration and original request records. Keep completion in that PR's
+Run the frozen synthetic receipt fixture from the actual current source, along
+with unchanged processes, private configuration and real original request records. Keep completion in that PR's
 delivery receipt. After delivery, choose only a demonstrated independent defect;
 unchanged or externally gated state is no-op. Real-client cancellation needs its
 own unsent-draft scope; service activation needs its X/WeChat/noVNC window.

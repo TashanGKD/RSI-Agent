@@ -3,12 +3,12 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-1. **Installation diagnosis: missing X11 tools.** Doctor can report ready while
-   the SDK cannot launch xwininfo or xprop. Deliver the two executable checks,
-   preserve independent database-read readiness and block operations before SDK
-   delegation. Verify normal CI and actual current-path diagnosis after code-only
-   promotion. PR #2's request-identity fix is already released; read the current
-   PR's delivery receipt and host metadata before treating a release as pending.
+1. **Recovery: retrieve the original receipt without live-send prerequisites.**
+   Keep the original SDK's single get, existing private queue/policy checks and
+   unchanged IDs/states. Missing queues must not be created; writes stay gated.
+   Verify the frozen synthetic fixture, normal CI and actual current source after
+   code-only promotion. PR #3 is already released; its X11 checks remain correct
+   for mutations. Resolve completion from the live PR receipt and host metadata.
 2. **Service persistence: awaiting production window.** Bundle/bootstrap and
    isolated transient→persistent→rollback transport paths are verified. Two rounds
    are complete; do not spend another round repeating those checks. Actual X,
