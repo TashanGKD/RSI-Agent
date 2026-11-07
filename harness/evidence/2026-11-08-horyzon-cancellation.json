@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "candidate_revision": "8ae366e4cc087505cc7a3d819d7c2fff72744ffe",
+  "baseline_revision": "59b018e45aa2d369b23f15ab658fab0f2ae579dd",
+  "fixture_sha256": "3684c45dc926a2abacee85b5b8484af4b3933f2415f2db7e4e04fef24111ee0d",
+  "hypothesis": "Openbox replays an editor click after Ctrl+A, collapsing selection before Backspace; settle the click first",
+  "scope": "Real Qt/Openbox/X input with fixture identity adapter; no official WeChat/profile/read/send",
+  "comparison": {
+    "baseline": {
+      "exit": 1,
+      "scope": "owned Qt editor; fixture identity adapter; no WeChat/profile/sender",
+      "cases": [
+        {
+          "case": "owned-empty",
+          "cleanup": false,
+          "restored": false,
+          "journal": "staged",
+          "return_keys": 0,
+          "remaining_chars": 36,
+          "input_events": [
+            [
+              "click",
+              0
+            ],
+            [
+              16777249,
+              0
+            ],
+            [
+              65,
+              37
+            ],
+            [
+              16777249,
+              37
+            ],
+            [
+              67,
+              37
+            ],
+            [
+              16777249,
+              37
+            ],
+            [
+              65,
+              37
+            ],
+            [
+              "click",
+              0
+            ],
+            [
+              16777219,
+              0
+            ]
+          ]
+        },
+        {
+          "case": "owned-prior",
+          "cleanup": false,
+          "restored": false,
+          "journal": "staged",
+          "return_keys": 0,
+          "remaining_chars": 36
+        },
+        {
+          "case": "foreign",
+          "protected": true,
+          "prior_preserved": true,
+          "checkpoint_preserved": true,
+          "return_keys": 0
+        },
+        {
+          "case": "attempted",
+          "protected": true,
+          "prior_preserved": true,
+          "checkpoint_preserved": true,
+          "return_keys": 0
+        }
+      ],
+      "passed": false
+    },
+    "candidate": {
+      "exit": 0,
+      "scope": "owned Qt editor; fixture identity adapter; no WeChat/profile/sender",
+      "cases": [
+        {
+          "case": "owned-empty",
+          "cleanup": true,
+          "restored": true,
+          "journal": "restored",
+          "return_keys": 0,
+          "remaining_chars": 0
+        },
+        {
+          "case": "owned-prior",
+          "cleanup": true,
+          "restored": true,
+          "journal": "restored",
+          "return_keys": 0,
+          "remaining_chars": 23
+        },
+        {
+          "case": "foreign",
+          "protected": true,
+          "prior_preserved": true,
+          "checkpoint_preserved": true,
+          "return_keys": 0
+        },
+        {
+          "case": "attempted",
+          "protected": true,
+          "prior_preserved": true,
+          "checkpoint_preserved": true,
+          "return_keys": 0
+        }
+      ],
+      "passed": true
+    }
+  },
+  "production_service_pids_unchanged": true,
+  "production_release": "fcd16a7",
+  "checked_at": "2026-11-07T19:04:54.021607+00:00",
+  "regression": {
+    "exit": 0,
+    "checks": 450,
+    "command": "python3 -B scripts/check.py --linux"
+  },
+  "limits": [
+    "Official WeChat cleanup still requires an appropriate authorized UI acceptance",
+    "Production release remains unchanged; no sends or client restarts",
+    "Regression/evaluator success is not a Penguin Formal Baseline or RSI score"
+  ],
+  "negative_controls": {
+    "GTK_without_Openbox": "3/3 owned draft restores passed",
+    "Qt_without_Openbox": "3/3 owned draft restores passed"
+  }
+}

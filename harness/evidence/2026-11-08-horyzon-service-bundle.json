@@ -1,0 +1,82 @@
+{
+  "observed_at": "2026-11-07T17:38:32.983640+00:00",
+  "production_release": "fcd16a7",
+  "service_bundle": {
+    "path": "/var/tmp/rsi-agent-unit-review-20261108-2b265c9",
+    "source": "/var/tmp/rsi-agent-services-20261108-2b265c9",
+    "activated": false,
+    "unit_sha256": {
+      "wechat-gui-desktop.service": "e6b31d3db54e3e2707adb1910a124a9654fe8fc740fe87f4499a2bdbc254eade",
+      "wechat-gui-proxy.socket": "989ea3c270008146b29a467d81679caec922503fbe2e6c4a96ed2fa32aa07bca",
+      "wechat-gui-proxy@.service": "57a2c64c9c3471f1bc89196f7113ee7a350a761ac5573a4251936cbe38e209e4",
+      "wechat-gui-web.service": "b2797d5fcf3d4a0f98481119dc9e8a58b425b46666c740e25066cdf368073a8d",
+      "wechat-gui-x.service": "81f7845609c5c5f7d1c61afb6afef5a2eb2aa91e42534770e0a55d4fcb76d395",
+      "wechat-gui.target": "34910817cb74578a0937b069d280f170f4678fa320eea0f3414eb73da104214b"
+    },
+    "systemd_verify_exit": 0
+  },
+  "live_services": [
+    {
+      "unit": "wechat-gui-x.service",
+      "pid": 230380,
+      "active": true,
+      "transient": true
+    },
+    {
+      "unit": "wechat-gui-desktop.service",
+      "pid": 3614268,
+      "active": true,
+      "transient": true
+    },
+    {
+      "unit": "wechat-gui-web.service",
+      "pid": 233561,
+      "active": true,
+      "transient": true
+    }
+  ],
+  "runtime_audit": {
+    "schema_version": 1,
+    "checked_at": "2026-11-07T17:35:45.385532+00:00",
+    "health": "degraded",
+    "checks": {
+      "installation_prerequisites": true,
+      "official_client_visible": true,
+      "calibrated_main_geometry": true,
+      "ordinary_process": true,
+      "persistent_desktop_services": false
+    },
+    "findings": [
+      "SERVICES_NOT_PERSISTENT"
+    ],
+    "scope": "Process, layout and installation checks; no message read/send or recovery test.",
+    "main_geometry": [
+      905,
+      667
+    ]
+  },
+  "audit_exit": 1,
+  "verification": {
+    "command": "python3 -B scripts/check.py --linux",
+    "exit": 0,
+    "checks": 450,
+    "notebook_loopback_http": 200,
+    "mac_source_manifest": "pass",
+    "scope": "isolated temporary fixtures, including real X/VNC; no production service installation, input or send",
+    "artifact": "exact git archive of candidate_revision",
+    "fixture_results": {
+      "private_X_usable": true,
+      "VNC_unix_handshake": true,
+      "X_without_authority_rejected": true,
+      "authority_and_socket_mode": "0600",
+      "existing_socket_prevents_authority_replacement": true,
+      "missing_socket_times_out": true
+    }
+  },
+  "limits": [
+    "Persistent-unit migration and rollback are not rehearsed",
+    "Production remains transient; no boot or layout-recovery claim"
+  ],
+  "candidate_revision": "2b265c9d958435ac6fb587ee3017944e8b749a27",
+  "live_service_pids_unchanged": true
+}

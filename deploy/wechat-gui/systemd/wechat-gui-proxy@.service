@@ -1,0 +1,17 @@
+[Unit]
+Description=Private WeChat gateway relay
+Requires=wechat-gui-web.service
+After=wechat-gui-web.service
+JoinsNamespaceOf=wechat-gui-web.service
+PartOf=wechat-gui.target
+
+[Service]
+PrivateNetwork=yes
+User=wechat-gui
+Group=wechat-gui
+UMask=0077
+StandardInput=socket
+StandardOutput=socket
+StandardError=journal
+ExecStart=/usr/bin/socat STDIO TCP:127.0.0.1:6088
+NoNewPrivileges=yes

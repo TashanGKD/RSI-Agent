@@ -67,7 +67,8 @@ def plain_ui(driver,ui,text):
 def clear(ui):
  from image_client import Controls
  from .driver import BASE
- ui.click(editor_point(ui.cfg));ui.ctrl('a');c=Controls(BASE)
+ # Openbox can replay the click after Ctrl+A and collapse the selection.
+ ui.click(editor_point(ui.cfg));ui.settle(100);ui.ctrl('a');c=Controls(BASE)
  try:c.key(0xff08);c.wait(120)
  finally:c.close()
 

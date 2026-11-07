@@ -5,7 +5,9 @@ import subprocess
 import sys
 
 from . import __version__
+from .audit import audit
 from .config import MAC, ROOT, WORKBENCH, load
+from .service_bundle import stage
 from .wechat import call, doctor
 
 
@@ -15,7 +17,13 @@ def main(argv=None):
     parser.add_argument('--config', help='Private installation JSON; never commit real account settings.')
     commands = parser.add_subparsers(dest='command')
     commands.add_parser('doctor', help='Report prerequisites without reading messages or operating the GUI.')
+    commands.add_parser('audit', help='Inspect the real Linux client process, layout and service persistence without input.')
     commands.add_parser('sources', help='Show the pinned source repositories and commits.')
+    services = commands.add_parser('services', help='Stage service definitions for review; no live activation.')
+    service_commands = services.add_subparsers(dest='mode', required=True)
+    service_stage = service_commands.add_parser('stage')
+    service_stage.add_argument('--release', required=True, help='Absolute Linux path of the source release.')
+    service_stage.add_argument('--output', required=True, help='A NEW directory for the review bundle.')
     wx = commands.add_parser('wechat', help='Use the original on-demand WeChat SDK.')
     wx.add_argument('mode', choices=['read', 'operations'], help='One JSON request from stdin.')
     notebook = commands.add_parser('notebook', help='Start the existing local notebook.')
@@ -30,6 +38,9 @@ def main(argv=None):
         return 0
     if args.command == 'sources':
         print((ROOT / 'SOURCES.lock.json').read_text(encoding='utf-8'))
+        return 0
+    if args.command == 'services':
+        print(json.dumps(stage(args.release, args.output), ensure_ascii=False, indent=2))
         return 0
     if args.command == 'mac':
         return subprocess.call([sys.executable, '-B', 'tools/verify_package.py'], cwd=MAC)
@@ -48,6 +59,10 @@ def main(argv=None):
     if args.command == 'doctor':
         print(json.dumps(doctor(config), ensure_ascii=False, indent=2))
         return 0
+    if args.command == 'audit':
+        report = audit(config)
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0 if report['health'] == 'pass' else 2 if report['health'] == 'unsupported' else 1
     raw = sys.stdin.read(1500001)
     if len(raw.encode()) > 1500000:
         raise ValueError('Request too large.')

@@ -1,0 +1,7 @@
+[Unit]
+Description=Private WeChat desktop stack
+Requires=wechat-gui-x.service wechat-gui-desktop.service wechat-gui-web.service wechat-gui-proxy.socket
+After=wechat-gui-x.service wechat-gui-desktop.service wechat-gui-web.service wechat-gui-proxy.socket
+
+[Install]
+WantedBy=multi-user.target

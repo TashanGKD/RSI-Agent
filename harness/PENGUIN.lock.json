@@ -1,0 +1,11 @@
+{
+  "repository": "https://github.com/Prism-Shadow/penguin-harness",
+  "commit": "c68dc1e9348017702c1b46777821264f1f3c40a5",
+  "license": "Apache-2.0",
+  "integration": "shared maintenance Skill and verification contract; engine not installed",
+  "reviewed_paths": [
+    "plugins/default-rsi-toolkit/skills/agent-optimization/SKILL.md",
+    "plugins/agent-evaluation/skills/benchmark-design/reference/package.md",
+    "plugins/agent-development/skills/agent-initialization/SKILL.md"
+  ]
+}

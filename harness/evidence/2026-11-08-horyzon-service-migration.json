@@ -1,0 +1,72 @@
+{
+  "scope": "isolated units; desktop is sleep, no WeChat/account access or boot enable",
+  "prefix": "rsi-wx-rehearsal-52f3e35345",
+  "display": ":193",
+  "phases": {
+    "transient": {
+      "paths": {
+        "rsi-wx-rehearsal-52f3e35345-x.service": "/run/systemd/transient/rsi-wx-rehearsal-52f3e35345-x.service",
+        "rsi-wx-rehearsal-52f3e35345-desktop.service": "/run/systemd/transient/rsi-wx-rehearsal-52f3e35345-desktop.service",
+        "rsi-wx-rehearsal-52f3e35345-web.service": "/run/systemd/transient/rsi-wx-rehearsal-52f3e35345-web.service"
+      },
+      "http": 200,
+      "websocket": 101,
+      "rfb_banner": true,
+      "private_modes": "0600"
+    },
+    "persistent": {
+      "paths": {
+        "rsi-wx-rehearsal-52f3e35345-x.service": "/etc/systemd/system/rsi-wx-rehearsal-52f3e35345-x.service",
+        "rsi-wx-rehearsal-52f3e35345-desktop.service": "/etc/systemd/system/rsi-wx-rehearsal-52f3e35345-desktop.service",
+        "rsi-wx-rehearsal-52f3e35345-web.service": "/etc/systemd/system/rsi-wx-rehearsal-52f3e35345-web.service"
+      },
+      "http": 200,
+      "websocket": 101,
+      "rfb_banner": true,
+      "private_modes": "0600"
+    },
+    "rollback": {
+      "paths": {
+        "rsi-wx-rehearsal-52f3e35345-x.service": "/run/systemd/transient/rsi-wx-rehearsal-52f3e35345-x.service",
+        "rsi-wx-rehearsal-52f3e35345-desktop.service": "/run/systemd/transient/rsi-wx-rehearsal-52f3e35345-desktop.service",
+        "rsi-wx-rehearsal-52f3e35345-web.service": "/run/systemd/transient/rsi-wx-rehearsal-52f3e35345-web.service"
+      },
+      "http": 200,
+      "websocket": 101,
+      "rfb_banner": true,
+      "private_modes": "0600"
+    }
+  },
+  "transient_still_shadows_etc_after_reload": true,
+  "runtime_present_on_target_stop_return": true,
+  "production_service_pids_unchanged": true,
+  "cleanup_complete": true,
+  "schema_version": 1,
+  "checked_at": "2026-11-07T18:11:16.331831+00:00",
+  "candidate_revision": "59b018e45aa2d369b23f15ab658fab0f2ae579dd",
+  "production_release": "fcd16a7",
+  "command": "python3 -B scripts/rehearse_service_migration.py --execute",
+  "prior_failed_hypothesis": {
+    "revision": "4ad13cf3704b517ae81e6f4c2a1e2a0740786e32",
+    "hypothesis": "Stopping only the target is a barrier for every child and RuntimeDirectory cleanup",
+    "result": "rejected: runtime remained when the target stop returned",
+    "repair": "Explicitly request and wait for all loaded owned fixture units before testing cleanup"
+  },
+  "cleanup_verification": {
+    "manager_units_remaining": 0,
+    "definition_files_remaining": 0,
+    "runtime_dirs_remaining": 0
+  },
+  "limits": [
+    "WeChat client is replaced by sleep in this fixture",
+    "No production cutover, boot enable, client restart, message read/send or layout-recovery acceptance",
+    "Real activation still requires a suitable maintenance window"
+  ],
+  "regression": {
+    "exit": 0,
+    "command": "python3 -B scripts/check.py --linux",
+    "checks": 450,
+    "notebook_http": 200,
+    "mac_manifest": "pass"
+  }
+}
