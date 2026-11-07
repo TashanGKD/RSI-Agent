@@ -29,6 +29,13 @@ Verify remote CI for the actual head. Keep an existing PR as the WIP instead
 of opening overlapping ones. Merge and deploy status must be explicit; do not
 describe an open PR as released. Do not expand a live operation's authorization.
 
+After review and gates pass, complete an already-authorized, reversible code-only
+release before adding more WIP. Preserve the prior immutable release, rehearse
+pointer rollback and verify the actual current entrypoint. This does not grant
+client restarts, real composer input, message sends or service activation. Read
+the live PR delivery receipt and host release metadata for rollout state rather
+than treating a historical acceptance revision as the current deployment.
+
 Update the smallest existing project-memory entry when there is a durable
 delta. Git history and PRs retain the history; do not append repeated timestamps
 or duplicate progress logs. Preserve rejected hypotheses and unresolved failures

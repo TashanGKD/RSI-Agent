@@ -3,9 +3,10 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-1. **PR #1: one reviewable WIP.** Runtime audit, shared Skill and memory are
-   implemented; the service candidate below stays in this same PR. Check its
-   actual head and final remote CI. Merge and production release are separate.
+1. **Delivery first: PR #1.** Review its actual head and CI, then finish the
+   already-authorized code-only rollout and verify the current-path CLI. Preserve
+   an immutable rollback and unchanged runtime/configuration. Read its delivery
+   receipt and host release metadata before declaring anything still pending.
 2. **Service persistence: awaiting production window.** Bundle/bootstrap and
    isolated transient→persistent→rollback transport paths are verified. Two rounds
    are complete; do not spend another round repeating those checks. Actual X,
@@ -15,9 +16,9 @@ as candidates rather than silently expanding the active task.
 3. **Cancellation recovery: candidate ready.** Qt/Openbox reproduces partial
    deletion; waiting for the click before selecting repairs owned cancellation
    and preserves prior drafts, foreign text and original attempt checkpoints.
-   Check the current PR/CI and review/release boundary. Official-client acceptance
-   still needs a separately scoped unsent draft; do not repeat live sends or
-   manufacture another delay change. At round four, audit real user outcomes.
+   Deliver with the existing PR; official-client acceptance still needs a
+   separately scoped unsent draft. Do not repeat live sends or manufacture
+   another delay change. Fourth-round audit retuned the loop to actual delivery.
 4. **Penguin Formal Baseline.** Resolve one explicit test agent and fixed model,
    build/calibrate a versioned Benchmark with an independent evaluator and a
    held-out companion, then run one bounded candidate. No score yet exists.

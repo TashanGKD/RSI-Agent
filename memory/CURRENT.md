@@ -17,13 +17,19 @@ every 45 minutes in the existing Codex chat.
 
 ## Active improvement
 
-Branch `codex/rsi-harness-foundation`: the read-only audit, project memory and
-shared maintenance Skill support the current cancellation-recovery repair.
-Production service migration is prepared and awaiting a maintenance window.
+The existing runtime/cancellation repair is ready for a code-only release.
+Production service migration separately awaits a maintenance window.
 
-[PR #1](https://github.com/Yu-Yang-Li/RSI-Agent/pull/1) is open for this work.
-Recheck its current remote head and CI after each push. This is the third actual
-scheduled engineering round; audit user outcomes at round four.
+[PR #1](https://github.com/Yu-Yang-Li/RSI-Agent/pull/1) owns this release. Query its
+actual state, head, CI and delivery receipt; do not keep calling it open after
+merge. The installed revision is authoritative in `/var/lib/rsi-agent/release.json`
+and `/opt/rsi-agent/current`. The baseline above records earlier acceptance.
+
+The fourth-round review found **zero production user paths closed by the first
+three scheduled rounds**. Staging, migration and cancellation fixtures were
+useful candidates, but the deployed CLI still lacked audit. Retune to delivery
+of the existing WIP before more code or fixture expansion. See
+[review decision](../harness/evidence/2026-11-08-four-round-review.json).
 
 Latest code candidate `8ae366e4cc087505cc7a3d819d7c2fff72744ffe` waits 100 ms after
 the editor click and before Ctrl+A in composer.clear. A frozen Qt/Openbox fixture
@@ -36,9 +42,9 @@ notebook HTTP and Mac manifest, and the separate native cancellation fixture.
 See [comparison evidence](../harness/evidence/2026-11-08-horyzon-cancellation.json).
 
 This repairs the reproduced isolated failure; official WeChat cancellation still
-needs separately scoped UI acceptance. Production service PIDs and release were
-unchanged. Service staging/bootstrap and the separate transport migration/rollback
-rehearsal remain prepared, not activated on production; their exact evidence is in
+needs separately scoped UI acceptance. At that comparison, production service
+PIDs and release were unchanged. Service staging/bootstrap and transport
+migration/rollback remain prepared, not activated on production; evidence is in
 [`service migration`](../harness/evidence/2026-11-08-horyzon-service-migration.json).
 
 ## Known operational limits
@@ -65,9 +71,10 @@ message/AI-reply service is deployed, and no new standing-send scope was granted
 
 ## Next checkpoint
 
-Check PR #1's actual head/CI and hand off this bounded repair for review and
-release. The remaining cancellation checkpoint is an explicitly scoped unsent
-draft on the real client; neither the isolated fixture nor prior restart/send
-authorization grants it. Do not keep tuning delays after the gates pass.
-Production service activation separately needs its X/WeChat/noVNC maintenance
-window. Round four must audit actual user gains before choosing more WIP scope.
+Close the existing release using main/CI, a private backup, an immutable source
+tree, pointer rollback rehearsal and current-path doctor/audit. Keep its observed
+completion in the PR delivery receipt and host metadata. After it is delivered,
+select only a demonstrated user-path defect; unchanged or externally gated state
+is no-op. Do not tune delays again. Real-client cancellation needs its own unsent
+draft scope; service activation needs its X/WeChat/noVNC window. Neither the
+fixture nor prior restart/send authorization grants those operations.

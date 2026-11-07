@@ -12,6 +12,10 @@ current baseline and one next action. Link immutable evidence or the actual PR;
 label proposed, tested, merged, deployed and live-accepted states separately.
 New observations supersede old notes. Do not update a timestamp alone.
 
+For release completion, consult the actual PR's delivery receipt and the host's
+`/var/lib/rsi-agent/release.json` plus current symlink. An earlier acceptance
+revision in a checkpoint is historical evidence, not a lock on deployment.
+
 Never store account identifiers, credentials, secret material, raw chats, full
 transcripts or private screenshots here. Private run artifacts go under ignored
 `var/` or the installation's private runtime. Sanitized evidence belongs in

@@ -11,7 +11,10 @@
 - 成功请求的草稿恢复、导航恢复均为真，没有待恢复标记。网页桌面可见实际消息气泡；未声称手机已读。
 - 测试前因缺少 Gtk、输入框边框误判、消息库零预分配分别产生的三个请求，均已以明确的 `noSend` 结果终结。最后一例的本次测试草稿由操作员清理，自动取消恢复尚未验收。
 
-## 安装状态
+## 实机验收时的安装状态
+
+本节保留当时的验收版本。当前代码发布以 [PR #1 的交付回执](https://github.com/Yu-Yang-Li/RSI-Agent/pull/1)
+及服务器 `/var/lib/rsi-agent/release.json` 为准；代码升级不会自动取得新版本的微信操作验收。
 
 - 验收代码：`fcd16a78014c225d6d9833afd5c0a5dba41636c2`，部署于 `/opt/rsi-agent/releases/fcd16a7`，`/opt/rsi-agent/current` 指向此版。源码由 root 拥有，运行用户只有读取权限。
 - 独立 Python 依赖目录：`/opt/rsi-agent/python`；主机使用 GTK 3 introspection、Pillow、X11 工具和 Tesseract 的英文、简体中文数据。
