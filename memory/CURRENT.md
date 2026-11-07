@@ -18,15 +18,14 @@ every 45 minutes in the existing Codex chat.
 
 ## Active improvement
 
-Branch `codex/rsi-harness-foundation`: add a read-only runtime audit that exposes
-conditions a successful dependency doctor misses; establish project memory and
-the shared maintenance Skill. It is a candidate until its PR is merged.
+Branch `codex/rsi-harness-foundation`: the read-only audit, project memory and
+shared maintenance Skill now feed the service-persistence user path. Prepare and
+validate a deployable candidate before interrupting the live desktop.
 
 [PR #1](https://github.com/Yu-Yang-Li/RSI-Agent/pull/1) is open for this work.
-Its initial head passed [remote CI](https://github.com/Yu-Yang-Li/RSI-Agent/actions/runs/42391600476);
-recheck CI after any later push. The requested 45-minute heartbeat was created
-and verified ACTIVE in this chat as `rsi-agent-harness`. Its first future
-scheduled invocation has not yet been observed; the work below was manual.
+Recheck its current remote head and CI after each push. The requested 45-minute
+heartbeat is ACTIVE in this chat as `rsi-agent-harness`; its first scheduled
+invocation produced the service-bundle candidate below.
 
 Candidate `8208c84c355c18bf9167b257efc296515a75fcaf` passed 443 Linux checks,
 the notebook HTTP probe and the Mac manifest. Its real-host audit observed
@@ -37,6 +36,17 @@ desktop services failed the structural checks. See
 An unauthenticated public-terminal request also redirected to the password form.
 Production remained on `fcd16a7`; no UI input, message read or additional send
 was part of this engineering audit.
+
+Service candidate `2b265c9d958435ac6fb587ee3017944e8b749a27` adds
+`services stage`, six persistent unit templates and private Xauthority/readiness
+bootstrap. An exact Git archive passed 450 Linux checks, notebook HTTP and Mac
+manifest checks on Horyzon. The real isolated X/VNC fixture verified authorization,
+private permissions, handshake and refusal to replace an existing socket's auth;
+the staged graph passed systemd verification. Production service PIDs and release
+were unchanged. See
+[`service-bundle evidence`](../harness/evidence/2026-11-08-horyzon-service-bundle.json).
+The bundle is prepared, not installed or activated; this closes the staging and
+isolated bootstrap path, not boot persistence.
 
 ## Known operational limits
 
@@ -57,6 +67,7 @@ or repeated restart is implied by the 45-minute maintenance cadence.
 
 ## Next checkpoint
 
-Check PR #1 and its latest remote head/CI, then select the highest-value independent
-item in `todo.md`. The host findings remain open until separately repaired and
-rechecked; the audit surfacing them is not a repair.
+After checking PR #1's actual head/CI, rehearse transient-to-persistent migration
+and rollback with independent unit names/display/socket paths. Do not activate
+the production bundle until that plan is concrete and a suitable maintenance
+window is authorized. The live persistence finding stays open.

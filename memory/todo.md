@@ -3,13 +3,15 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-1. **PR #1: runtime audit and PR loop.** Implementation, 443 checks, real-host
-   audit, shared Skill, memory and initial CI are complete. Review the current
-   PR head and its final CI; merge and production release remain separate work.
-2. **Service persistence and layout recovery.** The authorized ordinary restart,
-   cached login and original-message readback are complete; TracerPid is 0.
-   Prepare persistent service definitions and rollback, then verify activation
-   in an appropriate maintenance window. The manual layout restoration is not
+1. **PR #1: one reviewable WIP.** Runtime audit, shared Skill and memory are
+   implemented; the service candidate below stays in this same PR. Check its
+   actual head and final remote CI. Merge and production release are separate.
+2. **Active: service persistence.** The bundle generator, six-unit graph and
+   private X/VNC bootstrap pass isolated Linux checks; the exact candidate and
+   evidence are in CURRENT. Next rehearse transient-to-persistent migration and
+   rollback under independent names/display/socket paths, then arrange a suitable
+   maintenance window for activation. No production service was changed. The
+   ordinary cached login is verified, but manual layout restoration is not
    automatic recovery. Do not repeat the send test.
 3. **Cancellation recovery.** Reproduce the partial-clear failure using an owned
    disposable draft in an isolated desktop. Preserve payload and terminal

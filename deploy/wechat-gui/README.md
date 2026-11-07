@@ -13,6 +13,8 @@ socket 返回握手，且原有 socket 存在时拒绝覆盖授权；任一失�
 
 在 Linux 的候选源码目录执行。把 `REVIEWED_SHA` 替换为实际已审查版本，目标
 目录必须不存在；`--release` 应指向稍后保留的完整只读版本，不依赖可变 current。
+实测 `/var/tmp` 中的包只用于隔离校验；生产切换前须指向持久版本重新生成，不能
+直接安装该测试包。
 
 ```sh
 release=/opt/rsi-agent/releases/REVIEWED_SHA

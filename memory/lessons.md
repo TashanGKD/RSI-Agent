@@ -16,3 +16,6 @@
 - A passing dependency doctor can coexist with a traced process, changed main
   layout and transient services. Keep structural runtime findings distinct from
   dependencies and historical send acceptance; retain nonzero audit status.
+- Persistent service preparation must include private runtime-directory and
+  Xauthority creation plus readiness. A generated unit file is not an activated
+  service: transient definitions have higher load priority than `/etc` definitions.
