@@ -1,0 +1,180 @@
+{
+  "sourceKind": "original loaded baseline plus exact published phase2 selected file delta; stable per-file source capture, not a runtime clone",
+  "currentRuntimeSourceSHA256": "6214457524c2bf953dfe478726f5b1562d99b6bb2cd847edff80d3425291b53a",
+  "policyFormatVersion": 2,
+  "dispatchVersion": 1,
+  "sharedSkill": {
+    "acceptedVersion": "digital-employee-20261107-responsibility-recovery-adoption-31eb12ed0ba6",
+    "acceptedSourceTreeSHA256": "31eb12ed0ba66c260de86507390e61e7bbab67a3a5e05afd0d5237a848431044",
+    "files": 30,
+    "packagingAdapted": true
+  },
+  "actualReleaseAuditBoundary": {
+    "fullOwnerAccessGateAuditComplete": false,
+    "newMachineLiveAcceptance": false
+  },
+  "excluded": [
+    "runtime/registry/task or event state",
+    "operator ROLE/STATE/CURRENT/workbooks/memories",
+    "DB/media/screenshots/real messages and transcripts",
+    "credentials/native target bindings/auth material",
+    "actual original-case acceptance documents",
+    "Mac collector engineering tree and unverified Windows release",
+    "unrelated skill/DevOps/research/company trees"
+  ],
+  "coverageAddendum": {
+    "components": {
+      "continuityAndMonitor": "2026-11-06T13:30:13.705246+00:00",
+      "aupHost": "2026-11-06T13:30:14.981654+00:00"
+    },
+    "sourceBeforeAfterStable": true,
+    "mcpVersionOnOriginalHost": "2.3.0",
+    "noRuntimeOrInstanceDataExported": true,
+    "independentCaptureNotAtomicGlobalImage": true
+  },
+  "priorMainWeChatSnapshot": {
+    "atUTC": "2026-11-06T12:09:19.050953+00:00",
+    "releaseManifestSHA256": "79719e8b37d6a6934b5e771c34f155b853a33780d2c8d97edd31b02b0626008e",
+    "manifestAndPerFileStableAtCapture": true,
+    "allSelectedReaderReleaseHashesMatched": true
+  },
+  "atUTC": "2026-11-06T14:06:20.627540+00:00",
+  "publishedPhase2ResourceDelta": {
+    "publishedAtUTC": "2026-11-06T13:14:23.254666+00:00",
+    "capturedAtUTC": "2026-11-06T14:06:20.627540+00:00",
+    "approvedResultSHA256": "8a9cb3a6baff9f36d28979016a82ac4a235ff1651727af3a731a0ad499997328",
+    "beforeAfterStable": true,
+    "allIncludedPublishedDeltaHashesMatched": true,
+    "aupSources": [
+      {
+        "path": "wechat/operations/public_api.py",
+        "sourceSHA256": "2f4ce43ed32bd723ce075f16291431eb2e359b06010289d2dc040698865168ff"
+      },
+      {
+        "path": "wechat/operations/audit.py",
+        "sourceSHA256": "51b9108a95794a5915e9871934bf945fe9a3b2deee404b7233a98bb5de46c1b7"
+      },
+      {
+        "path": "wechat/operations/dispatch.py",
+        "sourceSHA256": "dff1e239b2a28682d27bd93a6f274c0db5bb729376788e35e5d8815c8e4e618f"
+      },
+      {
+        "path": "wechat/operations/image_draft.py",
+        "sourceSHA256": "6b51eb1babef32d8aad4e978194ac6bfc430b8f6403bed3498e333f583e5d265"
+      },
+      {
+        "path": "wechat/operations/fast.py",
+        "sourceSHA256": "89dec43498f35626966511100fa6298d9ee6ba4c411ff1c475521769b95edb2a"
+      },
+      {
+        "path": "wechat/operations/api.py",
+        "sourceSHA256": "566a2fecce3fb849e575977460c4847071afc0fdce0dbb0109510f63eb25a501"
+      },
+      {
+        "path": "wechat/operations/cli.py",
+        "sourceSHA256": "402a9fa9ca997c6b5fa1258c26063cdd7fd2e8ccd33ac9b5cbd689502c50bfed"
+      },
+      {
+        "path": "wechat/operations/assets.py",
+        "sourceSHA256": "61971cdb99f93da268c2bb407f245e71bf05c6093d931a9f1030f0277b47221c"
+      },
+      {
+        "path": "wechat/operations/images.py",
+        "sourceSHA256": "38fa15f2c303e3156256bc9c1f1e1a7d87033c8f48b31f1f2c4f0a9f366f113a"
+      },
+      {
+        "path": "wechat/operations/navigation.py",
+        "sourceSHA256": "8712b01aa45ad8150abbab3f73656687b0e10059b61d0b03f980749d71c77a74"
+      },
+      {
+        "path": "wechat/operations/contract.py",
+        "sourceSHA256": "d1825019ce6aa91a11e7cb237db56971006bd69bb5bae7ae30cc3d5ecef8c918"
+      },
+      {
+        "path": "wechat/operations/image_verified.py",
+        "sourceSHA256": "f99233023e01315792dd7a43650e7eccd419d0c2f1141be5044ffa64f924d687"
+      },
+      {
+        "path": "wechat/image_client.py",
+        "sourceSHA256": "16de0dabb63b185fc13ba84c0fce3a041fd7ca9569df6a0ebc6f93d1007ded82"
+      },
+      {
+        "path": "wechat/attachments.py",
+        "sourceSHA256": "e6c094662ab1a5454a86aaa616502a739ec4ad806f752ae241cce716b117b437"
+      }
+    ],
+    "macWrappers": [
+      {
+        "path": "host/tools/wechat_operations.py",
+        "sourceSHA256": "8cec361c72a639948d527dbff53db678aa58a06b602879d91621c3884b6f79e9"
+      },
+      {
+        "path": "host/tools/wechat_linux.py",
+        "sourceSHA256": "1cd1dfa6f89fd3ccab5cf99310f37608b149f0a4ecbc42fa5d80b16c5380f782"
+      }
+    ],
+    "runtime621Unchanged": true,
+    "businessHelpersNotCopied": 2,
+    "phase3CandidateNotIncluded": true,
+    "fullW041Complete": false,
+    "remainingWork": [
+      "default new-send confirmation path",
+      "automatic exact-target preparation",
+      "remaining accepted-cleanup coverage and audit of inherited artificial gates"
+    ]
+  },
+  "priorSharedSkill": {
+    "acceptedVersion": "digital-employee-20261106-work-by-responsibility-7002b82d7471",
+    "acceptedSourceTreeSHA256": "7002b82d7471621331d65047420cd91533763b630194d224251fe22390b11d16",
+    "files": 30,
+    "packagingAdapted": true
+  },
+  "publishedCommonMethodDelta": {
+    "version": "digital-employee-20261107-merged-queue-closeout-91198fef284c",
+    "capturedAtUTC": "2026-11-06T16:59:39.359076+00:00",
+    "releaseMetadataSHA256": "e13ecbde76510401abc37ae06885c5fe2abef0e5041c6aa77190328207be69f6",
+    "sourceAndZipAndManifestMatched": true,
+    "digitalEmployeeChangedDocs": 3,
+    "handoffChangedDocs": 2,
+    "oneShotScript": "skills/codex-thread-handoff/scripts/queue_closeout.mjs",
+    "handoffSourceTreeSHA256": "79aa66db949d56fbd5e75d4e16eb0a44a333e9775a72ec8da317670cc6f44081",
+    "originalSourceFilesVerified": 33,
+    "filesActuallyAdopted": 6,
+    "actualInstancePlansOrArchivesCopied": false,
+    "productionQueueMutationTested": false,
+    "fullEmployeeAdoptionProven": false,
+    "wechatSourceCutoffUnchanged": true
+  },
+  "sharedSkillReleaseHistory": [
+    {
+      "acceptedVersion": "digital-employee-20261107-merged-queue-closeout-91198fef284c",
+      "acceptedSourceTreeSHA256": "91198fef284c90d139db7cdb4c22d84d51c36f3810ea917fdcf8d6c5e189f345",
+      "files": 30,
+      "packagingAdapted": true
+    }
+  ],
+  "publishedResponsibilityAdoptionDelta": {
+    "version": "digital-employee-20261107-responsibility-recovery-adoption-31eb12ed0ba6",
+    "capturedAtUTC": "2026-11-07T03:43:35.871040+00:00",
+    "releaseMetadataSHA256": "0c80b9207badcc4472589f4566b3d94ff7b2b636f4a9c3db3c73d1e615c62a0f",
+    "digitalEmployeeChangedDocs": 4,
+    "handoffChangedDocs": 2,
+    "handoffSourceTreeSHA256": "04c1dc7c5f27be3c64037d830ecf0dbe4ee5a2b521d10c44287c4dd3f545d536",
+    "sourceZipManifestAll33Verified": true,
+    "queueCloseoutScriptUnchanged": true,
+    "wechatSnapshotUnchanged": true,
+    "instanceMaterialsCopied": false,
+    "actualRoleAdoptionNotClaimed": true
+  },
+  "fixedDutyPackageExample": {
+    "authoredAtUTC": "2026-11-07T09:39:52.393149+00:00",
+    "kind": "package-only generic profiles and fully synthetic example, not a production/source recapture",
+    "profiles": 5,
+    "employeeExampleCount": 1,
+    "workNotes": 3,
+    "scopeDraftSHA256": "68c7879a162f0faf4dccba5e3b1b20af7e248a1cb096a8d0a25e730e54e25b24",
+    "existingComponentAndSharedSkillCutoffsUnchanged": true,
+    "noOperatorDataOrNewRuntime": true,
+    "exampleCopiedFromProduction": false
+  }
+}

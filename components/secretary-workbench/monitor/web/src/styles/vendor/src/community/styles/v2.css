@@ -1,0 +1,48 @@
+/* Shared production and review component geometry. */
+html{--v2-green:#187f91}
+/* API-only additions to the exact C component stylesheet baseline. */
+.detail-cover.source-cover,.event-detail-cover.source-cover{object-fit:contain}
+.account-register-heading small{display:block;color:var(--color-secondary);font-size:var(--font-note);margin-top:8px}
+.account-main .account-field-error{overflow-wrap:anywhere}
+html[data-variant="c"] .account-sidebar-person>.avatar{flex-shrink:0}
+html[data-variant="c"] .pv-direction-icon{color:var(--c-action)}
+html[data-compare] #environment-bar{display:none}
+.cover-media{position:relative;isolation:isolate;display:block;width:100%;aspect-ratio:16/9;overflow:hidden;border-radius:10px;background:#f2f6f6}
+.cover-media img{position:absolute!important;inset:0;width:100%!important;height:100%!important;min-height:0!important;margin:0!important;border-radius:0!important;object-fit:contain!important}
+.cover-media .media-blur{object-fit:cover!important;filter:blur(14px) saturate(.8);transform:scale(1.18);opacity:.65}
+.cover-media.media-photo .media-main{object-fit:cover!important}
+.cover-media.media-top .media-main{object-fit:cover!important;object-position:center top}
+.media-fallback{position:absolute;inset:0;display:grid;place-items:center;color:#708183;font-size:14px;background:linear-gradient(145deg,#edf5f5,#f7f8f8)}
+.media-main{z-index:1}.media-failed img{display:none}
+html[data-variant="c"] .course-card{display:flex;flex-direction:column;min-width:0}
+html[data-variant="c"] .course-main{display:block}
+html[data-variant="c"] .course-main h3{margin:12px 0 6px;min-height:2.7em;line-height:1.35}
+html[data-variant="c"] .course-card .interactions{margin-top:auto;padding-top:8px}
+html[data-variant="c"] .card-person{min-height:28px}
+html[data-variant="c"] .card-person .avatar{flex-shrink:0}
+html[data-variant="c"] .event-meta{margin:0 0 6px;line-height:1.4}
+.entrance-card{display:flex;flex-direction:column;gap:0;min-width:0}
+.entrance-card h2{font-size:24px;font-weight:500;line-height:1.35;margin:12px 0 6px}
+.entrance-card .entrance-description{font-size:14px;color:var(--color-secondary);line-height:1.4;margin:0}
+.entrance-card h2,.entrance-description{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+html[data-variant="c"] .home-feature-grid .entrance-description{display:-webkit-box;margin:0}
+html[data-variant="c"] .home-feature-grid .cover-media{order:0}
+html[data-variant="c"] .home-learning .learning-brief{display:block}
+#environment-bar{position:sticky;top:0;z-index:80;background:#edf6f6;color:#28585d;font-size:12px;border-bottom:1px solid #d5e6e5;padding:8px 16px}
+#environment-bar:empty{display:none}
+#environment-bar a{text-decoration:underline;margin-left:12px}
+#environment-bar select{display:inline-block;width:auto;font-size:12px;min-height:28px;padding:2px 5px;margin-left:8px}
+#environment-bar label{display:inline-flex;align-items:center;font-size:12px;margin:0 8px}
+#environment-bar span{display:inline-block;margin-left:8px}
+html[data-review] .site-header{top:0}
+[aria-busy="true"]{cursor:progress}button:disabled{opacity:.55;cursor:not-allowed}
+.v2-loading{padding:48px 20px;text-align:center;color:var(--color-secondary)}
+.v2-skeleton{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;max-width:1200px;margin:32px auto}.v2-skeleton i{display:block;aspect-ratio:16/11;border-radius:10px;background:linear-gradient(110deg,#f5f7f7,#eaf1f1,#f5f7f7)}
+.v2-state-notice{font-size:13px;color:var(--color-secondary);padding:12px 0}.v2-state-notice button{margin-left:12px}
+@media(max-width:767px){
+ html[data-variant="c"] .course-main h3{margin-top:8px;font-size:16px}
+ .entrance-card h2{font-size:18px;margin-top:10px}
+ .entrance-card .entrance-description{font-size:12px}
+ html[data-variant="c"] .card-person{min-height:24px}
+ #environment-bar{position:static;font-size:11px}
+}

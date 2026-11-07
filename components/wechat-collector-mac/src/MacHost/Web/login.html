@@ -1,0 +1,3 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>微信记录</title><p id="status">正在连接本地记录…</p><script>
+(async()=>{const token=new URLSearchParams(location.hash.slice(1)).get('token');history.replaceState(null,'','/');if(!token){document.getElementById('status').textContent='请从 Mac 应用打开本地记录。';return;}const r=await fetch('/session',{method:'POST',headers:{Authorization:'Bearer '+token}});if(r.ok)location.reload();else document.getElementById('status').textContent='本地连接已过期，请重新打开应用。';})();
+</script></html>

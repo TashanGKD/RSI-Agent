@@ -1,0 +1,16 @@
+/* Preserve the source load order. Vendor files and fonts are byte-identical. */
+@import './vendor/src/design-system/tokens.css';
+@import './vendor/src/design-system/base.css';
+@import './vendor/src/community/styles.css';
+@import './vendor/src/community/people.css';
+@import './vendor/src/community/account.css';
+@import './vendor/src/community/public-site.css';
+@import './vendor/src/community/forms.css';
+@import './vendor/src/baseline.css';
+@import './vendor/src/daily.css';
+@import './vendor/src/interaction-c.css';
+@import './vendor/src/community/styles/v2.css';
+@import './vendor/showcase/styles.css';
+@import './vendor/showcase/information-pages.css';
+@import './refinements.css';
+@import './portable.css';

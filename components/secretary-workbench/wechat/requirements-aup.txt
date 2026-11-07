@@ -1,0 +1,5 @@
+# AUP-only isolated deps; Mac uses the already existing WeChatPilot environment.
+sqlcipher3-binary==0.6.0
+pycryptodome==3.23.0
+# New on-demand path uses pycryptodome, not live SQLCipher connections.
+# UI/PNG validation reuses Ubuntu's already installed python3-gi/python3-pil.

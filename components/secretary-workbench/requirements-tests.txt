@@ -1,0 +1,6 @@
+Pillow==11.3.0
+pycryptodome==3.23.0
+
+# Optional exported monitor account projection / continuity TOML readers
+cryptography==46.0.5
+tomli==2.4.0

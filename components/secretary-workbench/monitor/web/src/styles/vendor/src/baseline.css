@@ -1,0 +1,151 @@
+/* A: 2026.08.18.1 原包桌面真源。不是紧凑版。 */
+:root{
+ --content-width:1280px;--page-gutter:80px;--ui-title:50px;--ui-section:36px;
+ --ui-card-title:24px;--ui-grid-gap:40px;--ui-card-row-gap:40px;
+ --ui-card-heading-line:1.5;--ui-card-title-top:24px;--ui-card-title-bottom:10px;
+ --ui-meta:16px;--ui-recent-ratio:620 / 400;--cover-ratio:1 / 1;
+ --ui-person-name:24px;--ui-person-row-avatar:64px;
+ --ui-detail-ratio:16 / 9;--accent:#1a1a1a;--focus:#2c7376;
+ --radius:10px;--duration:450ms;--ui-banner-height:400px;
+}
+.site-header{background:rgb(255 255 255 / 85%);backdrop-filter:blur(25px);border:0}
+.frame{width:calc(100vw - var(--page-gutter) * 2);max-width:var(--content-width)}
+#main:focus{outline:none}
+.header-inner{min-height:60px;height:60px;gap:24px}
+.header-inner.frame{width:calc(100% - 120px);max-width:1320px}
+.desktop-nav{margin-right:auto;gap:0}
+.desktop-nav a{width:100px;padding:0;min-height:60px;display:grid;place-items:center;color:var(--color-secondary);font-weight:400}
+.desktop-nav [aria-current]{color:var(--color-text)}
+.desktop-nav [aria-current]::after{display:none}
+.header-inner .brand img{width:240px}
+.join-button{min-height:36px;padding:4px 16px;font-size:16px;background:transparent;color:var(--color-text);border-color:var(--color-muted);border-radius:10px}
+.preview-strip{font-size:12px}
+.preview-strip .frame{min-height:32px}
+.review-embedded .preview-strip{display:none}
+.content-space,.events-page{padding-top:90px}
+.discovery-banner{background-color:var(--color-bg)}
+.discovery-banner .frame{min-height:240px}
+.course-section{margin-top:80px}
+.section-title{margin-bottom:40px}
+.course-grid{gap:40px}
+.course-card{border:0;border-radius:0;background:transparent;overflow:visible}
+.course-cover{aspect-ratio:1 / 1;object-fit:cover;border-radius:10px}
+.course-main h3{margin:24px 10px 10px;min-height:0;line-height:1.5;font-size:24px;font-weight:500;position:relative;padding-right:40px}
+.course-main h3::after{content:'';display:block;width:20px;height:20px;position:absolute;right:0;top:7px;background:currentColor;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 18 18 6M6 6h12v12' fill='none' stroke='black' stroke-width='1.6'/%3E%3C/svg%3E") center/contain no-repeat}
+.card-person,.event-meta{margin:0 10px;font-size:16px;min-height:32px}
+.card-person .avatar{width:24px;height:24px}
+.interactions.compact{margin:10px 10px 0;justify-content:flex-start;gap:24px}
+.compact button,.compact a{min-width:44px;font-size:16px}
+.compact .icon{width:18px;height:18px}
+.collection-grid{gap:40px}
+.collection-banner{min-height:0;aspect-ratio:620 / 400;border-radius:10px}
+.collection-copy{padding:30px}
+.collection-copy h2{font-size:26px;font-weight:500;line-height:1.5}
+.collection-copy p{font-size:20px;line-height:1.5}
+.banner-action{border:0;background:transparent;color:inherit;padding:0;margin-top:40px;border-radius:0;font-size:20px;gap:5px}
+.banner-action .icon{width:24px;height:24px}
+.collection-hero{aspect-ratio:1280 / 400;min-height:300px}
+.collection-intro{margin:40px 0;font-size:20px}
+.event-feature,.home-learning{grid-template-columns:850fr 370fr;gap:60px;border:0;border-radius:0;background:transparent;overflow:visible;align-items:center}
+.event-feature>img,.home-learning>img{aspect-ratio:850 / 478;width:100%;height:auto;border-radius:10px}
+.event-feature>div,.home-learning>div{height:385px;padding:0;gap:10px;justify-content:flex-start}
+.event-feature h2,.home-learning h2{font-size:24px;line-height:1.5;margin:0}
+.event-feature p,.event-feature small{font-size:16px;font-weight:400}
+.event-feature .type-label{order:-1}
+.event-feature .text-link,.home-learning .text-link{margin-top:auto;font-size:20px;gap:5px;justify-content:flex-start}
+.home-learning h3{font-size:20px;margin:0}
+.home-learning p{margin-top:auto;font-size:16px}
+.home-learning .text-link{margin-top:40px}
+.event-filters{margin-top:80px;gap:24px}
+.event-filters select{height:40px;min-height:40px;padding:6px 30px 6px 12px;border-radius:10px;line-height:1.5}
+.event-filters nav a{background:transparent;border-radius:0;padding:8px 16px;border-bottom:2px solid transparent}
+.event-filters nav [aria-current]{color:var(--color-text);background:transparent;border-color:var(--color-text)}
+.browse-tabs{border:0;border-radius:0;gap:40px;margin-bottom:40px}
+.browse-tabs>a{min-width:100px;padding:8px 0;border-bottom:2px solid transparent;color:var(--color-secondary)}
+.browse-tabs [aria-current]{background:transparent;color:var(--color-text);border-color:var(--color-text)}
+.search-box{margin-bottom:40px;background:transparent;border-color:var(--color-muted)}
+.search-box input{min-height:44px;padding:8px 0}
+.home-intro{padding:90px 0 80px}
+.home-intro-heading{margin-bottom:40px}
+.home-intro-heading p{font-size:22px;font-weight:400}
+.home-capabilities{gap:40px;margin-top:80px}
+.home-capabilities img{aspect-ratio:1 / 1;border-radius:10px}
+.home-capabilities h3{font-size:24px;margin:24px 10px 10px}
+.home-capabilities p{margin-inline:10px}
+.home-recent{padding:80px 0}
+.home-feature-grid{gap:40px}
+.home-feature-grid img{aspect-ratio:620 / 400;border-radius:10px}
+.home-feature-grid h3{font-size:24px;line-height:1.5;margin:24px 10px 10px}
+.home-feature-grid p{margin:10px 50px 0 10px}
+.home-feature-grid .text-link{justify-content:flex-start;margin:10px;font-size:20px;gap:5px}
+.home-feature-tag{background:transparent;color:var(--color-secondary);padding:0;margin:10px}
+.home-achievements{padding:80px 0}
+.site-footer{margin-top:120px;background:#f6f6f6;border:0}
+.footer-inner{padding:60px 0 40px;line-height:30px}
+.footer-inner p{font-size:20px;color:var(--color-text)}
+.footer-inner small,.footer-links{font-size:14px;color:var(--color-secondary)}
+.detail-section{margin-top:40px;padding-top:40px}
+.detail-section h2{margin-bottom:40px;font-size:36px}
+.detail-cover{margin-bottom:40px}
+.detail-top h1{font-size:50px}
+.person-work-section{margin-top:80px}
+.person-row{padding:30px 0}
+.person-row h2{font-size:24px}
+.person-row p{font-size:20px}
+.person-row .follow-button,.person-social>.follow-button{border-radius:10px}
+.person-introduction{padding:40px 0}
+.person-introduction h1{font-size:50px}
+.content-row{padding:30px 0;gap:40px}
+.content-row h3{font-size:24px}
+.text-link{gap:5px}
+.reading{max-width:860px}
+.markdown-body{font-weight:500;color:var(--color-text)}
+/* Supplement: account/form/interaction controls not fully defined by original. */
+.follow-button,.account-action{border-radius:10px}
+.button{min-height:44px;padding:8px 20px;border-radius:10px}
+.resource-list{border:0;border-radius:0}
+.resource-row{border-bottom:1px solid var(--color-line);padding:20px 0;gap:20px}
+.resource-icon{background:var(--color-soft);border-radius:10px}
+.pv-direction{border-radius:10px}
+@media(min-width:768px) and (max-width:1199px){
+ :root{--page-gutter:40px;--ui-title:40px;--ui-section:30px}
+ .header-inner.frame{width:calc(100% - 80px)}
+ .header-inner .brand img{width:200px}.desktop-nav a{width:70px}
+ .event-feature,.home-learning{gap:40px}.event-feature>div,.home-learning>div{height:auto;min-height:300px}
+ .home-intro-heading p{font-size:18px}
+}
+/* MOBILE SUPPLEMENT: not a supplied mobile design. Preserve selected 2-column courses. */
+@media(max-width:767px){
+ :root{--page-gutter:20px;--ui-title:28px;--ui-section:24px;--ui-card-title:16px;--ui-meta:12px;--ui-grid-gap:16px;--ui-card-row-gap:28px;--ui-banner-height:220px;--ui-person-name:18px;--ui-person-row-avatar:40px;--ui-person-home-avatar:72px;--ui-detail-ratio:16 / 9}
+ .header-inner,.header-inner.frame{height:60px;min-height:60px;width:calc(100% - 40px);gap:8px}
+ .header-inner .brand img{width:184px}.join-button{font-size:13px;padding:4px 10px;min-height:34px}.header-actions{gap:6px}
+ .discovery-banner .frame{min-height:140px}.discovery-banner p{font-size:14px}
+ .content-space,.events-page{padding-top:32px}
+ .browse-tabs{width:auto;gap:24px;margin-bottom:24px}.browse-tabs>a{flex:none;min-width:60px}
+ .search-box{margin-bottom:24px}.course-section{margin-top:40px}
+ .section-title{margin-bottom:24px}.course-grid{gap:28px 16px}
+ .course-main h3{font-size:16px;line-height:1.5;margin:12px 0 8px;padding-right:20px}
+ .course-main h3::after{width:14px;height:14px;top:5px}
+ .card-person,.event-meta{margin:0;font-size:12px;min-height:24px}.card-person .avatar{width:20px;height:20px}
+ .interactions.compact{margin:4px 0 0;gap:0;justify-content:space-between}.compact button,.compact a{font-size:12px;min-width:40px;gap:4px}.compact .icon{width:16px;height:16px}
+ .collection-grid{gap:20px}.collection-banner{aspect-ratio:620 / 400;min-height:0}.collection-copy{padding:24px}.collection-copy h2{font-size:22px}.collection-copy p{font-size:14px}.banner-action{font-size:16px;margin-top:24px}
+ .collection-hero{aspect-ratio:620 / 400}.collection-intro{font-size:16px;margin:24px 0}
+ .event-feature,.home-learning{grid-template-columns:2fr 3fr;gap:16px;align-items:start}
+ .event-feature>img,.home-learning>img{height:auto;aspect-ratio:1 / 1;object-fit:cover}
+ .event-feature>div,.home-learning>div{height:auto;min-height:0;padding:0;gap:6px}
+ .event-feature h2,.home-learning h2{font-size:18px;line-height:1.5}
+ .event-feature p,.event-feature small,.home-learning p{font-size:12px;margin:0}.home-learning h3{font-size:14px}
+ .event-feature .text-link,.home-learning .text-link{font-size:14px;margin-top:12px}
+ .event-filters{margin-top:32px;gap:12px;flex-wrap:wrap}.event-filters nav{gap:4px}.event-filters nav a{padding:6px 12px;font-size:14px}.event-filters label{font-size:14px;margin-left:auto}.event-filters select{font-size:14px;height:36px;min-height:36px}
+ .home-intro{padding:40px 0}.home-intro-heading{gap:16px;margin-bottom:24px}.home-intro-heading p{font-size:16px}
+ .home-capabilities{gap:12px;margin-top:32px}.home-capabilities h3{font-size:16px;margin:12px 0 6px}.home-capabilities p{margin:0;font-size:12px}
+ .home-recent{padding:40px 0}.home-feature-grid{gap:24px}.home-feature-grid>a{background:transparent;border-radius:0;gap:16px}.home-feature-grid img{aspect-ratio:1 / 1;height:auto;align-self:start;border-radius:10px}
+ .home-feature-grid h3{font-size:16px;margin:8px 0}.home-feature-grid p{font-size:12px;margin:0}.home-feature-grid .text-link{font-size:14px;margin:0}.home-feature-tag{margin:0;font-size:12px}
+ .home-achievements{padding:40px 0}.site-footer{margin-top:60px}.footer-inner{padding:30px 0 90px}.footer-inner p{font-size:16px}
+ .detail-top h1,.person-introduction h1{font-size:28px}.detail-section{margin-top:28px;padding-top:28px}.detail-section h2{font-size:24px;margin-bottom:20px}.detail-cover{margin-bottom:24px}
+ .person-row{padding:24px 0}.person-row h2{font-size:18px}.person-row p{font-size:14px}.person-introduction{padding:24px 0}.person-work-section{margin-top:40px}
+ .content-row{gap:16px;padding:20px 0}.content-row h3{font-size:16px}.resource-row{padding:14px 0;gap:12px}
+ .account-action{font-size:14px}.following-row p{font-size:12px}
+}
+@media(max-width:359px){.header-inner .brand img{width:156px}.header-inner .join-button{font-size:12px;padding:4px 8px}.header-profile{display:none}.event-feature h2{font-size:16px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}

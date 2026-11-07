@@ -1,0 +1,659 @@
+{
+  "schema": 1,
+  "checkedAt": "2026-11-06T20:09:46+08:00",
+  "originalProjectGitCommit": null,
+  "originalProjectGitReason": "source directory is not a Git repository; use per-file SHA-256 and deterministic selected-source digest",
+  "sourceFileCount": 160,
+  "sourceFilesChangedSincePackageManifest": 0,
+  "newEligibleMacSourcePaths": 0,
+  "independentPortableCoreAdditions": 23,
+  "unselectedIndependentPortableCoreAdditions": 0,
+  "sourceDigestMethod": "SHA-256 of UTF-8 path + NUL + lowercase file SHA-256 + LF, sorted by path",
+  "sourceDigestSha256": "40763040c2143fb5dc525f40655ec6c26d99cbf0221661bd1719a70fff7836f6",
+  "packageBeforeCommit": "f5cbc8a40b15f28777e3af51a7d487ba776a3f03",
+  "packageBeforeTree": "286ac8b382cf45c4c059dbce4694d296d30e6c36",
+  "runtimeOrWeChatRead": false,
+  "clientsOrBackgroundStarted": false,
+  "files": [
+    {
+      "path": "reference-licenses/Components.txt",
+      "sha256": "7c6bf463ec0a21a728bb5c9d2f6a72118178d6295952ff293d4102d893753382"
+    },
+    {
+      "path": "scripts/build-mac.py",
+      "sha256": "7ff36228710ddebde89e44cf0598cb79b70a66a0335f84b8caa667a9c2c02fce"
+    },
+    {
+      "path": "scripts/build-screen-reader.py",
+      "sha256": "2a83ca45e917bb7758527ac00b7ad0064a091ca7062bbece7d208a103ff20afc"
+    },
+    {
+      "path": "scripts/build-worker.py",
+      "sha256": "9ed4eb7449bcb9d0b05f1253f699812eab6fea4a61b3eebb4552a05ac6fa4be6"
+    },
+    {
+      "path": "scripts/bundle-native.py",
+      "sha256": "fb55f29b40e5629d4fa0936fe13911e3da85467bbde7119849dc574d27892118"
+    },
+    {
+      "path": "scripts/local-signing.py",
+      "sha256": "82af2d296884d8aae48ad2e057365297fdfbac0ad1375996b8723bdaa903229b"
+    },
+    {
+      "path": "scripts/pack-oneshot-helper.py",
+      "sha256": "0c658857cd28530b5b06bd553d0befb6371142d851c7fe89c19fb50c1733aa9c"
+    },
+    {
+      "path": "src/MacCLI/MacCLI.csproj",
+      "sha256": "9e8fedfbf07827ade6857951980d7abacb9f31484d1ff1a5cada8bf4704ec6fb"
+    },
+    {
+      "path": "src/MacCLI/MacDiagnosticExport.cs",
+      "sha256": "e081ae870758f013f901a2f08fbcc8da2392a84550dd01d3e2697aba464757e7"
+    },
+    {
+      "path": "src/MacCLI/Program.cs",
+      "sha256": "97f1c78076a4eb95b414e81e51704ef56d6036987187d603210c9908193a621a"
+    },
+    {
+      "path": "src/MacData/MacArchiveClone.cs",
+      "sha256": "95f00cf1044c9b965de630e79fa9d700782d89174e461c60c3f1bc321a773ea5"
+    },
+    {
+      "path": "src/MacData/MacArchiveClonePreflight.cs",
+      "sha256": "beda6bc03181bae121b655c1982c94893ad733f2d28a416aca3e79909edf793f"
+    },
+    {
+      "path": "src/MacData/MacArchiveImport.cs",
+      "sha256": "483823d0d8f6192d9fb434cd099d5dc586eb5c2335cfa7dc0edf38aadfe37157"
+    },
+    {
+      "path": "src/MacData/MacArchiveLease.CloneNames.cs",
+      "sha256": "9a0662792c4aeab1da37db01ce6af2de7a67b71b86ced4066e077dee00da066e"
+    },
+    {
+      "path": "src/MacData/MacArchiveLease.ClonePaths.cs",
+      "sha256": "1e7565a89b2de21ef92b73cbf2b7a21b3db8b0edc40c29c899bb009cc24a523e"
+    },
+    {
+      "path": "src/MacData/MacArchiveLease.CloneRead.cs",
+      "sha256": "483f0d91bc08fb72b47aaf6e795850332d1edeb6dc86388d4210c9660733c044"
+    },
+    {
+      "path": "src/MacData/MacArchiveLease.CloneSqlite.cs",
+      "sha256": "0f355d4507b62fca7fb18c077da5aa5472f68003692efd882469a596cbea1b4e"
+    },
+    {
+      "path": "src/MacData/MacArchiveLease.cs",
+      "sha256": "39fd68e437e3ebe945dbbea7277979cbee94a6306b307b6fbf3e9316d7c043d2"
+    },
+    {
+      "path": "src/MacData/MacArchiveManifest.cs",
+      "sha256": "1d4cfe2c80ad0a391d69e6ed7e2732c9018e4ff582cca66e404f8f54f985b1bf"
+    },
+    {
+      "path": "src/MacData/MacAvatarImport.cs",
+      "sha256": "bc9f9d4dfd5c36360a7ee59e635870f252d8729bab4d19b7af7583292ea7e729"
+    },
+    {
+      "path": "src/MacData/MacConnectionWorker.cs",
+      "sha256": "49ca87fcf5dd1b98e5a5deccf917eea68589947fc74d12969de30f99d52fbb8d"
+    },
+    {
+      "path": "src/MacData/MacData.csproj",
+      "sha256": "e83351e2bc03caacd98a886bfda99ac43d818c48af42c92ef21c01b1a9449a12"
+    },
+    {
+      "path": "src/MacData/MacForwardResources.cs",
+      "sha256": "f258f672836a733cbcb1aaac3fcabb89bc980d26fe937604b921bf783844f292"
+    },
+    {
+      "path": "src/MacData/MacImportProvider.Media.cs",
+      "sha256": "cefad1425307ff19c691b3a502de1ae65441bcc136d1cdf498389eec39864537"
+    },
+    {
+      "path": "src/MacData/MacImportProvider.cs",
+      "sha256": "59ae95bafeb7f35476042cf264696e8ce87010f6606e5dc262128120f9d3ffe6"
+    },
+    {
+      "path": "src/MacData/MacImportStatistics.cs",
+      "sha256": "a5fb005aca952e7c09b9723437ad34bdcb0b5ace6f5e109315b3c4ab218067b4"
+    },
+    {
+      "path": "src/MacData/MacImportWorker.cs",
+      "sha256": "93979e589b1ed5f75c1bf014844e9e3402e676c2f1b4abe21d5ad27607ae45eb"
+    },
+    {
+      "path": "src/MacData/MacMediaAccess.cs",
+      "sha256": "f2b6c188f2a42fad9fd76e2b647cd4d1d31087d880a02186e399d6d8c6912a52"
+    },
+    {
+      "path": "src/MacData/MacOutputProtection.cs",
+      "sha256": "b079e5e445ceba7b3939c2947915266610bc9273ef32f467a136d06179d335f9"
+    },
+    {
+      "path": "src/MacData/MacWorkerPool.cs",
+      "sha256": "4feb9374d24bb7d12c985bfaa4e85af29de2ceac4e93f137813fe27d0efad999"
+    },
+    {
+      "path": "src/MacHost/BridgeSecurity.cs",
+      "sha256": "6523dcb72ce9e47fe97352cda04ac526677912886d724dd20dc6318e916c86c6"
+    },
+    {
+      "path": "src/MacHost/HostStartupPaths.cs",
+      "sha256": "20e70c3a0f9495669003f9583afca98252bac259d36eb5d4f3dbc479d7b22f67"
+    },
+    {
+      "path": "src/MacHost/MacActiveAccountProbe.cs",
+      "sha256": "45f22a9550564b8bb53ec8bece867ba36ff3ae93fc3ff51d274b955cbd736972"
+    },
+    {
+      "path": "src/MacHost/MacAvatars.cs",
+      "sha256": "9b4f6780934bb2d2f2babaed7c7c3283b4d95133af36ba44600215d268bde360"
+    },
+    {
+      "path": "src/MacHost/MacConnection.cs",
+      "sha256": "bfefb71aef299677e69e735dfa5494a71e635c8b3478d8cd68238f56e5269a7e"
+    },
+    {
+      "path": "src/MacHost/MacController.cs",
+      "sha256": "b8f898dda97120c5d9bd9f49891271bbc433c41e80c60e9a07d87baa449276bf"
+    },
+    {
+      "path": "src/MacHost/MacDataTypeForwarders.cs",
+      "sha256": "a5865b404972b9d4175127b1f5173aba1da1cca2246cbfe13e6dbd196834c844"
+    },
+    {
+      "path": "src/MacHost/MacDiagnosticsController.cs",
+      "sha256": "579a981bde711219a49a6f610e4a16ed1b335f9d71983e3889bc1fe60fddcf60"
+    },
+    {
+      "path": "src/MacHost/MacDiagnosticsPrivacy.cs",
+      "sha256": "86820cbf36461f08e4cc10ce1a246eecee221bfca395992956e57a9cdb90519e"
+    },
+    {
+      "path": "src/MacHost/MacDiagnosticsService.cs",
+      "sha256": "79f632b9aa05e1a7c83882adf81a80b9a85e64c675b606e9cc4ee69e394a150e"
+    },
+    {
+      "path": "src/MacHost/MacExport.cs",
+      "sha256": "7936ebae490078a189c30fc058d6e9b91af07b91eb04ddcda240389eb42f3e9f"
+    },
+    {
+      "path": "src/MacHost/MacFileLocation.cs",
+      "sha256": "0354f9c5cf5e3b66e9ceb1ca8dea4eef88e814ece015346156c2699341575a7c"
+    },
+    {
+      "path": "src/MacHost/MacFileLocationController.cs",
+      "sha256": "252f93e6b32c447262af5ef06f862fe97f7bc91da455fd6858bd8907e0686f7b"
+    },
+    {
+      "path": "src/MacHost/MacFileLocationRead.cs",
+      "sha256": "b25b1872c8e61c2b6a847130875fb653cb21d0f399d7d35a799298c2cbd25787"
+    },
+    {
+      "path": "src/MacHost/MacForward.cs",
+      "sha256": "ca4ee43d86c9f6d357d4ec29c5c71cb50ed4f5e5b77ded5b3cca02d811da2ed0"
+    },
+    {
+      "path": "src/MacHost/MacForwardFileController.cs",
+      "sha256": "e95c34034ed47c471304fc660a05d8c782d3358c95963b7f737da1bd4ce73646"
+    },
+    {
+      "path": "src/MacHost/MacForwardFiles.cs",
+      "sha256": "1f44485306b43994af21b3dffea904839745e2a0d37bc7aaaf997c7cf740aa37"
+    },
+    {
+      "path": "src/MacHost/MacForwardSession.cs",
+      "sha256": "e93d61b64edf08f2995dc18112bcb98ddf5c210051753fe9f1a3118fdebf0abc"
+    },
+    {
+      "path": "src/MacHost/MacHost.csproj",
+      "sha256": "0e107abd08faedbbf65b667606c3f4459393ee8ebdc370fc0d74e0e1e176f9de"
+    },
+    {
+      "path": "src/MacHost/MacImages.cs",
+      "sha256": "fc8bf753b61b65d1864a5205458e4ae5f295bee3e26fb0ed0384c200f371c709"
+    },
+    {
+      "path": "src/MacHost/MacKnowledge.cs",
+      "sha256": "dfc83755790867e02f3679c1a850884a5cc2567e86fe4a0f60c2869acdb9ea2c"
+    },
+    {
+      "path": "src/MacHost/MacLogs.cs",
+      "sha256": "16ab009a95aba6209834d9b308bd77b5af7de13673346f1b19ea8791cd270e88"
+    },
+    {
+      "path": "src/MacHost/MacMedia.cs",
+      "sha256": "15527568de70af8bcc75fbe11cce5e32be3a410c2836a8ca6605a7df740a65f1"
+    },
+    {
+      "path": "src/MacHost/MacMessagePresentation.cs",
+      "sha256": "693f08444f190855161d35e41eaaeadd173fb2e33c48554084dacb788dcd5ff5"
+    },
+    {
+      "path": "src/MacHost/MacOfficial.cs",
+      "sha256": "433fe59b3e47051eb67978d999484256281b2b59186d556debd804371921b73b"
+    },
+    {
+      "path": "src/MacHost/MacPersonas.cs",
+      "sha256": "bc1613dd340137b0e56d50a527800acc9f737161b51cb147eb8e53c1e646e381"
+    },
+    {
+      "path": "src/MacHost/MacQueries.cs",
+      "sha256": "7db6241ff0aa97dc5afe28cf7894ed668fa9e0fb881078c4b4a8b21b9ede6ad6"
+    },
+    {
+      "path": "src/MacHost/MacRecordActions.cs",
+      "sha256": "4d90c1c16c0b1bcbf3e31e5861505dc7e7d2a0797ce76f43b4b78d58834759b5"
+    },
+    {
+      "path": "src/MacHost/MacRecordNavigation.cs",
+      "sha256": "22f09936ceef8c13833f44ade9a6024068304002b794e46a9ec81df3cff41d4c"
+    },
+    {
+      "path": "src/MacHost/MacSavedArticle.cs",
+      "sha256": "e7fa43291b8b12cf421d431f5ab548033f13e3299821f9f2b254a6ebe39d34f4"
+    },
+    {
+      "path": "src/MacHost/MacSettings.cs",
+      "sha256": "04d425233e58be33fbe432fb996bd347c06943a0e6db2ceb44685eea66a944cb"
+    },
+    {
+      "path": "src/MacHost/MacSetup.cs",
+      "sha256": "a5f946912fd055b781aecc70c0b363dda4075fe43dc3ddbb29c6878485461224"
+    },
+    {
+      "path": "src/MacHost/MacSetupSources.cs",
+      "sha256": "2b504b360d3a52c8f90af923b79f6d4be0d30fd1ec2bc3613ab3af0cd7753c80"
+    },
+    {
+      "path": "src/MacHost/MacShutdown.cs",
+      "sha256": "ca497ec97175d60bb4424b779aea37550c7f45eb1d0372b929c8fd9845b33420"
+    },
+    {
+      "path": "src/MacHost/MacStickerLoader.cs",
+      "sha256": "c91fd44b5e66ffabf0fec51d7afcbab2226935d2771076d9b86fcaf0b5eb7430"
+    },
+    {
+      "path": "src/MacHost/MacStickerProbe.cs",
+      "sha256": "0b13928581be87f1cfca7a3df9916896f70976a7e9409320bbd125984b66981a"
+    },
+    {
+      "path": "src/MacHost/MacStickers.cs",
+      "sha256": "51b4eacfc5710d18e1ab26f12ecba3cbeb345d8081fd118510ae2ddb3d995ce6"
+    },
+    {
+      "path": "src/MacHost/MacSync.cs",
+      "sha256": "575d95159a93e517def88c87c154cdfeb738f13eac0a7ce819e048155b5fb504"
+    },
+    {
+      "path": "src/MacHost/MacTimeline.cs",
+      "sha256": "b094a05830008e66269cd0ac8881ad74f3a2839f9f4290de08bec6e372c23cbc"
+    },
+    {
+      "path": "src/MacHost/MacUserOutput.cs",
+      "sha256": "12e9f8e9bba2a0167bf3fbbbf1c600d9b67e2bcd584c00b841e431ccfc12e09f"
+    },
+    {
+      "path": "src/MacHost/MacVisionBridge.cs",
+      "sha256": "2490e590eed2865394ef99ba745764075c2b1383daf37423a62faeb07010f8f8"
+    },
+    {
+      "path": "src/MacHost/MacVisionNavigation.cs",
+      "sha256": "fe4523eeac222ef12a3cd64f6e01d9870f46898c56262b8a58f81902c65c5d30"
+    },
+    {
+      "path": "src/MacHost/MacVisionSnapshot.cs",
+      "sha256": "2af7b1b4824de4c0e03a13f1c775873799fdc30212e8a55dc0da17eda8aad9b5"
+    },
+    {
+      "path": "src/MacHost/MacVoice.cs",
+      "sha256": "f38b834de1c512bb421a75aa521ac43219e3890324f55cef69e056c598701a5f"
+    },
+    {
+      "path": "src/MacHost/MacVoiceState.cs",
+      "sha256": "7904fb8891dae350d5798157d11d05b88413507ed2343e1876176c4345937c79"
+    },
+    {
+      "path": "src/MacHost/Program.cs",
+      "sha256": "40cc889bd641315405b380e84ff1ff6b24150f8b8fac702e75f2393cb6e4a00d"
+    },
+    {
+      "path": "src/MacHost/Web/host.js",
+      "sha256": "e044879d6ce93a227533d9219df69f722f6c3e4e70c700ce0c17f26d27d508cd"
+    },
+    {
+      "path": "src/MacHost/Web/login.html",
+      "sha256": "7ed08e9cd8c4144e4ad75db77e5f848ba99f60807b32ff0c50334cf5d8a4dce5"
+    },
+    {
+      "path": "src/MacHost/Web/shell.html",
+      "sha256": "b2dbf2d09f5982115a36cadacff2a8a5a3e36353767ecde9829575f797781458"
+    },
+    {
+      "path": "src/MacNative/BackendIdentity.swift",
+      "sha256": "1975fad3bb192f24e398a4c179a93366c58da14b68bc4ab948d9797edebfabc0"
+    },
+    {
+      "path": "src/MacNative/MacConnectionBootstrap.swift",
+      "sha256": "25d9ceabf5aa71c78e876acb83c1ec563c1a73392b173d9ce8fb1eddd1c5cb69"
+    },
+    {
+      "path": "src/MacNative/MacConnectionSession.swift",
+      "sha256": "c0789939216337dfeae6ef912b15b1aa11accd7e69ba052358db29ad03ee62d3"
+    },
+    {
+      "path": "src/MacNative/MacFileLocationView.swift",
+      "sha256": "5b2b23586ecae3516ff38f4773b7cf80da27961ff3747ae250e65b8e94cf01bd"
+    },
+    {
+      "path": "src/MacNative/MacForwardView.swift",
+      "sha256": "847bc894f819300926e91c5f3d3e23919319149b0b63110dca2dfa3e812f3241"
+    },
+    {
+      "path": "src/MacNative/MacLocalMediaPlayback.swift",
+      "sha256": "8926ac90704e67a403a9aa51f3992dbff2f3b31f7cb0f7283497c79c99140c88"
+    },
+    {
+      "path": "src/MacNative/MacOriginalHandover.swift",
+      "sha256": "cb4b80fcfad435f6762d6b74eccaf1efbf8f1951230732722578387df94afbcc"
+    },
+    {
+      "path": "src/MacNative/MacPlaybackActivitySender.swift",
+      "sha256": "db5cb297bdcd68ae4d47fa7ce22c77b82bec57d95188f6b0f8cc99065d9b5b21"
+    },
+    {
+      "path": "src/MacNative/MacSavedArticleView.swift",
+      "sha256": "6cf3db930947495ae8d82e2276a77644b54041132bdf152167374e40b43351d8"
+    },
+    {
+      "path": "src/MacNative/MacScreenReaderClient.swift",
+      "sha256": "953873004c9b9419816d1050aaf3b5b57f74c612300840de85fe0f0a4cdff975"
+    },
+    {
+      "path": "src/MacNative/MacScreenReaderSetup.swift",
+      "sha256": "cc3c251782aa2d3ef9126b5180dcba78a7c958382545e2f761ea02c3a865b740"
+    },
+    {
+      "path": "src/MacNative/MacShadowSession.swift",
+      "sha256": "34c4321c1498f6e6ce8c16d5df97aecaf02830c7338aa3061c12866554c5e87c"
+    },
+    {
+      "path": "src/MacNative/MacWindowInspector.swift",
+      "sha256": "f9cf48413e769c9ef3305cb0649eb2becaedd2d7f6a35b7df001bc7dfa8022ac"
+    },
+    {
+      "path": "src/MacNative/main.swift",
+      "sha256": "a4266da2f48df06d22e11f80946a14eb09f457a64ba0e770878923415190fcec"
+    },
+    {
+      "path": "src/MacNative/sticker_probe.swift",
+      "sha256": "279da26107d0baa74e5916832e7e9fc0aa4d4271dbc608e2d6ed4e96836491ea"
+    },
+    {
+      "path": "src/MacNative/vault.swift",
+      "sha256": "34ea018ea46ba3c7e2ab8d3d6729fdb88760a1ee258f9b514ef22e692462b6cd"
+    },
+    {
+      "path": "src/MacScreenReader/README.md",
+      "sha256": "e745b6c19f119c6fa84044045957bd64619ddd1c56c8b2ec93d4edf9c5bb5b57"
+    },
+    {
+      "path": "src/MacScreenReader/ScreenReaderCore.swift",
+      "sha256": "f7a1fa87246b1b60c25141461040b644787def1d62c147d16cc07c1c89a77641"
+    },
+    {
+      "path": "src/MacScreenReader/ScreenReaderEngine.swift",
+      "sha256": "3139ddff8b2e1898ef7b550390fced05bea5d9d2c8e725fe2a0daf3a0321a1d0"
+    },
+    {
+      "path": "src/MacScreenReader/ScreenReaderOCR.swift",
+      "sha256": "f08ab03371fa4e9896f5d136efdd5072050e29dad0c18247c8beaf5e40aeb23b"
+    },
+    {
+      "path": "src/MacScreenReader/ScreenReaderParent.swift",
+      "sha256": "25687fdf13b8da12da1b47bb2436ce102038c069ee21cb3a007b489a408d66bf"
+    },
+    {
+      "path": "src/MacScreenReader/ScreenReaderParentLifetime.swift",
+      "sha256": "43565087f9b26c546263edadc2863794d09a893e4ed497a431119c86e151807d"
+    },
+    {
+      "path": "src/MacScreenReader/ScreenReaderPicker.swift",
+      "sha256": "ec8a81aec2e702fbc0d03aa0e409c6c353dfde766d48ddd38cf01c15cbdc014f"
+    },
+    {
+      "path": "src/MacScreenReader/ScreenReaderPreview.swift",
+      "sha256": "79132f200031fb8321d8b09a4d49176470bf66dca5ad3a8517daf69dfd3e8957"
+    },
+    {
+      "path": "src/MacScreenReader/ScreenReaderProcessIdentity.swift",
+      "sha256": "a8c578aaf7361dc3762f107e3c342213ff82f2d2eee29b1d86e8839cb5dedb13"
+    },
+    {
+      "path": "src/MacScreenReader/ScreenReaderProtocol.swift",
+      "sha256": "cbc0e2fdcddc39090b17a9a40e61f3170f30c3729356ffb50663f71d165bed79"
+    },
+    {
+      "path": "src/MacScreenReader/ScreenReaderWindowMetadata.swift",
+      "sha256": "92bb1ee5269c67c5811737f2d3756719e071945b4e697a78e19af3603563e577"
+    },
+    {
+      "path": "src/MacScreenReader/main.swift",
+      "sha256": "aa654c0f2baec6355eb24b10d3cf439618e38e9ab012391e980bba9d6c57dcaf"
+    },
+    {
+      "path": "src/MacShared/PipeIO.swift",
+      "sha256": "f3febb97d866288fad5abeffe1d2fdd7619916008b399e6f290e00a6b4878749"
+    },
+    {
+      "path": "src/MacWorker/forwarded_media.py",
+      "sha256": "b021c361ad0065a1856dd72bf914ea2047d93471a628426aeae6af6809bafd0f"
+    },
+    {
+      "path": "src/MacWorker/foundation/archive_lock.py",
+      "sha256": "3c0eec6415c60e5c1ae81e72225cd6d2f18f149541bd84b5fca21ce02f35da1e"
+    },
+    {
+      "path": "src/MacWorker/foundation/archive_lock_driver.py",
+      "sha256": "403722dd8fc9f352834ff0dd98a4c4dcc9d0cb61c01664741e13eaf3397902c7"
+    },
+    {
+      "path": "src/MacWorker/foundation/archive_read.py",
+      "sha256": "19f5e88cfd8fa6e883fbe51cd065d91e962f77f7b65a7c85ea9d196dd71a5073"
+    },
+    {
+      "path": "src/MacWorker/foundation/attachment_names.py",
+      "sha256": "9fc8f85d55238eb70928d975025a801db640c8eda458f5ecbad082ca3db23b79"
+    },
+    {
+      "path": "src/MacWorker/foundation/capture.py",
+      "sha256": "2f01b8bc593c42e0ba4a254905fa36142ac49eb78875723eef0a4e4695047f7b"
+    },
+    {
+      "path": "src/MacWorker/foundation/connection.py",
+      "sha256": "71b956b8663ffa12dcb0c56fd06ff20a187358ad25d6d71783d0b59cb4780e8d"
+    },
+    {
+      "path": "src/MacWorker/foundation/connection_driver.py",
+      "sha256": "ff820954448631806dba30a1e523dc20aa1f96a4dc61814c2d0cf327aed2ae39"
+    },
+    {
+      "path": "src/MacWorker/foundation/crypto.py",
+      "sha256": "114174228457815d2f891d3bed45536a5a38aa030d17f542173213fe41464fc9"
+    },
+    {
+      "path": "src/MacWorker/foundation/decode-voice.cjs",
+      "sha256": "1ad27308e2a50b13c266fda7d349194685557ef6c6102e3f422652b716708bf8"
+    },
+    {
+      "path": "src/MacWorker/foundation/helper_payload.py",
+      "sha256": "18ba2bc431e3898b63e2019cf4da2c93b8427bb1add50f35a7cf2497f920c128"
+    },
+    {
+      "path": "src/MacWorker/foundation/library.py",
+      "sha256": "a9e830a78c3c74102c16d22bb48db4b4f48da3385843afe2a547b180b72b96b2"
+    },
+    {
+      "path": "src/MacWorker/foundation/media.py",
+      "sha256": "c79add40a97a2902eb3cdb6cdbac26978db53a38abbbb5cc9a0fe4141f3529ad"
+    },
+    {
+      "path": "src/MacWorker/foundation/playback.py",
+      "sha256": "5f0564a94e6d85b9c3830df55f7f295e1b0b92ca49ed84d48c7f063243016a09"
+    },
+    {
+      "path": "src/MacWorker/foundation/security.py",
+      "sha256": "dcf5ae9b64d8a1cf280b0a25c0838d44a19e540a6384c1d601234e2521c024eb"
+    },
+    {
+      "path": "src/MacWorker/mac_worker.py",
+      "sha256": "3822e20fe63980b9b47a213c46d97878b1276931cb7919ab2cf2771481ba4582"
+    },
+    {
+      "path": "src/PortableCore/Properties/MacFriendAssembly.cs",
+      "sha256": "9668192c4f6c245a00d1253a78e12274ed98b00e94cf231fdc894c8fc03cccfc"
+    },
+    {
+      "path": "src/PortableCore/Safety/MacCredentialProtection.cs",
+      "sha256": "b0792f5c0f4ebea81733249a51ea2a9e469391f00b91690b8f53643501dda706"
+    },
+    {
+      "path": "src/PortableCore/Safety/MacVaultProcessLimits.cs",
+      "sha256": "7d0ea563adcc613e21ec0c12f01d61323eea52e5d394a52559a75a2986bbf628"
+    },
+    {
+      "path": "src/PortableCore/WechatUiCollector/Cli/MacCliStartup.cs",
+      "sha256": "b52a8a469175b075704af08cf396d3a62ad7e670121b52fd6ceb1e96bee730fa"
+    },
+    {
+      "path": "src/PortableCore/WechatUiCollector/Diagnostics/OfficialProtocolMetadata.cs",
+      "sha256": "2144afe40ff786032558009aef643326930ecb65103f878a6e4ec9543b3c3317"
+    },
+    {
+      "path": "src/PortableCore/WechatUiCollector/OfficialAccount/ArticleBodyHttpLimits.cs",
+      "sha256": "8541d254f0a008af4e6d08cccf2d50ca8be21aa94b3ff190651c3fd89d080925"
+    },
+    {
+      "path": "src/PortableCore/WechatUiCollector/OfficialAccount/CacheFile.cs",
+      "sha256": "d663ee669accfb5d66ad27d52d8981af349ca4692008b32972b91ce91b1a8551"
+    },
+    {
+      "path": "src/PortableCore/WechatUiCollector/OfficialAccount/CacheJson.cs",
+      "sha256": "dda0e08063abc2985c48343031870d978ef93d5105e5f05c1e05bb6f1c135d9d"
+    },
+    {
+      "path": "src/PortableCore/WechatUiCollector/OfficialAccount/CacheReadBudget.cs",
+      "sha256": "12add9be3bd93b7dc0eb5b3e844fcfd875301cd064dcaa5611d11e0ced4c740a"
+    },
+    {
+      "path": "src/PortableCore/WechatUiCollector/OfficialAccount/LocalPublisherPushExtractor.cs",
+      "sha256": "16515f19112bb1ea20b9120f3cb8a42c086c13b4504bcd86a9be5c5cf2c9dd9c"
+    },
+    {
+      "path": "src/PortableCore/WechatUiCollector/OfficialAccount/OfficialAccountHttpLimits.cs",
+      "sha256": "117f8c7cf190a9bba3a9fef17c258716b44f42aeaf5e3082892394b2a18d47cb"
+    },
+    {
+      "path": "src/PortableCore/WechatUiCollector/Safety/LocalAssetFile.cs",
+      "sha256": "4974a7087a19a81ecf24d16c5aea0790405b24581a52d4d4a44a429f08aec6af"
+    },
+    {
+      "path": "src/PortableCore/WechatUiCollector/Storage/BoundedSourceContracts.cs",
+      "sha256": "9f47dcb557144c8dc7335fa9b873c6e249647fa351922c54db12299d57e7f7d0"
+    },
+    {
+      "path": "src/PortableCore/WechatUiCollector/Storage/LocalRecordReader.PublisherSource.cs",
+      "sha256": "a7cbabd7ad3ac7616826ca02d6df2566159f491f1eceecb0ed88586a6d757b31"
+    },
+    {
+      "path": "src/PortableCore/WechatUiCollector/Storage/SqliteReadCancellation.cs",
+      "sha256": "fa01257f6ea394bf4690a36fa21faa9547a4583a783e37e18396c30a0da57d90"
+    },
+    {
+      "path": "src/PortableCore/WechatUiCollector/WechatDb/BoundedRawContentCodec.cs",
+      "sha256": "ba570581072a9d6753bedd397b1778135ae72b0ecdc7a81c8d7cb86090208f49"
+    },
+    {
+      "path": "src/PortableCore/WechatUiCollector/WechatDb/IWechatLocalImportProvider.cs",
+      "sha256": "e9faec6ef5bd5b16686dcded9e488abf494df7ef5dcbbf0ac32e09fe5ad14425"
+    },
+    {
+      "path": "src/PortableCore/WechatUiCollector/WechatDb/IWechatLocalMediaProvider.cs",
+      "sha256": "85e9e9bf54e739671d9863a9ccd0445381af4f1c8248c0dbb0cc314cf184e1e1"
+    },
+    {
+      "path": "src/PortableCore/WechatUiCollector/WechatDb/MacEmojiDescription.cs",
+      "sha256": "555873e777824c23a1563d9b890cc464c845c215c923f6ff981bf6c67491fb4e"
+    },
+    {
+      "path": "src/PortableCore/WechatUiCollector/WechatDb/MacForwardedCardXml.cs",
+      "sha256": "d7490a20bdcc9c227012f7ca0fb5256983f7a97efc24a35b8f179fbac22caf1b"
+    },
+    {
+      "path": "src/PortableCore/WechatUiCollector/WechatDb/MacForwardedLocationXml.cs",
+      "sha256": "50412e4d53bd4f8402f695c3f690e960cf86cf3ba2f842b62a581c0ebaf2350a"
+    },
+    {
+      "path": "src/PortableCore/WechatUiCollector/WechatDb/MacForwardedSurrogateXml.cs",
+      "sha256": "2d7ef04ea8ca4de88ddaf048b29c44160b5782fd21879ace75e87319bd9848f8"
+    },
+    {
+      "path": "src/PortableCore/WechatUiCollector/WechatDb/MacLinkCardXml.cs",
+      "sha256": "5fa08eefcfbc459eab955132004810ff0c4b0cde1814d0e3c3b96765038b8e44"
+    },
+    {
+      "path": "tests/WorkerProtocol/test_archive_lock.py",
+      "sha256": "9a890ece7dfaa344bcbeed875df4697fdb614f937139b91583ed9fc38c95b4d1"
+    },
+    {
+      "path": "tests/WorkerProtocol/test_archive_lock_driver.py",
+      "sha256": "e678b8c711cf0954c8fa7a723d4a84799eb0359eec240dec12589729fcbe5b74"
+    },
+    {
+      "path": "tests/WorkerProtocol/test_archive_names.py",
+      "sha256": "101017d824e46333153126a811974b72cdcb8ed7d78e36845bdc368074f7b079"
+    },
+    {
+      "path": "tests/WorkerProtocol/test_archive_read.py",
+      "sha256": "740e745d61b229d02a0595f6208623181e47a29512f73c79565b9869bc60db9a"
+    },
+    {
+      "path": "tests/WorkerProtocol/test_connection.py",
+      "sha256": "a5ad0d632ed838325569680a6af008a46b7d3d37cf1150fa9f52a1a31e306599"
+    },
+    {
+      "path": "tests/WorkerProtocol/test_connection_driver.py",
+      "sha256": "927548cb8a1d146a1f21fad23f3a3da92d33e03c46f84d26454ce5a2827460a0"
+    },
+    {
+      "path": "tests/WorkerProtocol/test_helper_payload.py",
+      "sha256": "9acd22ba1ff710fa4ead010c828525615caca7f9b2cf587b00408678fa136d5a"
+    },
+    {
+      "path": "tests/WorkerProtocol/test_import.py",
+      "sha256": "fb932ff7a0f11986ec1de806e4c4b5c5656dca838038dfefafc3c504dbec5063"
+    },
+    {
+      "path": "tests/WorkerProtocol/test_media.py",
+      "sha256": "29016fefb65f9e890c8057795ff6cb15a1615c2c5aa3787621eabb433bd8b388"
+    },
+    {
+      "path": "tests/WorkerProtocol/test_protocol.py",
+      "sha256": "929de19c69c446ac8baffbdd60faf7e93f139f07a76cae6ce4c472dbb528b289"
+    },
+    {
+      "path": "tests/WorkerProtocol/test_reparse.py",
+      "sha256": "446c9c04a9d1e5dd2b7aec085215dccff572a902649a2bdfb918e719b44dd89a"
+    },
+    {
+      "path": "tests/WorkerProtocol/test_sticker.py",
+      "sha256": "22b3e56d2a6675f58ee8878d974ee16f5670ab57dcb95f0f5a2b55f52a97560a"
+    },
+    {
+      "path": "tests/test_local_signing.py",
+      "sha256": "55beb7fd349982b3ece7c0ddcbd4e443a4ab6e5d31c5aa67e06731871bd74649"
+    }
+  ]
+}

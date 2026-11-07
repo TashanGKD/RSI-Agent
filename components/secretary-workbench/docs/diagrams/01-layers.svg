@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1030" viewBox="0 0 1440 1030">
+<text x="50" y="52" font-family="Noto Sans SC, sans-serif" font-size="34" font-weight="400" fill="#0E2E30" text-anchor="start">系统分层：主体、工具与四类真源</text>
+<text x="50" y="87" font-family="Noto Sans SC, sans-serif" font-size="18" font-weight="400" fill="#3A6668" text-anchor="start">角色负责理解与验收；工具负责取得与动作。共用业务库，不等于共用全部上下文。</text>
+<line x1="50" y1="108" x2="1390" y2="108" stroke="#B8E0E3" stroke-width="2"/>
+<text x="50" y="215" font-family="Noto Sans SC, sans-serif" font-size="22" font-weight="600" fill="#3D8F91" text-anchor="start">交互入口</text>
+<text x="50" y="415" font-family="Noto Sans SC, sans-serif" font-size="22" font-weight="600" fill="#3D8F91" text-anchor="start">工作角色</text>
+<text x="50" y="615" font-family="Noto Sans SC, sans-serif" font-size="22" font-weight="600" fill="#3D8F91" text-anchor="start">独立工具</text>
+<text x="50" y="845" font-family="Noto Sans SC, sans-serif" font-size="22" font-weight="600" fill="#3D8F91" text-anchor="start">持久基础</text>
+<ellipse cx="345.0" cy="192.5" rx="125.0" ry="47.5" fill="#F3F7F7" stroke="#6F9291" stroke-width="2"/>
+<text x="345.0" y="185.0" font-family="Noto Sans SC, sans-serif" font-size="23" font-weight="600" fill="#0E2E30" text-anchor="middle">桌面原生对话</text>
+<text x="345.0" y="214.0" font-family="Noto Sans SC, sans-serif" font-size="18" font-weight="400" fill="#3A6668" text-anchor="middle">指定交互窗口</text>
+<ellipse cx="635.0" cy="192.5" rx="125.0" ry="47.5" fill="#F3F7F7" stroke="#6F9291" stroke-width="2"/>
+<text x="635.0" y="185.0" font-family="Noto Sans SC, sans-serif" font-size="23" font-weight="600" fill="#0E2E30" text-anchor="middle">手机 ClawBot</text>
+<text x="635.0" y="214.0" font-family="Noto Sans SC, sans-serif" font-size="18" font-weight="400" fill="#3A6668" text-anchor="middle">已绑定本人入口</text>
+<ellipse cx="925.0" cy="192.5" rx="125.0" ry="47.5" fill="#F3F7F7" stroke="#6F9291" stroke-width="2"/>
+<text x="925.0" y="185.0" font-family="Noto Sans SC, sans-serif" font-size="23" font-weight="600" fill="#0E2E30" text-anchor="middle">网页工作台</text>
+<text x="925.0" y="214.0" font-family="Noto Sans SC, sans-serif" font-size="18" font-weight="400" fill="#3A6668" text-anchor="middle">阅览 · 批注 · 留言</text>
+<ellipse cx="1215.0" cy="192.5" rx="125.0" ry="47.5" fill="#F3F7F7" stroke="#6F9291" stroke-width="2"/>
+<text x="1215.0" y="185.0" font-family="Noto Sans SC, sans-serif" font-size="23" font-weight="600" fill="#0E2E30" text-anchor="middle">工作微信往来</text>
+<text x="1215.0" y="214.0" font-family="Noto Sans SC, sans-serif" font-size="18" font-weight="400" fill="#3A6668" text-anchor="middle">资料 / 职责内请求</text>
+<polygon points="242,345 448,345 470,400.0 448,455 242,455 220,400.0" fill="#DDF0EF" stroke="#3D8F91" stroke-width="2"/>
+<text x="345.0" y="392.5" font-family="Noto Sans SC, sans-serif" font-size="23" font-weight="600" fill="#0E2E30" text-anchor="middle">交互 / 日常秘书</text>
+<text x="345.0" y="421.5" font-family="Noto Sans SC, sans-serif" font-size="18" font-weight="400" fill="#3A6668" text-anchor="middle">按角色配置分工</text>
+<polygon points="532,345 738,345 760,400.0 738,455 532,455 510,400.0" fill="#DDF0EF" stroke="#3D8F91" stroke-width="2"/>
+<text x="635.0" y="392.5" font-family="Noto Sans SC, sans-serif" font-size="23" font-weight="600" fill="#0E2E30" text-anchor="middle">记事本更新角色</text>
+<text x="635.0" y="421.5" font-family="Noto Sans SC, sans-serif" font-size="18" font-weight="400" fill="#3A6668" text-anchor="middle">核旧项 · 新结果</text>
+<polygon points="822,345 1028,345 1050,400.0 1028,455 822,455 800,400.0" fill="#DDF0EF" stroke="#3D8F91" stroke-width="2"/>
+<text x="925.0" y="392.5" font-family="Noto Sans SC, sans-serif" font-size="23" font-weight="600" fill="#0E2E30" text-anchor="middle">真实协作对话</text>
+<text x="925.0" y="421.5" font-family="Noto Sans SC, sans-serif" font-size="18" font-weight="400" fill="#3A6668" text-anchor="middle">独立上下文 / 交付</text>
+<polygon points="1112,345 1318,345 1340,400.0 1318,455 1112,455 1090,400.0" fill="#DDF0EF" stroke="#3D8F91" stroke-width="2"/>
+<text x="1215.0" y="392.5" font-family="Noto Sans SC, sans-serif" font-size="23" font-weight="600" fill="#0E2E30" text-anchor="middle">授权独立服务</text>
+<text x="1215.0" y="421.5" font-family="Noto Sans SC, sans-serif" font-size="18" font-weight="400" fill="#3A6668" text-anchor="middle">特定范围 / 求助</text>
+<rect x="220" y="560" width="250" height="110" rx="13" fill="#EDF5FA" stroke="#4F7F9B" stroke-width="2"/>
+<text x="345.0" y="607.5" font-family="Noto Sans SC, sans-serif" font-size="23" font-weight="600" fill="#0E2E30" text-anchor="middle">信源读取接口</text>
+<text x="345.0" y="636.5" font-family="Noto Sans SC, sans-serif" font-size="18" font-weight="400" fill="#3A6668" text-anchor="middle">按真实 ID / 范围</text>
+<rect x="510" y="560" width="250" height="110" rx="13" fill="#EDF5FA" stroke="#4F7F9B" stroke-width="2"/>
+<text x="635.0" y="607.5" font-family="Noto Sans SC, sans-serif" font-size="23" font-weight="600" fill="#0E2E30" text-anchor="middle">记事本正式端口</text>
+<text x="635.0" y="636.5" font-family="Noto Sans SC, sans-serif" font-size="18" font-weight="400" fill="#3A6668" text-anchor="middle">版本 / 幂等 / 读回</text>
+<rect x="800" y="560" width="250" height="110" rx="13" fill="#EDF5FA" stroke="#4F7F9B" stroke-width="2"/>
+<text x="925.0" y="607.5" font-family="Noto Sans SC, sans-serif" font-size="23" font-weight="600" fill="#0E2E30" text-anchor="middle">微信操作接口</text>
+<text x="925.0" y="636.5" font-family="Noto Sans SC, sans-serif" font-size="18" font-weight="400" fill="#3A6668" text-anchor="middle">队列 / 预览 / 核账</text>
+<rect x="1090" y="560" width="250" height="110" rx="13" fill="#EDF5FA" stroke="#4F7F9B" stroke-width="2"/>
+<text x="1215.0" y="607.5" font-family="Noto Sans SC, sans-serif" font-size="23" font-weight="600" fill="#0E2E30" text-anchor="middle">对话与宿主适配</text>
+<text x="1215.0" y="636.5" font-family="Noto Sans SC, sans-serif" font-size="18" font-weight="400" fill="#3A6668" text-anchor="middle">派工 / 状态 / 回报</text>
+<path d="M220,799 C220,781 470,781 470,799 L470,881 C470,899 220,899 220,881 Z" fill="#FBECE6" stroke="#D06550" stroke-width="2"/>
+<path d="M220,799 C220,817 470,817 470,799" fill="none" stroke="#D06550" stroke-width="1.5"/>
+<text x="345.0" y="832.5" font-family="Noto Sans SC, sans-serif" font-size="23" font-weight="600" fill="#0E2E30" text-anchor="middle">来源原件</text>
+<text x="345.0" y="861.5" font-family="Noto Sans SC, sans-serif" font-size="18" font-weight="400" fill="#3A6668" text-anchor="middle">留源侧 / 本机</text>
+<path d="M510,799 C510,781 760,781 760,799 L760,881 C760,899 510,899 510,881 Z" fill="#FBECE6" stroke="#D06550" stroke-width="2"/>
+<path d="M510,799 C510,817 760,817 760,799" fill="none" stroke="#D06550" stroke-width="1.5"/>
+<text x="635.0" y="832.5" font-family="Noto Sans SC, sans-serif" font-size="23" font-weight="600" fill="#0E2E30" text-anchor="middle">共同业务记事本</text>
+<text x="635.0" y="861.5" font-family="Noto Sans SC, sans-serif" font-size="18" font-weight="400" fill="#3A6668" text-anchor="middle">唯一可写业务主库</text>
+<path d="M800,799 C800,781 1050,781 1050,799 L1050,881 C1050,899 800,899 800,881 Z" fill="#FBECE6" stroke="#D06550" stroke-width="2"/>
+<path d="M800,799 C800,817 1050,817 1050,799" fill="none" stroke="#D06550" stroke-width="1.5"/>
+<text x="925.0" y="832.5" font-family="Noto Sans SC, sans-serif" font-size="23" font-weight="600" fill="#0E2E30" text-anchor="middle">角色工作区</text>
+<text x="925.0" y="861.5" font-family="Noto Sans SC, sans-serif" font-size="18" font-weight="400" fill="#3A6668" text-anchor="middle">方法 / 索引 / 产物</text>
+<path d="M1090,799 C1090,781 1340,781 1340,799 L1340,881 C1340,899 1090,899 1090,881 Z" fill="#FBECE6" stroke="#D06550" stroke-width="2"/>
+<path d="M1090,799 C1090,817 1340,817 1340,799" fill="none" stroke="#D06550" stroke-width="1.5"/>
+<text x="1215.0" y="832.5" font-family="Noto Sans SC, sans-serif" font-size="23" font-weight="600" fill="#0E2E30" text-anchor="middle">工具操作收据</text>
+<text x="1215.0" y="861.5" font-family="Noto Sans SC, sans-serif" font-size="18" font-weight="400" fill="#3A6668" text-anchor="middle">读取 / 发送 / 协作</text>
+<polyline points="345,240 345,345" fill="none" stroke="#3D8F91" stroke-width="2.5"/>
+<polygon points="345.0,345.0 350.0,334.0 340.0,334.0" fill="#3D8F91"/>
+<polyline points="635,240 635,285 345,285 345,345" fill="none" stroke="#3D8F91" stroke-width="2.5"/>
+<polygon points="345.0,345.0 350.0,334.0 340.0,334.0" fill="#3D8F91"/>
+<polyline points="925,240 925,300 780,300 780,535 635,535 635,560" fill="none" stroke="#D06550" stroke-width="2.5"/>
+<polygon points="635.0,560.0 640.0,549.0 630.0,549.0" fill="#D06550"/>
+<text x="770" y="290" font-family="Noto Sans SC, sans-serif" font-size="17" font-weight="400" fill="#D06550" text-anchor="start">保存本人操作</text>
+<polyline points="1215,240 1380,240 1380,520 925,520 925,560" fill="none" stroke="#4F7F9B" stroke-width="2.5" stroke-dasharray="8 5"/>
+<polygon points="925.0,560.0 930.0,549.0 920.0,549.0" fill="#4F7F9B"/>
+<polyline points="345,455 345,500 1215,500" fill="none" stroke="#3D8F91" stroke-width="2.5"/>
+<polygon points="1215.0,500.0 1204.0,495.0 1204.0,505.0" fill="#3D8F91"/>
+<text x="550" y="488" font-family="Noto Sans SC, sans-serif" font-size="17" font-weight="400" fill="#3D8F91" text-anchor="start">按角色授权调用工具</text>
+<polyline points="345,500 345,560" fill="none" stroke="#3D8F91" stroke-width="2.5"/>
+<polygon points="345.0,560.0 350.0,549.0 340.0,549.0" fill="#3D8F91"/>
+<polyline points="635,500 635,560" fill="none" stroke="#3D8F91" stroke-width="2.5"/>
+<polygon points="635.0,560.0 640.0,549.0 630.0,549.0" fill="#3D8F91"/>
+<polyline points="925,500 925,560" fill="none" stroke="#3D8F91" stroke-width="2.5"/>
+<polygon points="925.0,560.0 930.0,549.0 920.0,549.0" fill="#3D8F91"/>
+<polyline points="1215,500 1215,560" fill="none" stroke="#3D8F91" stroke-width="2.5"/>
+<polygon points="1215.0,560.0 1220.0,549.0 1210.0,549.0" fill="#3D8F91"/>
+<polyline points="635,455 635,500" fill="none" stroke="#3D8F91" stroke-width="2.5"/>
+<polygon points="635.0,500.0 640.0,489.0 630.0,489.0" fill="#3D8F91"/>
+<polyline points="925,455 925,500" fill="none" stroke="#3D8F91" stroke-width="2.5"/>
+<polygon points="925.0,500.0 930.0,489.0 920.0,489.0" fill="#3D8F91"/>
+<polyline points="1215,455 1215,500" fill="none" stroke="#3D8F91" stroke-width="2.5"/>
+<polygon points="1215.0,500.0 1220.0,489.0 1210.0,489.0" fill="#3D8F91"/>
+<polyline points="345,785 345,670" fill="none" stroke="#4F7F9B" stroke-width="2.5" stroke-dasharray="8 5"/>
+<polygon points="345.0,670.0 340.0,681.0 350.0,681.0" fill="#4F7F9B"/>
+<polyline points="635,670 635,785" fill="none" stroke="#D06550" stroke-width="2.5"/>
+<polygon points="635.0,785.0 640.0,774.0 630.0,774.0" fill="#D06550"/>
+<polyline points="925,670 925,715 1215,715 1215,785" fill="none" stroke="#D06550" stroke-width="2.5"/>
+<polygon points="1215.0,785.0 1220.0,774.0 1210.0,774.0" fill="#D06550"/>
+<polyline points="1215,670 1215,785" fill="none" stroke="#D06550" stroke-width="2.5"/>
+<polygon points="1215.0,785.0 1220.0,774.0 1210.0,774.0" fill="#D06550"/>
+<text x="820" y="752" font-family="Noto Sans SC, sans-serif" font-size="16" font-weight="400" fill="#3A6668" text-anchor="start">角色按需维护工作区</text>
+<polyline points="60,978 110,978" fill="none" stroke="#3D8F91" stroke-width="2.5"/>
+<polygon points="110.0,978.0 99.0,973.0 99.0,983.0" fill="#3D8F91"/>
+<text x="121" y="984" font-family="Noto Sans SC, sans-serif" font-size="16" font-weight="400" fill="#3A6668" text-anchor="start">调用 / 当前交办</text>
+<polyline points="380,978 430,978" fill="none" stroke="#4F7F9B" stroke-width="2.5" stroke-dasharray="8 5"/>
+<polygon points="430.0,978.0 419.0,973.0 419.0,983.0" fill="#4F7F9B"/>
+<text x="441" y="984" font-family="Noto Sans SC, sans-serif" font-size="16" font-weight="400" fill="#3A6668" text-anchor="start">资料 / 证据返回</text>
+<polyline points="700,978 750,978" fill="none" stroke="#D06550" stroke-width="2.5"/>
+<polygon points="750.0,978.0 739.0,973.0 739.0,983.0" fill="#D06550"/>
+<text x="761" y="984" font-family="Noto Sans SC, sans-serif" font-size="16" font-weight="400" fill="#3A6668" text-anchor="start">业务写入 / 对外回传</text>
+<polyline points="1080,978 1130,978" fill="none" stroke="#9AA5AA" stroke-width="2.5" stroke-dasharray="8 5"/>
+<polygon points="1130.0,978.0 1119.0,973.0 1119.0,983.0" fill="#9AA5AA"/>
+<text x="1141" y="984" font-family="Noto Sans SC, sans-serif" font-size="16" font-weight="400" fill="#3A6668" text-anchor="start">依赖 / 规划</text>
+<text x="50" y="942" font-family="Noto Sans SC, sans-serif" font-size="17" font-weight="400" fill="#3A6668" text-anchor="start">四类持久信息不能互相替代：原件 ≠ 业务状态 ≠ 角色记忆 ≠ 操作回执。</text>
+</svg>

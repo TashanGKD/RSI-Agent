@@ -1,0 +1,4 @@
+interface:
+  display_name: "全源待办梳理"
+  short_description: "按日期追查微信邮件会议通知及附件，保留原文依据并逐项核验阅读覆盖"
+  default_prompt: "使用 $personal-action-audit，梳理指定日期范围内与我有关的全部事项，追查通知正文、邮件及附件，列出明确待办、待判断事项与覆盖缺口。"

@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "identity": {
+    "thread_id": null,
+    "project_root": "."
+  },
+  "channels": {},
+  "source_checkpoints": {},
+  "receipts": {
+    "system_onboarding": [],
+    "deliveries": []
+  },
+  "example": {
+    "synthetic": true,
+    "roleRegistered": false,
+    "schedulerConfigured": false,
+    "nativeReceiptsPresent": false
+  }
+}

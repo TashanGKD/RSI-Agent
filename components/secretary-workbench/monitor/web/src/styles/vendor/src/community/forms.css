@@ -1,0 +1,285 @@
+.pv-page {
+  max-width: var(--reading-width);
+  padding-top: var(--space-24);
+}
+.pv-page > h1 {
+  font-size: var(--ui-title);
+  margin: var(--space-16) 0;
+}
+.pv-page h2 {
+  font-size: var(--ui-section);
+  margin-bottom: var(--space-16);
+}
+.pv-page h3 {
+  font-size: var(--font-body);
+}
+.pv-page p {
+  font-size: var(--font-note);
+  color: var(--color-secondary);
+}
+.pv-notice {
+  padding: var(--space-16) var(--space-20);
+  border: var(--stroke) solid var(--color-line);
+  background: var(--color-soft);
+  border-radius: var(--radius);
+  margin: var(--space-20) 0;
+}
+.pv-notice strong {
+  font-size: var(--font-note);
+  color: var(--accent);
+}
+.pv-notice p {
+  font-size: var(--font-caption);
+  margin-top: var(--space-4);
+}
+.pv-profile-summary {
+  padding: var(--space-16) 0;
+  margin-bottom: var(--space-16);
+  border-bottom: var(--stroke) solid var(--color-line);
+}
+.pv-profile-summary a {
+  color: var(--accent);
+  margin-left: var(--space-12);
+}
+.pv-directions {
+  margin-top: var(--space-20);
+}
+.pv-join-hero {
+  padding-block: var(--space-40) var(--space-32);
+  background: var(--color-bg) none right bottom / cover no-repeat;
+}
+.pv-join-hero h1 {
+  font-size: var(--ui-title);
+  margin-bottom: var(--space-12);
+}
+.pv-join-hero p {
+  font-size: var(--font-lead);
+  color: var(--color-secondary);
+}
+.pv-join-hero small {
+  display: block;
+  margin-top: var(--space-12);
+  font-size: var(--font-note);
+  color: var(--color-secondary);
+}
+.pv-join-content {
+  max-width: var(--reading-width);
+}
+.pv-join-content .pv-profile-summary {
+  font-size: var(--font-caption);
+  color: var(--color-secondary);
+  margin: 0;
+  border: 0;
+}
+.pv-direction {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-20);
+  align-items: center;
+  padding: var(--space-16) var(--space-20);
+  border: var(--stroke) solid var(--color-line);
+  border-radius: var(--radius);
+  margin-bottom: var(--space-12);
+}
+.pv-direction:hover {
+  border-color: var(--accent);
+}
+.pv-direction > div {
+  display: grid;
+  grid-template-columns: 1fr 3fr;
+  align-items: center;
+  gap: var(--space-20);
+}
+.pv-direction-icon {
+  display: grid;
+  place-items: center;
+  width: var(--space-48);
+  height: var(--space-48);
+  border-radius: var(--radius-circle);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--brand) 8%, var(--color-bg));
+}
+.pv-direction h3 {
+  color: var(--color-text);
+  font-size: var(--font-body);
+}
+.pv-direction p {
+  color: var(--color-secondary);
+  font-size: var(--font-note);
+}
+.pv-direction > .icon {
+  color: var(--color-secondary);
+}
+.pv-form {
+  margin-top: var(--space-24);
+}
+.pv-section {
+  padding: var(--space-24) 0;
+  border-top: var(--stroke) solid var(--color-line);
+}
+.pv-section > h2 {
+  font-size: var(--font-body);
+}
+.pv-field {
+  padding: 0;
+  border: 0;
+  min-width: 0;
+  margin: var(--space-20) 0;
+}
+.pv-field > label,
+.pv-field legend,
+.pv-materials > label {
+  font-size: var(--font-note);
+  font-weight: 500;
+  display: block;
+  margin-bottom: var(--space-8);
+}
+.pv-required {
+  color: var(--accent);
+  font-size: var(--font-caption);
+}
+.pv-optional {
+  color: var(--color-secondary);
+  font-size: var(--font-caption);
+}
+.pv-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-8) var(--space-16);
+}
+.pv-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-8);
+  padding: var(--space-10) var(--space-12);
+  min-height: var(--tap-size);
+  border: var(--stroke) solid var(--color-line);
+  border-radius: var(--space-4);
+  font-size: var(--font-note);
+  font-weight: 400;
+}
+.pv-choice:has(input:checked) {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--brand) 8%, var(--color-bg));
+}
+.pv-choice input {
+  flex: none;
+  width: var(--space-20);
+  height: var(--space-20);
+  min-height: 0;
+  padding: 0;
+  margin: var(--space-4) 0 0;
+  accent-color: var(--accent);
+}
+.pv-choice span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.pv-other {
+  padding-left: var(--space-20);
+}
+.pv-help {
+  font-size: var(--font-caption) !important;
+  color: var(--color-secondary);
+  margin-bottom: var(--space-12);
+}
+.pv-error {
+  font-size: var(--font-note) !important;
+  color: var(--danger) !important;
+  margin: var(--space-8) 0;
+}
+.pv-field input[aria-invalid],
+.pv-field textarea[aria-invalid],
+.pv-field select[aria-invalid],
+fieldset[aria-invalid] {
+  border-color: var(--danger);
+}
+.pv-materials input[type="file"] {
+  font-size: var(--font-note);
+  margin-bottom: var(--space-16);
+}
+.pv-material-list {
+  padding: 0;
+  list-style: none;
+  margin: var(--space-16) 0;
+}
+.pv-material-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-12);
+  font-size: var(--font-note);
+  border-bottom: var(--stroke) solid var(--color-line);
+  overflow-wrap: anywhere;
+}
+.pv-material-list span {
+  min-width: 0;
+}
+.pv-receipt {
+  padding: var(--space-24);
+  border: var(--stroke) solid var(--color-line);
+  border-radius: var(--radius);
+}
+.pv-receipt dl {
+  margin: var(--space-24) 0;
+}
+.pv-receipt dt {
+  font-size: var(--font-note);
+  font-weight: 500;
+  margin-top: var(--space-20);
+}
+.pv-receipt dd {
+  margin: var(--space-8) 0 0;
+  font-size: var(--font-note);
+  color: var(--color-secondary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.pv-receipt li {
+  font-size: var(--font-note);
+  overflow-wrap: anywhere;
+}
+.pv-gate {
+  padding: var(--space-32) 0;
+}
+.pv-gate .button {
+  margin-top: var(--space-20);
+}
+@media (max-width: 767px) {
+  .pv-page {
+    padding-top: var(--space-16);
+  }
+  .pv-notice {
+    padding: var(--space-12);
+  }
+  .pv-options {
+    grid-template-columns: 1fr;
+  }
+  .pv-direction {
+    column-gap: var(--space-12);
+    padding: var(--space-12);
+  }
+  .pv-join-hero {
+    padding-block: var(--space-24);
+  }
+  .pv-direction > div {
+    display: block;
+  }
+  .pv-direction-icon {
+    width: var(--space-40);
+    height: var(--space-40);
+  }
+  .pv-direction h3 {
+    font-size: var(--font-body);
+    margin-bottom: var(--space-4);
+  }
+  .pv-direction p {
+    font-size: var(--font-caption);
+  }
+  .pv-receipt {
+    padding: var(--space-16);
+  }
+  .pv-other {
+    padding-left: var(--space-12);
+  }
+}

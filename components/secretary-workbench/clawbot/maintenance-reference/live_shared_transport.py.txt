@@ -1,0 +1,60 @@
+"""Isolated installed-CLI probe; no explicit model-start or existing-thread mutation."""
+import argparse,base64,json,os,queue,subprocess,tempfile,threading,wave
+from pathlib import Path
+
+def main():
+    ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--execute',action='store_true');a=ap.parse_args()
+    if not a.execute:ap.print_help();return
+    root=Path(__file__).resolve().parents[1]
+    with tempfile.TemporaryDirectory(prefix='wx-native-',dir='/private/tmp') as d:
+        env=dict(os.environ);env['TASHAN_DESKTOP_SOCKET_ROOT']=d
+        fixture_home=Path(d)/'codex-home';fixture_home.mkdir(mode=0o700);env['CODEX_HOME']=str(fixture_home)
+        p=subprocess.Popen(['node',str(root/'bridge/desktop_launcher.mjs'),'app-server','--stdio'],env=env,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True,start_new_session=True)
+        q=queue.Queue()
+        def receive():
+            for line in p.stdout:
+                try:q.put(json.loads(line))
+                except ValueError:pass
+        threading.Thread(target=receive,daemon=True).start()
+        def call(i,method,params):
+            p.stdin.write(json.dumps({'id':i,'method':method,'params':params})+'\n');p.stdin.flush()
+            while True:
+                r=q.get(timeout=15)
+                if r.get('id')==i:return r
+        try:
+            assert 'result' in call(1,'initialize',{'clientInfo':{'name':'shared_transport_fixture','version':'0.2'},'capabilities':{'experimentalApi':True}})
+            p.stdin.write('{"method":"initialized","params":{}}\n');p.stdin.flush()
+            r=call(2,'thread/start',{'ephemeral':True,'cwd':d,'sandbox':'read-only','approvalPolicy':'never'})
+            tid=r['result']['thread']['id']
+            persistent=call(3,'thread/start',{'ephemeral':False,'cwd':d,'sandbox':'read-only','approvalPolicy':'never'})
+            queue_tid=persistent['result']['thread']['id']
+            image=Path(d)/'test.png'
+            image.write_bytes(base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='));os.chmod(image,0o600)
+            audio=Path(d)/'test.wav'
+            with wave.open(str(audio),'wb') as w:
+                w.setnchannels(1);w.setsampwidth(2);w.setframerate(24000);w.writeframes(b'\x00\x00'*2400)
+            os.chmod(audio,0o600)
+            inputs=[{'type':'text','text':'isolated queue contract fixture; do not run a model','text_elements':[]},{'type':'localImage','path':str(image)},{'type':'localAudio','path':str(audio)}]
+            added=call(4,'thread/queue/add',{'threadId':queue_tid,'clientUserMessageId':'isolated-media-fixture','input':inputs})
+            assert added.get('result',{}).get('queuedSubmission',{}).get('id'),added
+            normalized=added['result']['queuedSubmission']['input']
+            assert normalized[1]['type']=='image' and base64.b64decode(normalized[1]['url'].split(',',1)[1])==image.read_bytes()
+            assert normalized[2]['type']=='audio' and base64.b64decode(normalized[2]['url'].split(',',1)[1])==audio.read_bytes()
+            code="import {RPC} from './bridge/native_rpc.mjs';const r=new RPC(process.env.WX_SHARED_TEST_SOCKET);try{await r.connect();const x=await r.call('thread/read',{threadId:process.env.WX_SHARED_TEST_THREAD,includeTurns:false});console.log(JSON.stringify({sameContext:x.thread.id===process.env.WX_SHARED_TEST_THREAD}));}finally{r.close();}"
+            env2=dict(os.environ);env2['WX_SHARED_TEST_SOCKET']=str(Path(d)/'control.sock');env2['WX_SHARED_TEST_THREAD']=tid
+            r=subprocess.run(['node','--input-type=module','-e',code],cwd=root,env=env2,capture_output=True,text=True,timeout=15)
+            assert r.returncode==0 and json.loads(r.stdout)['sameContext']
+            result={'two_clients_same_native_context':True,'native_image_audio_queue_roundtrip':True,'explicit_model_starts':0,'existing_thread_mutations':0}
+        finally:
+            p.stdin.close()
+            try:p.wait(timeout=30)
+            except subprocess.TimeoutExpired:
+                import signal
+                os.killpg(p.pid,signal.SIGTERM)
+                try:p.wait(timeout=5)
+                except subprocess.TimeoutExpired:os.killpg(p.pid,signal.SIGKILL);p.wait(timeout=5)
+        assert p.returncode==0 and not (Path(d)/'control.sock').exists()
+        result.update(clean_shutdown=True,socket_cleaned=True)
+        print(json.dumps(result))
+
+if __name__=='__main__':main()

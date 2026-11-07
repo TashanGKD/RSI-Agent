@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>我的事项 · 他山</title>
+  <link rel="stylesheet" href="/style.css?v=15">
+  <script src="/app.js?v=15" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="他山，我的事项">他山</a>
+    <span class="brand-divider" aria-hidden="true"></span>
+    <span class="app-name">我的事项</span>
+    <div class="topbar-actions"><button id="refresh" class="refresh"><span aria-hidden="true">⟳</span>刷新列表</button><span class="avatar" aria-label="郑">郑</span></div>
+  </header>
+  <main id="main">
+    <div class="heading-line"><h1>我的事项</h1><span id="result-count" class="quiet"></span><button id="create-toggle" class="create-toggle" aria-expanded="false" aria-controls="create-panel">新增事项</button></div>
+    <section id="create-panel" class="create-panel" hidden aria-label="新增事项">
+      <form id="create-form">
+        <div class="create-fields">
+          <label>事项名称<input id="create-title" required maxlength="500" placeholder="本轮需要交付或追踪什么"></label>
+          <label>对谁<input id="create-counterparty" maxlength="200" placeholder="自己"></label>
+          <label>交付时间<input id="create-time" maxlength="500" placeholder="时间待定"></label>
+          <label>状态<select id="create-state"><option>待办</option><option>待判断</option><option>等对方</option><option>暂缓</option><option>已完成</option><option>不用管了</option></select></label>
+          <label>负责人<select id="create-assignee"><option>我</option><option>AI</option><option value="other">其他人…</option></select><input id="create-assignee-name" maxlength="100" placeholder="姓名或角色" aria-label="新增事项指定负责人" hidden></label>
+          <label>关联已有事项（可多选）<select id="create-related" multiple size="3"></select></label>
+        </div>
+        <label>备注<textarea id="create-note" maxlength="4000" rows="2" placeholder="可填写背景、进展或拆分建议"></textarea></label>
+        <div class="create-footer"><span id="create-error" role="alert"></span><button id="create-cancel" type="button">取消</button><button id="create-submit" class="primary" type="submit">新增并保存</button></div>
+      </form>
+    </section>
+    <div class="filters" role="search" aria-label="筛选事项">
+      <label class="search-field"><span aria-hidden="true" class="search-icon"></span><input id="search" type="search" placeholder="搜索事项或人" aria-label="搜索事项或人" autocomplete="off"></label>
+      <label class="select-field"><span class="sr-only">相关人</span><select id="person"><option value="">相关人</option></select></label>
+      <label class="select-field"><span class="sr-only">事项视图</span><select id="view"><option>待我确认</option><optgroup label="执行"><option>待办</option><option>等对方</option><option>暂缓</option><option>待判断</option></optgroup><optgroup label="资料"><option>备忘</option><option>项目</option><option>目标</option></optgroup><optgroup label="回看"><option>已完成</option><option>不用管了</option><option>全部</option><option>进展记录</option><option>稍后提醒</option><option>到时提醒</option></optgroup><option hidden>待处理</option><option hidden>进行中</option><option hidden>已结束</option><option hidden>交给AI处理</option><option hidden>分派给他人</option></select></label>
+      <label class="select-field"><span class="sr-only">负责人</span><select id="owner"><option value="">全部负责人</option></select></label>
+    </div>
+    <div id="page-error" class="page-error" role="alert" hidden></div>
+    <section class="task-table" aria-label="事项列表">
+      <div class="table-head" aria-hidden="true"><span>事项</span><span>时间</span><span>处理选项</span><span>确认</span></div>
+      <div id="tasks"><p class="empty">正在读取事项…</p></div>
+    </section>
+    <nav id="pagination" class="pagination" aria-label="事项分页"></nav>
+    <details id="coverage" class="coverage"><summary>本批数据及覆盖记录 <span aria-hidden="true">⌄</span></summary><div id="coverage-body"></div></details>
+  </main>
+  <div id="drawer-scrim" class="drawer-scrim" hidden></div>
+  <aside id="drawer" class="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-label" hidden>
+    <header class="drawer-header"><h2 id="drawer-label">事项详情</h2><button id="drawer-close" class="icon-button" aria-label="关闭事项详情">×</button></header>
+    <div id="drawer-content" class="drawer-content"></div>
+    <footer id="drawer-controls" class="drawer-controls"></footer>
+  </aside>
+  <div id="toasts" class="toasts" role="status" aria-live="polite"></div>
+</body>
+</html>

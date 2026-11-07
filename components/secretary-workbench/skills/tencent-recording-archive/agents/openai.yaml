@@ -1,0 +1,4 @@
+interface:
+  display_name: "腾讯会议录制获取与归档"
+  short_description: "查找腾讯会议录制、获取完整逐字稿，操作客户端下载原视频并核验归档"
+  default_prompt: "使用 $tencent-recording-archive 查找指定会议录制，获取逐字稿并下载原视频，核验后归档到本地。"

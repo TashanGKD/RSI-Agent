@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "modules": {
+    "monitor.collect": {
+      "IDS": {},
+      "ALLOWED": [],
+      "CUTOFF": ""
+    },
+    "monitor.work_observer": {
+      "KNOWN": {},
+      "SUPPORT": {},
+      "PEERS": {}
+    },
+    "monitor.send_tool_observer": {
+      "CLIENTS": {}
+    },
+    "monitor.account_contract": {
+      "EMAILS": []
+    },
+    "continuity.delivery_health": {
+      "CLIENTS": []
+    }
+  },
+  "identities": {},
+  "paths": {}
+}

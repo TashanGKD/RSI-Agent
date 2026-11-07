@@ -1,0 +1,42 @@
+// Real SSR against only the bundled synthetic workbook; never a live employee.
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {execFileSync} from 'node:child_process';
+import {createElement} from 'react';
+import {renderToStaticMarkup} from 'react-dom/server';
+import {createServer} from 'vite';
+
+const root=fileURLToPath(new URL('../../../',import.meta.url));
+test('complete synthetic workbook renders existing role and work views without a real receipt',async t=>{
+ const temp=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'synthetic-role-web-')));
+ t.after(()=>fs.rmSync(temp,{recursive:true,force:true}));
+ const output=path.join(temp,'demo');
+ execFileSync('python3',[path.join(root,'examples/seed_monitor.py'),'--execute','--output',output],{stdio:'pipe'});
+ const manifest=JSON.parse(fs.readFileSync(path.join(output,'live/live.json'),'utf8'));
+ const snapshot=JSON.parse(fs.readFileSync(path.join(output,'live',manifest.snapshotUrl.slice(1)),'utf8'));
+ assert.equal(snapshot.synthetic,true);assert.equal(snapshot.tasks.length,3);
+ const server=await createServer({root:path.join(root,'monitor/web'),server:{middlewareMode:true},optimizeDeps:{noDiscovery:true,entries:[],include:[]}});
+ t.after(()=>server.close());
+ const {EmployeeHub}=await server.ssrLoadModule('/src/profiles/EmployeeHub.tsx');
+ const {WorkPage}=await server.ssrLoadModule('/src/work/WorkPage.tsx');
+ const noop=()=>{};
+ const role=renderToStaticMarkup(createElement(EmployeeHub,{snapshot,mode:'relations',person:'all',onPerson:noop,onNavigate:noop,onSource:noop,onTask:noop}));
+ assert.match(role,/Synthetic event team/);assert.match(role,/Synthetic local sources/);assert.match(role,/Optional proofreader/);
+ assert.match(role,/合成活动资料协作者/);
+ const portrait=renderToStaticMarkup(createElement(EmployeeHub,{snapshot,mode:'people',person:'fixture-worker',onPerson:noop,onNavigate:noop,onSource:noop,onTask:noop}));
+ for(const task of snapshot.tasks.filter(x=>x.state!=='已办好'))assert.ok(portrait.includes(task.title));
+ assert.match(portrait,/等反馈/);
+ const work=renderToStaticMarkup(createElement(WorkPage,{snapshot,mode:'work',onMode:noop,onSource:noop,onPerson:noop}));
+ assert.match(work,/工作本记录/);
+ assert.match(work,/收件与处理/);
+ const {filterWork}=await server.ssrLoadModule('/src/work/model.ts');
+ assert.equal(filterWork(snapshot.workOverview.items,'all','','all').length,3);
+ assert.equal(filterWork(snapshot.workOverview.items,'all','','open').length,2);
+ assert.equal(snapshot.workOverview.sending.items.length,0);
+ assert.deepEqual(snapshot.profiles['fixture-worker'].lifecycle.state,'unknown');
+ assert.ok(!JSON.stringify(snapshot).includes('serverId'));
+});

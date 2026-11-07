@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1060" viewBox="0 0 1440 1060">
+<text x="50" y="52" font-family="Noto Sans SC, sans-serif" font-size="34" font-weight="400" fill="#0E2E30" text-anchor="start">数据与检查点：取得、理解、应用分别留证</text>
+<text x="50" y="87" font-family="Noto Sans SC, sans-serif" font-size="18" font-weight="400" fill="#3A6668" text-anchor="start">原始资料留源侧 / 本机；云端只保存必要业务摘要、定位与正式操作历史。</text>
+<line x1="50" y1="108" x2="1390" y2="108" stroke="#B8E0E3" stroke-width="2"/>
+<rect x="50" y="145" width="410" height="700" rx="20" fill="#FAFCFC" stroke="#B8E0E3" stroke-width="1.5"/>
+<text x="68" y="175" font-family="Noto Sans SC, sans-serif" font-size="19" font-weight="600" fill="#3A6668" text-anchor="start">来源侧 / 本机</text>
+<rect x="500" y="145" width="440" height="700" rx="20" fill="#FAFCFC" stroke="#B8E0E3" stroke-width="1.5"/>
+<text x="518" y="175" font-family="Noto Sans SC, sans-serif" font-size="19" font-weight="600" fill="#3A6668" text-anchor="start">Agent / 阅读与判断</text>
+<rect x="980" y="145" width="410" height="700" rx="20" fill="#FAFCFC" stroke="#B8E0E3" stroke-width="1.5"/>
+<text x="998" y="175" font-family="Noto Sans SC, sans-serif" font-size="19" font-weight="600" fill="#3A6668" text-anchor="start">正式业务库 / 云端</text>
+<path d="M95,244 C95,226 415,226 415,244 L415,321 C415,339 95,339 95,321 Z" fill="#FBECE6" stroke="#D06550" stroke-width="2"/>
+<path d="M95,244 C95,262 415,262 415,244" fill="none" stroke="#D06550" stroke-width="1.5"/>
+<text x="255.0" y="275.0" font-family="Noto Sans SC, sans-serif" font-size="23" font-weight="600" fill="#0E2E30" text-anchor="middle">消息 / 逐字稿 / 附件</text>
+<text x="255.0" y="304.0" font-family="Noto Sans SC, sans-serif" font-size="18" font-weight="400" fill="#3A6668" text-anchor="middle">原生身份与版本</text>
+<rect x="95" y="430" width="320" height="100" rx="13" fill="#EDF5FA" stroke="#4F7F9B" stroke-width="2"/>
+<text x="255.0" y="472.5" font-family="Noto Sans SC, sans-serif" font-size="23" font-weight="600" fill="#0E2E30" text-anchor="middle">有界读取工具</text>
+<text x="255.0" y="501.5" font-family="Noto Sans SC, sans-serif" font-size="18" font-weight="400" fill="#3A6668" text-anchor="middle">覆盖 / 缺行 / 媒体状态</text>
+<path d="M95,674 C95,656 415,656 415,674 L415,751 C415,769 95,769 95,751 Z" fill="#FBECE6" stroke="#D06550" stroke-width="2"/>
+<path d="M95,674 C95,692 415,692 415,674" fill="none" stroke="#D06550" stroke-width="1.5"/>
+<text x="255.0" y="705.0" font-family="Noto Sans SC, sans-serif" font-size="23" font-weight="600" fill="#0E2E30" text-anchor="middle">取得 / 阅读收据</text>
+<text x="255.0" y="734.0" font-family="Noto Sans SC, sans-serif" font-size="18" font-weight="400" fill="#3A6668" text-anchor="middle">字节 ≠ 已理解</text>
+<polygon points="577,225 863,225 885,280.0 863,335 577,335 555,280.0" fill="#DDF0EF" stroke="#3D8F91" stroke-width="2"/>
+<text x="720.0" y="272.5" font-family="Noto Sans SC, sans-serif" font-size="23" font-weight="600" fill="#0E2E30" text-anchor="middle">实际阅读与核对</text>
+<text x="720.0" y="301.5" font-family="Noto Sans SC, sans-serif" font-size="18" font-weight="400" fill="#3A6668" text-anchor="middle">原文 / ASR / 图片 / 文件</text>
+<polygon points="577,425 863,425 885,485.0 863,545 577,545 555,485.0" fill="#DDF0EF" stroke="#3D8F91" stroke-width="2"/>
+<text x="720.0" y="465.0" font-family="Noto Sans SC, sans-serif" font-size="23" font-weight="600" fill="#0E2E30" text-anchor="middle">既有事项与本轮结果</text>
+<text x="720.0" y="494.0" font-family="Noto Sans SC, sans-serif" font-size="18" font-weight="400" fill="#3A6668" text-anchor="middle">追加 / 闭环 / 新独立交付</text>
+<text x="720.0" y="519.0" font-family="Noto Sans SC, sans-serif" font-size="18" font-weight="400" fill="#3A6668" text-anchor="middle">未定处不猜</text>
+<rect x="555" y="675" width="330" height="90" rx="13" fill="#EDF5FA" stroke="#4F7F9B" stroke-width="2"/>
+<text x="720.0" y="712.5" font-family="Noto Sans SC, sans-serif" font-size="23" font-weight="600" fill="#0E2E30" text-anchor="middle">缺口与待续</text>
+<text x="720.0" y="741.5" font-family="Noto Sans SC, sans-serif" font-size="18" font-weight="400" fill="#3A6668" text-anchor="middle">未读 / 条件未知</text>
+<rect x="1025" y="230" width="320" height="110" rx="13" fill="#EDF5FA" stroke="#4F7F9B" stroke-width="2"/>
+<text x="1185.0" y="277.5" font-family="Noto Sans SC, sans-serif" font-size="23" font-weight="600" fill="#0E2E30" text-anchor="middle">带版本正式操作</text>
+<text x="1185.0" y="306.5" font-family="Noto Sans SC, sans-serif" font-size="18" font-weight="400" fill="#3A6668" text-anchor="middle">稳定请求 ID / 原子写入</text>
+<path d="M1025,449 C1025,431 1345,431 1345,449 L1345,531 C1345,549 1025,549 1025,531 Z" fill="#FBECE6" stroke="#D06550" stroke-width="2"/>
+<path d="M1025,449 C1025,467 1345,467 1345,449" fill="none" stroke="#D06550" stroke-width="1.5"/>
+<text x="1185.0" y="482.5" font-family="Noto Sans SC, sans-serif" font-size="23" font-weight="600" fill="#0E2E30" text-anchor="middle">业务对象与记录</text>
+<text x="1185.0" y="511.5" font-family="Noto Sans SC, sans-serif" font-size="18" font-weight="400" fill="#3A6668" text-anchor="middle">批注 / 安排 / 关联 / 历史</text>
+<rect x="1025" y="670" width="320" height="105" rx="13" fill="#EDF5FA" stroke="#4F7F9B" stroke-width="2"/>
+<text x="1185.0" y="715.0" font-family="Noto Sans SC, sans-serif" font-size="23" font-weight="600" fill="#0E2E30" text-anchor="middle">独立读回成功</text>
+<text x="1185.0" y="744.0" font-family="Noto Sans SC, sans-serif" font-size="18" font-weight="400" fill="#3A6668" text-anchor="middle">再推进已应用检查点</text>
+<polyline points="255,335 255,430" fill="none" stroke="#4F7F9B" stroke-width="2.5" stroke-dasharray="8 5"/>
+<polygon points="255.0,430.0 260.0,419.0 250.0,419.0" fill="#4F7F9B"/>
+<polyline points="415,480 480,480 480,280 555,280" fill="none" stroke="#4F7F9B" stroke-width="2.5" stroke-dasharray="8 5"/>
+<polygon points="555.0,280.0 544.0,275.0 544.0,285.0" fill="#4F7F9B"/>
+<polyline points="720,335 720,425" fill="none" stroke="#3D8F91" stroke-width="2.5"/>
+<polygon points="720.0,425.0 725.0,414.0 715.0,414.0" fill="#3D8F91"/>
+<polyline points="885,485 960,485 960,285 1025,285" fill="none" stroke="#D06550" stroke-width="2.5"/>
+<polygon points="1025.0,285.0 1014.0,280.0 1014.0,290.0" fill="#D06550"/>
+<text x="1030" y="390" font-family="Noto Sans SC, sans-serif" font-size="17" font-weight="400" fill="#D06550" text-anchor="start">仅摘要与真实定位</text>
+<polyline points="1185,340 1185,435" fill="none" stroke="#D06550" stroke-width="2.5"/>
+<polygon points="1185.0,435.0 1190.0,424.0 1180.0,424.0" fill="#D06550"/>
+<polyline points="1185,545 1185,670" fill="none" stroke="#4F7F9B" stroke-width="2.5" stroke-dasharray="8 5"/>
+<polygon points="1185.0,670.0 1190.0,659.0 1180.0,659.0" fill="#4F7F9B"/>
+<polyline points="1025,725 930,725 930,815 255,815 255,765" fill="none" stroke="#D06550" stroke-width="2.5"/>
+<polygon points="255.0,765.0 250.0,776.0 260.0,776.0" fill="#D06550"/>
+<text x="560" y="812" font-family="Noto Sans SC, sans-serif" font-size="17" font-weight="400" fill="#D06550" text-anchor="start">按来源分别提交，不写统一全读完</text>
+<polyline points="720,545 720,675" fill="none" stroke="#4F7F9B" stroke-width="2.5" stroke-dasharray="8 5"/>
+<polygon points="720.0,675.0 725.0,664.0 715.0,664.0" fill="#4F7F9B"/>
+<polyline points="60,1008 110,1008" fill="none" stroke="#3D8F91" stroke-width="2.5"/>
+<polygon points="110.0,1008.0 99.0,1003.0 99.0,1013.0" fill="#3D8F91"/>
+<text x="121" y="1014" font-family="Noto Sans SC, sans-serif" font-size="16" font-weight="400" fill="#3A6668" text-anchor="start">调用 / 当前交办</text>
+<polyline points="380,1008 430,1008" fill="none" stroke="#4F7F9B" stroke-width="2.5" stroke-dasharray="8 5"/>
+<polygon points="430.0,1008.0 419.0,1003.0 419.0,1013.0" fill="#4F7F9B"/>
+<text x="441" y="1014" font-family="Noto Sans SC, sans-serif" font-size="16" font-weight="400" fill="#3A6668" text-anchor="start">资料 / 证据返回</text>
+<polyline points="700,1008 750,1008" fill="none" stroke="#D06550" stroke-width="2.5"/>
+<polygon points="750.0,1008.0 739.0,1003.0 739.0,1013.0" fill="#D06550"/>
+<text x="761" y="1014" font-family="Noto Sans SC, sans-serif" font-size="16" font-weight="400" fill="#3A6668" text-anchor="start">业务写入 / 对外回传</text>
+<polyline points="1080,1008 1130,1008" fill="none" stroke="#9AA5AA" stroke-width="2.5" stroke-dasharray="8 5"/>
+<polygon points="1130.0,1008.0 1119.0,1003.0 1119.0,1013.0" fill="#9AA5AA"/>
+<text x="1141" y="1014" font-family="Noto Sans SC, sans-serif" font-size="16" font-weight="400" fill="#3A6668" text-anchor="start">依赖 / 规划</text>
+<text x="50" y="972" font-family="Noto Sans SC, sans-serif" font-size="17" font-weight="400" fill="#3A6668" text-anchor="start">来源发生时间、系统提交时间、查看时间分别保留；更新游标不替代工作复盘游标。</text>
+</svg>

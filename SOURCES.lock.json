@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "sources": [
+    {
+      "repository": "TashanGKD/secretary-workbench",
+      "commit": "8b845f29e16eb9ac050251d73375aff4c7de31b5",
+      "directory": "components/secretary-workbench"
+    },
+    {
+      "repository": "TashanGKD/wechat-collector-mac",
+      "commit": "e0263fabfbf05ff4eece07f0903fc379737300f2",
+      "directory": "components/wechat-collector-mac"
+    }
+  ],
+  "import": "tracked source snapshots; original history remains in the source repositories",
+  "visibility": "private"
+}

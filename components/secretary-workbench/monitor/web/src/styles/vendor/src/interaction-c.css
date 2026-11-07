@@ -1,0 +1,156 @@
+/* C: B geometry and original backgrounds, restrained interaction-only teal. */
+html[data-variant="c"] { --c-action: #187f91; }
+
+/* Decorative northeast arrows add no meaning to already labelled links. */
+html[data-variant="c"] .course-main h3::after { content: none; }
+html[data-variant="c"] .course-main h3 { padding-right: 0; }
+html[data-variant="c"] .icon[data-icon="arrow"] { display: none; }
+
+html[data-variant="c"] .button:not(.secondary) {
+  background: var(--c-action);
+  border-color: var(--c-action);
+  color: #fff;
+}
+html[data-variant="c"] .button.secondary {
+  background: var(--color-soft);
+  border-color: var(--color-line);
+  color: var(--color-secondary);
+}
+html[data-variant="c"] .text-link,
+html[data-variant="c"] .login-link,
+html[data-variant="c"] .account-protocol a {
+  color: var(--c-action);
+}
+html[data-variant="c"] .text-link[data-action="delete-comment"],
+html[data-variant="c"] .account-form-actions > .text-link {
+  color: var(--color-secondary);
+}
+html[data-variant="c"] .follow-button,
+html[data-variant="c"] .person-social > .follow-button {
+  color: var(--c-action);
+  border-color: var(--c-action);
+  background: var(--color-bg);
+}
+html[data-variant="c"] .follow-button[aria-pressed="true"] {
+  background: #edf6f6;
+}
+html[data-variant="c"] :is(.desktop-nav, .mobile-nav, .browse-tabs,
+  .event-filters nav, .account-sidebar, .account-mobile-tabs,
+  .account-type-filters) [aria-current="page"] {
+  color: var(--c-action);
+}
+html[data-variant="c"] :is(.browse-tabs, .event-filters nav,
+  .account-mobile-tabs) [aria-current="page"] {
+  border-bottom-color: var(--c-action);
+}
+html[data-variant="c"] .desktop-nav [aria-current="page"]::after {
+  display: block;
+  background: var(--c-action);
+  left: 32px;
+  right: 32px;
+  height: 2px;
+}
+html[data-variant="c"] .interactions [aria-pressed="true"],
+html[data-variant="c"] .interactions [aria-pressed="true"] .icon {
+  color: var(--c-action);
+}
+html[data-variant="c"] .account-protocol input {
+  accent-color: var(--c-action);
+}
+/* Zone/collection entrances: 16:9 cover, title, then short metadata. */
+html[data-variant="c"] .collection-banner:not(.collection-hero) {
+  display: block;
+  min-width: 0;
+  min-height: 0;
+  aspect-ratio: auto;
+  overflow: visible;
+  background: transparent;
+  border-radius: 0;
+}
+html[data-variant="c"] .collection-banner:not(.collection-hero)::before {
+  content: none;
+}
+html[data-variant="c"] .collection-banner:not(.collection-hero) > img {
+  position: static;
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 10px;
+}
+html[data-variant="c"] .collection-banner:not(.collection-hero) .collection-copy {
+  padding: 12px 0 0;
+  color: var(--color-text);
+}
+html[data-variant="c"] .collection-banner:not(.collection-hero) h2 {
+  margin: 0 0 6px;
+  font-size: 24px;
+  line-height: 1.35;
+  font-weight: 500;
+}
+html[data-variant="c"] .collection-banner:not(.collection-hero) p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--color-secondary);
+}
+html[data-variant="c"] .collection-banner:not(.collection-hero) .banner-action {
+  display: none;
+}
+html[data-variant="c"] .event-feature > div {
+  display: block;
+}
+html[data-variant="c"] .event-feature .event-date {
+  margin-top: 6px;
+}
+/* Homepage featured entrances follow the same order on desktop and mobile. */
+html[data-variant="c"] .home-feature-grid > a {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+}
+html[data-variant="c"] .home-feature-grid img { order: 0; width: 100%; }
+html[data-variant="c"] .home-feature-grid h3 {
+  order: 1;
+  align-self: stretch;
+  margin: 12px 0 6px;
+}
+html[data-variant="c"] .home-feature-grid .home-feature-date {
+  order: 2;
+  align-self: stretch;
+}
+/* Truncate previews only; keep full text in DOM and on detail pages. */
+html[data-variant="c"] :is(
+  .collection-banner:not(.collection-hero) h2,
+  .collection-banner:not(.collection-hero) p,
+  .event-feature h2, .event-feature .event-date,
+  .course-main h3, .event-meta, .card-person > span:not(.avatar),
+  .home-feature-grid h3, .home-feature-grid .home-feature-date,
+  .home-capabilities h3, .home-capabilities p,
+  .content-row h3, .content-row p,
+  .person-row h2, .person-row p
+) {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  min-width: 0;
+  max-width: 100%;
+}
+@media (max-width:767px) {
+  html[data-variant="c"] .collection-banner:not(.collection-hero) .collection-copy {
+    padding-top: 10px;
+  }
+  html[data-variant="c"] .collection-banner:not(.collection-hero) h2 {
+    font-size: 18px;
+  }
+  html[data-variant="c"] .collection-banner:not(.collection-hero) p {
+    font-size: 12px;
+  }
+}
