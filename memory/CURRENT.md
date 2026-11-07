@@ -18,28 +18,28 @@ every 45 minutes in the existing Codex chat.
 ## Active improvement
 
 Branch `codex/rsi-harness-foundation`: the read-only audit, project memory and
-shared maintenance Skill support service preparation. The candidate has completed
-isolated transport migration/rollback; production is awaiting a maintenance window.
+shared maintenance Skill support the current cancellation-recovery repair.
+Production service migration is prepared and awaiting a maintenance window.
 
 [PR #1](https://github.com/Yu-Yang-Li/RSI-Agent/pull/1) is open for this work.
-Recheck its current remote head and CI after each push. Heartbeat
-`rsi-agent-harness` has now produced two actual scheduled preparation rounds.
+Recheck its current remote head and CI after each push. This is the third actual
+scheduled engineering round; audit user outcomes at round four.
 
-Latest code candidate `59b018e45aa2d369b23f15ab658fab0f2ae579dd` includes
-`services stage`, six unit templates, private Xauthority/readiness bootstrap and
-the root/systemd rehearsal. Its exact Git archive passed 450 Linux checks,
-notebook HTTP and Mac manifest checks on Horyzon. The
-[bootstrap fixture](../harness/evidence/2026-11-08-horyzon-service-bundle.json)
-verified authorization, permissions and readiness; the staged graph passed
-systemd verification. This bundle is not activated on production.
+Latest code candidate `8ae366e4cc087505cc7a3d819d7c2fff72744ffe` waits 100 ms after
+the editor click and before Ctrl+A in composer.clear. A frozen Qt/Openbox fixture
+reproduced the baseline's partial deletion: 37 selected characters, then a late
+click clearing selection, then Backspace leaving 36. The candidate restores both
+empty and prior-text composers; foreign text and original attempt checkpoints
+remain protected, with no Return keys. The same evaluator compares baseline and
+candidate checkouts. Its exact Git archive passed the full 450 Linux checks,
+notebook HTTP and Mac manifest, and the separate native cancellation fixture.
+See [comparison evidence](../harness/evidence/2026-11-08-horyzon-cancellation.json).
 
-The separate root rehearsal verified actual transient → persistent → rollback unit
-selection, with HTTP 200, WebSocket 101 and RFB handshake in every phase. The
-desktop was an isolated sleep process. The initial assumption that stopping only
-a target waits for all children was rejected; explicit stop requests for every
-owned unit fixed the cleanup barrier. No fixture definitions, units or runtime
-directories remained, and production service PIDs were unchanged. See
-[`migration evidence`](../harness/evidence/2026-11-08-horyzon-service-migration.json).
+This repairs the reproduced isolated failure; official WeChat cancellation still
+needs separately scoped UI acceptance. Production service PIDs and release were
+unchanged. Service staging/bootstrap and the separate transport migration/rollback
+rehearsal remain prepared, not activated on production; their exact evidence is in
+[`service migration`](../harness/evidence/2026-11-08-horyzon-service-migration.json).
 
 ## Known operational limits
 
@@ -58,16 +58,16 @@ cleanup. Server-boot persistence, general recovery and long stability remain
 unverified. The single restart authorization has been used; no additional send
 or repeated restart is implied by the 45-minute maintenance cadence.
 
-The user's report of a message getting no reply exposed a separate product gap:
-this installation has no automatic incoming-message/AI-reply service. The exact
-conversation is awaiting clarification. Existing read/send access is not an
-automatic chat loop or new standing-send authorization.
+The user clarified that their message was sent directly to the logged-in account.
+A bounded read confirmed an incoming private text at the native layer; matching
+the sender to the user is still awaiting clarification. No automatic incoming-
+message/AI-reply service is deployed, and no new standing-send scope was granted.
 
 ## Next checkpoint
 
-Two service-preparation rounds have now closed staging and isolated transport
-migration/rollback. Actual production persistence is blocked on a suitable new
-maintenance window for X/WeChat/noVNC interruption and possible phone confirmation;
-it is not blocked on repeating syntax checks. Preserve the candidate and move to
-the independent cancellation-recovery fixture in todo item 3 while that window
-is unresolved. Check PR #1's actual head/CI first; do not repeat live sends.
+Check PR #1's actual head/CI and hand off this bounded repair for review and
+release. The remaining cancellation checkpoint is an explicitly scoped unsent
+draft on the real client; neither the isolated fixture nor prior restart/send
+authorization grants it. Do not keep tuning delays after the gates pass.
+Production service activation separately needs its X/WeChat/noVNC maintenance
+window. Round four must audit actual user gains before choosing more WIP scope.

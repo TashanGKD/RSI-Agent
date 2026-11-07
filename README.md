@@ -73,6 +73,9 @@ python -m pip install -r requirements-linux-tests.txt
 # Ubuntu 24.04：隔离 X/VNC bootstrap 和 systemd 定义校验所需依赖
 sudo apt-get install --no-install-recommends tigervnc-standalone-server xauth x11-utils websockify novnc socat
 python -B scripts/check.py --linux
+# 使用系统 Python 运行真实 Qt/Openbox 草稿取消回归（独立显示，不启动微信）：
+sudo apt-get install --no-install-recommends openbox python3-gi gir1.2-gtk-3.0 python3-pyqt5
+/usr/bin/python3 -B scripts/rehearse_composer_cleanup.py --execute
 ```
 
 测试使用合成账号、模拟 driver、临时数据库和独立显示号的 X/VNC 子进程，不触碰真实微信或调用模型。Linux bootstrap 校验在 Windows 上明确跳过，不能计为通过。

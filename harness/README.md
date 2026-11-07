@@ -33,6 +33,30 @@ disposable names and verifies the complete private HTTP/WebSocket/VNC path befor
 during and after rollback. Its desktop is `sleep`; production login, boot and
 layout recovery remain separate acceptance. Without `--execute` it only prints help.
 
+The cancellation fixture runs in CI and can be replayed against either checkout:
+
+```sh
+/usr/bin/python3 -B scripts/rehearse_composer_cleanup.py --execute --source /path/to/checkout
+```
+
+It requires Openbox, system Python GTK3/PyQt5 and the X dependencies above. Keep
+the evaluator file unchanged between baseline and candidate. A private X server
+and Qt editor exercise the real `sending.cleanup`, `composer.clear/restore` and
+native clipboard/key primitives; the official-client identity/scene adapter is
+replaced by the fixture's own window. Owned empty/prior drafts must restore,
+foreign text and original attempt checkpoints must stay untouched, and no Return
+key may occur. There is no WeChat account or send button in the fixture.
+
+The baseline reproduced 37 selected characters becoming 36 after a delayed click
+collapsed selection. Waiting for that click before Ctrl+A repairs both owned
+cases while preserving the guards. See
+[sanitized comparison](evidence/2026-11-08-horyzon-cancellation.json).
+Openbox's [pointer replay implementation](https://github.com/danakj/openbox/blob/master/openbox/mouse.c#L187)
+supports this interpretation of the recorded event order. It is an isolated
+reproduction, not a trace of the original production incident or completed live
+WeChat cancellation acceptance. A 100 ms wait is not a guarantee for arbitrary
+window managers/layouts; the exact draft and empty-editor checks still apply.
+
 The local operator's SSH and installation bindings can be kept in ignored
 `var/maintenance/operator.json`. They are execution context, not project memory.
 Inspect the current remote release each time rather than carrying an old SHA

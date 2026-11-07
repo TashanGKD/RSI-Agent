@@ -23,3 +23,7 @@
   Before replacing runtime authorization, explicitly wait for every affected
   service/socket/connection unit and verify cleanup. This race occurred in the
   isolated systemd migration rehearsal, without restarting the production client.
+- A bare GTK or Qt editor did not reproduce the partial clear. Adding Openbox
+  exposed the click arriving after Ctrl+A and collapsing selection before
+  Backspace. Wait after the click, not just after Delete; retain a real window
+  manager in this regression and preserve exact-text/attempt guards.
