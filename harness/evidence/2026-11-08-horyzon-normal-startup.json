@@ -1,0 +1,42 @@
+{
+  "runtime_audit": {
+    "schema_version": 1,
+    "checked_at": "2026-11-07T16:56:35.795191+00:00",
+    "health": "degraded",
+    "checks": {
+      "installation_prerequisites": true,
+      "official_client_visible": true,
+      "calibrated_main_geometry": true,
+      "ordinary_process": true,
+      "persistent_desktop_services": false
+    },
+    "findings": [
+      "SERVICES_NOT_PERSISTENT"
+    ],
+    "scope": "Process, layout and installation checks; no message read/send or recovery test.",
+    "main_geometry": [
+      905,
+      667
+    ]
+  },
+  "candidate_revision": "8208c84c355c18bf9167b257efc296515a75fcaf",
+  "production_release": "fcd16a7",
+  "restart": {
+    "unit": "wechat-gui-desktop.service",
+    "normal_script_restored": true,
+    "cached_login_succeeded": true,
+    "phone_confirmation_required": false
+  },
+  "readback": {
+    "peer": "filehelper",
+    "serverId": "1223700658069115783",
+    "nativeMessageCount": 1,
+    "exactTextMatch": true,
+    "senderIsConfiguredAccount": true,
+    "snapshotConsistent": true,
+    "uiBindingVerified": true,
+    "totalAttemptFiles": 1,
+    "oldDebuggerExited": true,
+    "additionalMessageSent": false
+  }
+}

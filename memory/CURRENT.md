@@ -40,15 +40,20 @@ was part of this engineering audit.
 
 ## Known operational limits
 
-Ordinary startup after GDB bootstrap has not been verified. The normal startup
-script was restored, but the current client was still traced at last inspection.
-Desktop units were transient. The send used a calibrated 905×667 main window and
-623×667 conversation; layout changes can block later preparation. One cancelled
-test draft needed manual cleanup. Do not claim general recovery or long stability.
+After explicit user authorization, an ordinary client restart and cached login
+succeeded on 2026-11-08 without another phone prompt. The old debugger exited;
+the new official client has TracerPid 0. The 905×667 main / 623×667 conversation
+layout and private binding were restored manually. The original test message
+was read back with exact text and configured sender, and total send attempts
+remained one. See
+[`normal-startup evidence`](../harness/evidence/2026-11-08-horyzon-normal-startup.json).
 
-The user has not answered the outstanding question about another normal restart
-and possible phone confirmation. Continue independent engineering without
-restarting the live client or sending another test message.
+The latest structural audit now reports only `SERVICES_NOT_PERSISTENT`.
+Desktop units are still transient. Layout restoration was manual rather than
+automatic across restart, and one cancelled test draft earlier needed manual
+cleanup. Server-boot persistence, general recovery and long stability remain
+unverified. The single restart authorization has been used; no additional send
+or repeated restart is implied by the 45-minute maintenance cadence.
 
 ## Next checkpoint
 

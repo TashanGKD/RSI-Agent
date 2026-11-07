@@ -17,9 +17,10 @@ original request when a send result is uncertain; never change its ID to retry.
 The one authorized File Transfer test has already been sent. Recurring checks
 use read-only probes; additional live sends require a new specific instruction.
 
-The current ordinary-startup cleanup needs the user's phone availability.
-Do not treat the recurring request as an answer to the outstanding restart
-question. Work on independent engineering items while it remains pending.
+One user-approved ordinary client restart and cached login have been verified.
+That one-shot restart and the earlier one-shot send are not a recurring
+maintenance window. Use the latest user authorization and checkpoint when a
+later operation would interrupt login or require phone availability.
 
 `scripts/check.py --linux` is a regression gate. `python -m rsi_agent audit`
 checks live process/layout/service conditions without input. Neither establishes

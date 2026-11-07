@@ -23,7 +23,7 @@ Native control locks now live in the private runtime directory so installed sour
 ## Horyzon acceptance still to do
 
 1. Persist and validate the existing X/WeChat/noVNC service definitions; check boot directories, Xauthority, ordering, crash recovery and operator handover. Schedule the actual disruptive recovery checks in a maintenance window.
-2. Finish ordinary, non-debugger startup after the authorized login bootstrap. Recalibrate changed layouts and validate incremental/late message coverage and unsupported media gaps.
+2. Ordinary non-debugger startup, cached login and original-message readback are now verified after explicit user authorization. The layout/binding was restored manually; automatic layout recovery, incremental/late coverage and unsupported media gaps remain unverified.
 3. Text-to-File-Transfer and stable-ID replay are verified for one controlled sample. Image/file receipts, other conversations, dropped responses, manual takeover and interrupted-client recovery remain unverified on this installation.
 4. Observe a 24–72 hour trial before describing the installation as stable. Record missed reads, duplicate sends, outages and recovery rather than only process uptime.
 
