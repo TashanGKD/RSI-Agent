@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "wechat": {
+    "display": ":92",
+    "xauthority": "/run/wechat-gui/Xauthority",
+    "runtime_root": "/var/lib/rsi-agent/wechat",
+    "profile": null,
+    "account": null,
+    "operations_enabled": false
+  }
+}

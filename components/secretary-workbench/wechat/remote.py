@@ -3,6 +3,7 @@
 The historical fixed-pair helpers below remain for old receipt regression tests.
 Production reads go through isolated snapshots in linux_tool.py, never connect().
 """
+from rsi_runtime_env import display, xauthority
 import argparse,base64,ctypes,ctypes.util,fcntl,hashlib,json,os,re,sqlite3,subprocess,sys,time
 from contextlib import closing
 from pathlib import Path
@@ -103,7 +104,7 @@ def source_inbox():
     return SourceInbox(ROOT/'native-source-receipts.sqlite',connect,TABLE,ACCOUNT,PEER,decode_text,epoch,stamp,only_incoming=True)
 
 def health():
-    os.environ['XAUTHORITY']=str(ROOT/'Xauthority')
+    os.environ['XAUTHORITY']=xauthority(ROOT)
     active=False
     for unit in ['tashan-wechat-client-capture.service','tashan-wechat-native-client.service']:
         p=subprocess.run(['systemctl','--user','is-active','--quiet',unit],capture_output=True,timeout=3)
@@ -115,7 +116,7 @@ def health():
         bindings=ROOT/'tool-targets.json'
         if bindings.exists():cfg=secret_json(bindings).get(PEER,cfg)
         if cfg.get('paired_account')!=ACCOUNT or cfg.get('peer')!=PEER:raise ValueError('UI identity binding mismatch')
-        check_header(ImageGrab.grab(xdisplay=':97').crop(tuple(cfg['header_box'])).tobytes(),cfg['header_sha256']);paired=True
+        check_header(ImageGrab.grab(xdisplay=display()).crop(tuple(cfg['header_box'])).tobytes(),cfg['header_sha256']);paired=True
     except Exception:pass
     return {'native_client_active':active,'paired_window_ready':paired}
 
@@ -213,13 +214,13 @@ def unresolved_send(c):
 
 def send_text(r):
     r={**r,'text':canonical_send(r['text'])}
-    os.environ['DISPLAY']=':97';os.environ['XAUTHORITY']=str(ROOT/'Xauthority')
+    os.environ['DISPLAY']=display();os.environ['XAUTHORITY']=xauthority(ROOT)
     lock=os.open(ROOT/'native-ui.lock',os.O_CREAT|os.O_RDWR|os.O_NOFOLLOW,0o600)
     try:
         fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
         cfg=secret_json(ROOT/'native-ui.json')
         from PIL import ImageGrab
-        before=ImageGrab.grab(xdisplay=':97')
+        before=ImageGrab.grab(xdisplay=display())
         check_header(before.crop(tuple(cfg['header_box'])).tobytes(),cfg['header_sha256'])
         c=sender_state();ident=r['request_id'];digest=hashlib.sha256(r['text'].encode()).hexdigest()
         prior=c.execute('select hash,text from sends where id=?',(ident,)).fetchone()
@@ -260,7 +261,7 @@ def send_text(r):
         clip=Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD);clip.set_text(r['text'],-1)
         click(cfg['editor']);chord(0x61);chord(0x76)
         loop=GLib.MainLoop();GLib.timeout_add(1800,lambda:(loop.quit(),False)[1]);loop.run()
-        check_header(ImageGrab.grab(xdisplay=':97').crop(tuple(cfg['header_box'])).tobytes(),cfg['header_sha256'])
+        check_header(ImageGrab.grab(xdisplay=display()).crop(tuple(cfg['header_box'])).tobytes(),cfg['header_sha256'])
         click(cfg['send']);time.sleep(1)
         for _ in range(8):
             result=reconcile(c,ident)

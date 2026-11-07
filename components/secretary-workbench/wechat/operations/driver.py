@@ -1,4 +1,5 @@
 """Backend native input. Existing official client, no vision/model API or VNC."""
+from rsi_runtime_env import display, xauthority
 import sys,os,json,time,fcntl,hashlib,io,base64,re
 from pathlib import Path
 from .contract import digest
@@ -180,7 +181,7 @@ class NativeDriver:
   im=UI(BASE).screenshot();p=self.previews/(j['id']+'.png');temp=p.with_suffix('.tmp');im.save(temp,format='PNG');temp.chmod(0o600);os.replace(temp,p)
   data=p.read_bytes();return {'artifact':j['id'],'sha256':hashlib.sha256(data).hexdigest(),'width':im.width,'height':im.height,'screenshotBytes':len(data)}
  def app_windows(self):
-  os.environ.update(DISPLAY=':97',XAUTHORITY=str(BASE/'Xauthority'))
+  os.environ.update(DISPLAY=display(),XAUTHORITY=xauthority(BASE))
   from .windows import visible
   rows=visible()
   if not rows:raise BeforeEffect('no visible official WeChat window')

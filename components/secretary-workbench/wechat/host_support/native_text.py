@@ -1,4 +1,5 @@
 """Native editor primitives only; no business dispatcher or group list."""
+from rsi_runtime_env import display, xauthority
 import ctypes,hashlib,json,os,sys,time,secrets
 from pathlib import Path
 def check_prior(text,expected):
@@ -17,7 +18,7 @@ def check_session(expected):
 class Desktop:
  def __init__(self,peer,session):
   self.session=session;check_session(session)
-  os.environ.update(DISPLAY=':97',XAUTHORITY=str(Path(os.environ.get('WECHAT_TOOL_ROOT','/var/lib/secretary-wechat'))/'Xauthority'))
+  os.environ.update(DISPLAY=display(),XAUTHORITY=xauthority(Path(os.environ.get('WECHAT_TOOL_ROOT','/var/lib/secretary-wechat'))))
   sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
   from linux_tool import Tool,ROOT as BASE
   from sender import UI

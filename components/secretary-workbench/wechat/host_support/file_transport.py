@@ -1,4 +1,5 @@
 """File preview/receipt primitives; no private service or scopes."""
+from rsi_runtime_env import display, xauthority
 import hashlib,json,os,re,subprocess,sys,time
 from pathlib import Path
 ROOT=Path(os.environ.get('WECHAT_TOOL_ROOT','/var/lib/secretary-wechat'))
@@ -25,7 +26,7 @@ def require_empty_editor(ui):
     if sum(min(pixel)<230 for pixel in im.getdata())>80:raise ValueError('editor is not visibly empty; existing contents retained')
 
 def chooser_present():
-    env=dict(os.environ,DISPLAY=':97',XAUTHORITY=str(Path(os.environ.get('WECHAT_TOOL_ROOT','/var/lib/secretary-wechat'))/'Xauthority'))
+    env=dict(os.environ,DISPLAY=display(),XAUTHORITY=xauthority(Path(os.environ.get('WECHAT_TOOL_ROOT','/var/lib/secretary-wechat'))))
     s=subprocess.run(['xwininfo','-root','-tree'],env=env,capture_output=True,text=True,check=True,timeout=5).stdout
     rows=re.findall(r'0x[0-9a-f]+ "Select File": \("wechat" "wechat"\)\s+(\d+)x(\d+)\+(-?\d+)\+(-?\d+)',s)
     if not rows:return False

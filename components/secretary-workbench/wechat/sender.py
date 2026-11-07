@@ -1,4 +1,5 @@
 """Explicit, target-bound GUI sending with durable before-click journaling."""
+from rsi_runtime_env import display, xauthority
 import base64,ctypes,fcntl,hashlib,io,json,os,re,sqlite3,time
 from pathlib import Path
 
@@ -91,7 +92,7 @@ class UI:
         return cfg
     def screenshot(self):
         from PIL import ImageGrab
-        os.environ['XAUTHORITY']=str(self.root/'Xauthority');return ImageGrab.grab(xdisplay=':97')
+        os.environ['XAUTHORITY']=xauthority(self.root);return ImageGrab.grab(xdisplay=display())
     def preflight(self,r,target):
         cfg=self.config(target);validate_binding(cfg,target,self.screenshot().crop(tuple(cfg['header_box'])).tobytes())
     def select(self,target):
@@ -99,7 +100,7 @@ class UI:
         raise ValueError('select_target is quarantined; use target_prepare/open_target; navigation never types or presses Enter')
     def __call__(self,r,target):
         cfg=self.config(target);self.preflight(r,target)
-        os.environ['DISPLAY']=':97';os.environ['XAUTHORITY']=str(self.root/'Xauthority')
+        os.environ['DISPLAY']=display();os.environ['XAUTHORITY']=xauthority(self.root)
         import gi
         gi.require_version('Gtk','3.0');from gi.repository import Gtk,Gdk,GLib,GdkPixbuf
         x=ctypes.CDLL('libX11.so.6');t=ctypes.CDLL('libXtst.so.6');x.XOpenDisplay.restype=ctypes.c_void_p;d=x.XOpenDisplay(None)

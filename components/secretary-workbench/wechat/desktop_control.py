@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Bounded AUP desktop sessions. No arguments do nothing; no WeChat business actions."""
+from rsi_runtime_env import display, xauthority
 import argparse, base64, contextlib, fcntl, hashlib, hmac, http.client, json, os, re, secrets
 import select, signal, socket, socketserver, stat, subprocess, sys, threading, time
 from pathlib import Path
@@ -353,7 +354,7 @@ def remote(request):
         try:
             x11=package/'usr/bin/x11vnc'
             subprocess.run([str(x11),'-storepasswd',pw,str(work/'vnc.pass')],env=env,capture_output=True,check=True,timeout=5);(work/'vnc.pass').chmod(0o600)
-            commands=[['timeout','-k','5',str(ttl),str(x11),'-display',':97','-auth','/var/lib/secretary-wechat/Xauthority','-localhost','-rfbport','15997','-rfbauth',str(work/'vnc.pass'),'-forever','-shared','-noxdamage',*input_flags(mode)],['timeout','-k','5',str(ttl),sys.executable,'-m','websockify','--web',str(web),'--web-auth','--auth-plugin','desktop_control.FileAuth','--auth-source',str(work/'auth.json'),'--heartbeat','15',HOST+':16997','127.0.0.1:15997']]
+            commands=[['timeout','-k','5',str(ttl),str(x11),'-display',display(),'-auth',xauthority(ROOT.parent),'-localhost','-rfbport','15997','-rfbauth',str(work/'vnc.pass'),'-forever','-shared','-noxdamage',*input_flags(mode)],['timeout','-k','5',str(ttl),sys.executable,'-m','websockify','--web',str(web),'--web-auth','--auth-plugin','desktop_control.FileAuth','--auth-source',str(work/'auth.json'),'--heartbeat','15',HOST+':16997','127.0.0.1:15997']]
             for i,cmd in enumerate(commands):
                 log=work/('process-'+str(i)+'.log');fd=os.open(log,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
                 with os.fdopen(fd,'wb') as output:

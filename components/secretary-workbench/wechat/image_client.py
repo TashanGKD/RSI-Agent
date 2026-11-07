@@ -3,6 +3,7 @@
 No image keys, process access, automatic replies, or screenshot-as-original.
 The caller must inspect prepare's chat context and choose the image bubble.
 """
+from rsi_runtime_env import display, xauthority
 import base64,ctypes,fcntl,hashlib,io,json,os,re,subprocess,sys,tempfile,time
 from pathlib import Path
 import xml.etree.ElementTree as ET
@@ -111,7 +112,7 @@ def open_viewer_save(control,viewer,capture,require_guard):
 
 class Controls:
     def __init__(self,root):
-        os.environ['DISPLAY']=':97';os.environ['XAUTHORITY']=str(Path(root)/'Xauthority')
+        os.environ['DISPLAY']=display();os.environ['XAUTHORITY']=xauthority(root)
         self.x=ctypes.CDLL('libX11.so.6');self.t=ctypes.CDLL('libXtst.so.6');self.x.XOpenDisplay.restype=ctypes.c_void_p;self.d=self.x.XOpenDisplay(None)
         if not self.d:raise ValueError('private display unavailable')
         self.x.XFlush.argtypes=[ctypes.c_void_p];self.x.XCloseDisplay.argtypes=[ctypes.c_void_p]
