@@ -168,12 +168,19 @@ def inspect_target(r,target):
     b=io.BytesIO();im.save(b,format='PNG')
     return {'state':'visual_verification_required','peer':target['username'],'expectedTitle':target['displayName'],'headerSha256':hashlib.sha256(im.tobytes()).hexdigest(),'header_png_base64':base64.b64encode(b.getvalue()).decode(),'instruction':'Inspect the image. Bind only if its title exactly matches the unique resolved contact. No send occurs.'}
 
+def visual_title(target,observed):
+    if isinstance(observed,str) and observed and observed==target['displayName']:return observed
+    names={'文件传输助手','File Transfer'}
+    if target['username']=='filehelper' and target['displayName'] in names and observed in names:return observed
+    raise ValueError('explicit visually observed exact title required')
+
 def bind_target(r,target):
     from linux_tool import ROOT,secret,Tool
-    if r.get('execute') is not True or r.get('observed_title')!=target['displayName']:raise ValueError('explicit visually observed exact title required')
+    if r.get('execute') is not True:raise ValueError('explicit binding authorization required')
+    title=visual_title(target,r.get('observed_title'))
     # All display-name matches must identify this same peer.
     if Tool().resolve(target['displayName'])['username']!=target['username']:raise ValueError('ambiguous target title')
-    cfg=json.loads(secret(ROOT/'native-ui.json'));cfg={**cfg,'peer':target['username'],'displayName':target['displayName'],'header_sha256':r.get('header_sha256')}
+    cfg=json.loads(secret(ROOT/'native-ui.json'));cfg={**cfg,'peer':target['username'],'displayName':target['displayName'],'observedTitle':title,'header_sha256':r.get('header_sha256')}
     validate_binding(cfg,target,UI(ROOT).screenshot().crop(tuple(cfg['header_box'])).tobytes())
     p=ROOT/'tool-targets.json';allcfg=json.loads(secret(p)) if p.exists() else {};allcfg[target['username']]=cfg
     tmp=p.with_suffix('.tmp');fd=os.open(tmp,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)

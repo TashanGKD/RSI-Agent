@@ -167,7 +167,12 @@ def paste_field(c,point,text,replace=True):
 
 def search_identity(target,cfg,members=(),resolved_names=None):
  name=target['displayName'];peer=target['username']
- if name!=peer:return target.get('alias') or name,[name]
+ if name!=peer:
+  title=name
+  if peer=='filehelper' and cfg.get('observedTitle'):
+   from sender import visual_title
+   title=visual_title(target,cfg['observedTitle'])
+  return target.get('alias') or name,[title]
  if not peer.endswith('@chatroom'):raise ValueError('native contact has no searchable verified name')
  expected=cfg.get('nativeMemberIds');title=cfg.get('observedTitle','')
  import re

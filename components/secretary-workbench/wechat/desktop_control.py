@@ -121,7 +121,7 @@ def _native_control(session,operation_id,expected_state_sha256,driver,cleanup_ow
         # Only the acquisition/publication is a Store transaction. New ready
         # business can enqueue during bounded maintenance, not be SQL-blocked.
         with maintenance_guard(driver.root):
-            for path in (Path(os.environ.get('WECHAT_HOST_SUPPORT_CODE',str(Path(__file__).resolve().parent/'host_support')))/'native-control.lock',ROOT.parent/'native-ui.lock',Path(driver.root)/'display-guard.lock'):
+            for path in (ROOT.parent/'native-control.lock',ROOT.parent/'native-ui.lock',Path(driver.root)/'display-guard.lock'):
                 path.parent.mkdir(mode=0o700,exist_ok=True)
                 fd=os.open(path,os.O_CREAT|os.O_RDWR|os.O_NOFOLLOW,0o600);held.append(fd)
                 value=os.fstat(fd)

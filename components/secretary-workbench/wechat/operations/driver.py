@@ -56,7 +56,7 @@ class NativeDriver:
    from .lease import maintenance_guard
    with ExitStack() as reservation:
     if getattr(self,'work_class','maintenance')=='maintenance':reservation.enter_context(maintenance_guard(self.root))
-    for p in [COMMON/'native-control.lock',BASE/'native-ui.lock',self.root/'display-guard.lock']:
+    for p in [BASE/'native-control.lock',BASE/'native-ui.lock',self.root/'display-guard.lock']:
      fd=os.open(p,os.O_CREAT|os.O_RDWR|os.O_NOFOLLOW,0o600)
      try:fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
      except BaseException:os.close(fd);raise
@@ -133,6 +133,12 @@ class NativeDriver:
   try:
    if self.name_peer(title):return True
   except ValueError:pass
+  if title=='File Transfer':
+   from sender import visual_title
+   try:
+    target=self.tool().resolve('filehelper')
+    if target.get('contactEvidence',{}).get('consistency')=='committed' and visual_title(target,title)==title:return True
+   except ValueError:pass
   # A registered unnamed-group popout is not a foreign modal. Prove its exact
   # native member set and every displayed name; never accept a similar title.
   try:

@@ -34,13 +34,13 @@ def search_parent_proof(popup,parent):
 def parse_app_windows(raw):
  # xwininfo does not escape quotation marks inside the window title. Parse
  # one entire native line and its structural suffix, never across newlines.
- pattern=r'^\s*(0x[0-9a-fA-F]+) (?:"([^\r\n]*)"|\(has no name\)): \("([^"\r\n]*)" "([^"\r\n]*)"\)\s+(\d+)x(\d+)\+(-?\d+)\+(-?\d+)(?:\s+[+-]\d+[+-]\d+)?\s*$'
+ pattern=r'^\s*(0x[0-9a-fA-F]+) (?:"([^\r\n]*)"|\(has no name\)): \("([^"\r\n]*)" "([^"\r\n]*)"\)\s+(\d+)x(\d+)\+(-?\d+)\+(-?\d+)(?:\s+([+-]\d+)([+-]\d+))?\s*$'
  result=[]
- for ident,title,cls,klass,w,h,x,y in re.findall(pattern,raw,re.M):
+ for ident,title,cls,klass,w,h,x,y,absolute_x,absolute_y in re.findall(pattern,raw,re.M):
   if len(title)>2048 or any(ord(c)<32 for c in title):continue
   if (cls,klass) not in [('wechat','wechat'),('com.tencent.wechatappex','WeChatAppEx'),('WeChatAppEx','WeChatAppEx')]:continue
   if int(w)<40 or int(h)<40:continue
-  result.append({'id':ident,'title':title or 'WeChatAppEx','x':int(x),'y':int(y),'width':int(w),'height':int(h)})
+  result.append({'id':ident,'title':title or 'WeChatAppEx','x':int(absolute_x or x),'y':int(absolute_y or y),'width':int(w),'height':int(h)})
  return result
 def visible():
  r=subprocess.run(['xwininfo','-root','-tree'],capture_output=True,text=True,timeout=5)
