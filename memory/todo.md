@@ -3,9 +3,9 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-1. **Active: runtime audit and PR loop.** Prove that a ready dependency doctor
-   cannot hide a traced client, unsupported main layout or transient services.
-   Publish the audit evidence, shared Skill, memory and first PR with CI.
+1. **PR #1: runtime audit and PR loop.** Implementation, 443 checks, real-host
+   audit, shared Skill, memory and initial CI are complete. Review the current
+   PR head and its final CI; merge and production release remain separate work.
 2. **Normal startup and persistence.** Waiting on the user's phone availability
    for the already explained additional restart. Prepare service definitions and
    rollback before any authorized maintenance window; verify the real process,

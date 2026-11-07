@@ -22,6 +22,12 @@ Branch `codex/rsi-harness-foundation`: add a read-only runtime audit that expose
 conditions a successful dependency doctor misses; establish project memory and
 the shared maintenance Skill. It is a candidate until its PR is merged.
 
+[PR #1](https://github.com/Yu-Yang-Li/RSI-Agent/pull/1) is open for this work.
+Its initial head passed [remote CI](https://github.com/Yu-Yang-Li/RSI-Agent/actions/runs/42391600476);
+recheck CI after any later push. The requested 45-minute heartbeat was created
+and verified ACTIVE in this chat as `rsi-agent-harness`. Its first future
+scheduled invocation has not yet been observed; the work below was manual.
+
 Candidate `8208c84c355c18bf9167b257efc296515a75fcaf` passed 443 Linux checks,
 the notebook HTTP probe and the Mac manifest. Its real-host audit observed
 `degraded` at 2026-11-07 16:26:51 UTC (2026-11-08 00:26:51 +08:00): dependency
@@ -46,6 +52,6 @@ restarting the live client or sending another test message.
 
 ## Next checkpoint
 
-Attach the actual PR and its remote CI result, then select the highest-value
-independent item in `todo.md`. The host findings remain open until separately
-repaired and rechecked; the audit surfacing them is not a repair.
+Check PR #1 and its latest remote head/CI, then select the highest-value independent
+item in `todo.md`. The host findings remain open until separately repaired and
+rechecked; the audit surfacing them is not a repair.
