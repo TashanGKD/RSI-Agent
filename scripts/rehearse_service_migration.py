@@ -175,6 +175,9 @@ def main():
                 raise RuntimeError('Persistent definitions were not selected')
             report['phases']['persistent'] = {'paths': persistent, **probe()}
             run('systemctl', 'stop', target)
+            report['runtime_present_on_target_stop_return'] = runtime.exists()
+            # Waiting for the target's own job does not wait for all propagated stops.
+            stop_fixture()
             if runtime.exists():
                 raise RuntimeError('RuntimeDirectory was not cleaned on target stop')
             for path in owned_files:
@@ -196,9 +199,9 @@ def main():
             after = {name: run('systemctl', 'show', name, '--property=MainPID', '--value') for name in production}
             report['production_service_pids_unchanged'] = after == production
             report['cleanup_complete'] = not any(p.exists() for p in owned_files) and not runtime.exists() and not saved_runtime.exists()
+            print(json.dumps(report, indent=2))
             if after != production:
                 raise RuntimeError('Production PID changed during rehearsal; investigate')
-    print(json.dumps(report, indent=2))
 
 
 if __name__ == '__main__':
