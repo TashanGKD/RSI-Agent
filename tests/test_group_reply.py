@@ -93,6 +93,27 @@ class GroupTests(unittest.TestCase):
         self.assertEqual(loop.cycle()['state'], 'pending')
         self.model.complete.assert_called_once()
 
+    def test_reply_to_own_post_has_priority_without_mention_or_question(self):
+        loop = self.loop()
+        with loop.db:
+            loop.save('last_spoken', __import__('time').time())
+        self.batch['events'] = [self.event(text='换个地方接着聊呀', mentioned=False, follows_self=True)]
+        self.assertEqual(loop.cycle()['state'], 'pending')
+        data = json.loads(self.model.complete.call_args.args[0][1]['content'])
+        self.assertTrue(data['new_messages'][0]['follows_self'])
+
+    def test_followup_priority_survives_ack_then_model_outage(self):
+        loop = self.loop()
+        with loop.db:
+            loop.save('last_spoken', __import__('time').time())
+        self.batch['events'] = [self.event(text='换个地方接着聊呀', mentioned=False, follows_self=True)]
+        self.model.complete.side_effect = OSError('model temporarily unavailable after source ACK')
+        with self.assertRaises(OSError):
+            loop.cycle()
+        self.batch = {'events': [], 'context': []}
+        self.model.complete.side_effect = None
+        self.assertEqual(loop.cycle()['state'], 'pending')
+
     def test_unknown_stops_future_decisions_and_original_send(self):
         loop = self.loop()
         loop.cycle()
@@ -159,7 +180,8 @@ class GroupSourceTests(unittest.TestCase):
                     'CREATE TABLE ' + table + '(local_id INTEGER,server_id INTEGER,local_type INTEGER,'
                     'real_sender_id INTEGER,create_time INTEGER,sort_seq INTEGER,message_content TEXT,source TEXT);')
                 db.executemany('INSERT INTO ' + table + ' VALUES(?,?,?,?,?,?,?,?)', [
-                    (1, 1, 1, 2, 50, 1, 'old', ''), (2, 2, 1, 2, 120, 2, 'a:\nquestion', '<msgsource><atuserlist>self</atuserlist></msgsource>'),
+                    (1, 1, 1, 2, 50, 1, 'old', ''), (6, 6, 1, 1, 120, 1, 'own introduction', ''),
+                    (2, 2, 1, 2, 120, 2, 'a:\nquestion', '<msgsource><atuserlist>self</atuserlist></msgsource>'),
                     (3, 3, 1, 3, 130, 3, 'reply', ''), (4, 4, 1, 1, 140, 4, 'own', ''),
                     (5, 5, 1, 4, 150, 5, 'foreign', '')])
             sys.path.insert(0, str(WORKBENCH / 'wechat'))
@@ -180,6 +202,8 @@ class GroupSourceTests(unittest.TestCase):
                     self.assertEqual([e['server_id'] for e in batch['events']], [2, 3])
                     self.assertEqual(batch['events'][0]['text'], 'question')
                     self.assertTrue(batch['events'][0]['mentioned'])
+                    self.assertTrue(batch['events'][0]['follows_self'])
+                    self.assertFalse(batch['events'][1]['follows_self'])
                     self.assertEqual(batch['events'][1]['sender_name'], 'B')
                     read_group(root, binding, {'op': 'ack', **{k: batch[k] for k in ('batch_id', 'batch_hash', 'ack_ids')}}, members)
                     self.assertEqual(read_group(root, binding, {'op': 'read'}, members)['events'], [])

@@ -3,12 +3,12 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-1. **Invited-group participation: one WIP, newly authorized.**
-   Add actual group intake/context and moderate participation, prioritizing
-   mentions/questions. Initially admit only the unique group shared by owner and
-   account; preserve the delivered PR #7 owner service, caches and original IDs.
-   Close normal CI, reversible code release, pinned worker upgrades and native
-   introduction acceptance separately. Details and unique next step: CURRENT.md.
+1. **Recognize replies to the account's own group messages: one WIP.**
+   PRs #8/#9 are delivered. The first natural response to the introduction was
+   received but incorrectly classified quiet; the user says it should be answered.
+   Preserve native turn adjacency across ACK/retry, prioritize it without @ or
+   question marks, and recover only that identified unsent event after release.
+   Keep prior caches/requests and the owner service unchanged. See CURRENT.md.
 2. **Service persistence: awaiting production window.** Bundle/bootstrap and
    isolated transient→persistent→rollback transport paths are verified. Two rounds
    are complete; do not spend another round repeating those checks. Actual X,
