@@ -83,9 +83,18 @@ def execute(value, request):
 
     def save(result):
         temporary = path.with_suffix('.tmp')
-        temporary.write_text(json.dumps(dict(result, input_sha256=digest)) + '\n')
-        temporary.chmod(0o600)
+        fd_save = os.open(temporary, os.O_CREAT | os.O_WRONLY | os.O_TRUNC | os.O_NOFOLLOW, 0o600)
+        with os.fdopen(fd_save, 'w') as stream:
+            os.fchmod(stream.fileno(), 0o600)
+            stream.write(json.dumps(dict(result, input_sha256=digest)) + '\n')
+            stream.flush()
+            os.fsync(stream.fileno())
         os.replace(temporary, path)
+        directory_fd = os.open(calls, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
 
     work_fd = None
     work_marker = None
@@ -136,12 +145,16 @@ def execute(value, request):
                 request_timeout_seconds=360 if request['mode'] == 'engineering' else 150) as harness:
             result = (harness.resume_session(request['session']).run(content) if marker.exists()
                       else harness.run(content, session_id=request['session']))
-        if result.finish_reason != 'completed' or not result.final_response.strip():
-            raise ValueError('Harness did not complete; inspect the original Session.')
-        if '<｜｜DSML｜｜' in result.final_response or '<tool_call>' in result.final_response:
-            raise ValueError('Unexecuted tool syntax is not a completed response.')
-        receipt = {'state': 'completed', 'response': result.final_response,
-                   'backend': 'deepseek-harness', 'mode': request['mode'], 'session': request['session']}
+            if result.finish_reason != 'completed' or not result.final_response.strip():
+                raise ValueError('Harness did not complete; inspect the original Session.')
+            if '<｜｜DSML｜｜' in result.final_response or '<tool_call>' in result.final_response:
+                raise ValueError('Unexecuted tool syntax is not a completed response.')
+            # Freeze the original result before SDK shutdown and slow publication.
+            # This is not a published change or a deliverable reply yet.
+            receipt = {'state': 'sdk_completed', 'response': result.final_response,
+                       'backend': 'deepseek-harness', 'mode': request['mode'], 'session': request['session']}
+            save(receipt)
+        receipt['state'] = 'completed'
         if request['mode'] == 'engineering':
             from .engineering import publish
             receipt['change'] = publish(workspace)

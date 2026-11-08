@@ -7,8 +7,10 @@ as candidates rather than silently expanding the active task.
    The runtime-produced structured-tool candidate is recovered and remains in
    draft review. The native read-only WeChat status bundle and four-module plan
    join that PR; inspect its actual head/CI and receipt before any rollout.
-   The next task-plugin prerequisite is persisting completed SDK output before
-   verification/publication, using the frozen interrupted-publication case.
+   Candidate now durably retains SDK output before shutdown/publication; real
+   SDK + publisher SIGKILL and original-request no-reexecution checks passed.
+   After review, reconcile original Git/remote publication effects for recovery;
+   sdk_completed is not a published change or permission to rerun tools.
    PR #16's cover delivery is closed; a fresh ordinary-photo automatic reply
    remains unobserved. Preserve original requests rather than replaying them.
 2. **Harness readiness diagnostics: independent reproduced candidate.**

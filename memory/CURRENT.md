@@ -48,12 +48,23 @@ The frozen unresolved-work fixture separately reports needs_review even with idl
 chat. The package was not mounted in production replies and does not send or retry.
 Keep the increment in the existing PR and verify CI for the combined actual head.
 
+The completion-durability increment now saves the validated original SDK response
+as sdk_completed before SDK shutdown or publication, with file/directory fsync.
+Frozen baseline/candidate cases reproduced the previous running-only journal.
+An isolated real SDK turn followed by SIGKILL inside publication retained the
+response/input digest; same-request re-entry refused model/publication execution
+and preserved the checkpoint. Status reports needs_review / sdk_completed. The
+private acceptance receipt is beside the prior plugin receipt; production native
+records, configs and worker PIDs were unchanged. This is a candidate in PR #17,
+not automatic publication recovery or a production rollout.
+
 ## Unique next step
 
-Persist completed SDK output before the slower verification/publication phase,
-so a wrapper timeout cannot strand completed work as running. Use this frozen
-completed-session/publication interruption as the acceptance case; do not merely
-increase a timeout or rerun the model/tools. No client restart or test send.
+Review the actual PR #17 head/CI and its delivery boundary first. The next task
+boundary is recovery of publication from the frozen original sdk_completed
+response, reconciling actual Git/remote effects before any retry. Preserve the
+original input and generated output; do not rerun tools or merely increase a
+timeout. No automatic merge, client restart or test send.
 
 Penguin's fixed-model Benchmark/Formal Baseline remains unestablished. Raw chats,
 native IDs, private traces, pictures and credentials stay outside Git.

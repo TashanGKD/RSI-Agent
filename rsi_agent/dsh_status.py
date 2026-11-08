@@ -79,7 +79,7 @@ def engineering(model_path):
         if not isinstance(request, str) or not re.fullmatch('[a-f0-9]{64}', request):
             raise ValueError('Invalid original request.')
         receipt = read_object(Path(model['state']) / 'calls' / (request + '.json'))
-        result['recorded_state'] = receipt['state'] if receipt.get('state') in ('running', 'completed') else 'unknown'
+        result['recorded_state'] = receipt['state'] if receipt.get('state') in ('running', 'sdk_completed', 'completed') else 'unknown'
     except (OSError, ValueError, KeyError, TypeError):
         pass
     return result

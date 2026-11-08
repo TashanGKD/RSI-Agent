@@ -86,6 +86,14 @@ class StatusTests(unittest.TestCase):
         result = self.read()['engineering']
         self.assertEqual(result, {'state': 'needs_review', 'retry_allowed': False})
 
+    def test_completed_sdk_output_is_visible_without_treating_it_as_published(self):
+        key = 'b' * 64
+        self.write('engineering/engineering-current.json', {'request': key})
+        self.write('dsh/calls/' + key + '.json', {'state': 'sdk_completed', 'response': self.canary})
+        result = self.read()['engineering']
+        self.assertEqual(result, {'state': 'needs_review', 'recorded_state': 'sdk_completed', 'retry_allowed': False})
+        self.assertNotIn(self.canary, json.dumps(result))
+
 
 if __name__ == '__main__':
     unittest.main()

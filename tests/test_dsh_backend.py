@@ -67,6 +67,7 @@ class HarnessDurabilityTests(unittest.TestCase):
                        'engineering_workspace': str(work), 'provider_config': 'fixture'}
         self.calls, self.launches, self.resumed = [], [], []
         self.response = 'verified result'
+        self.close_error = None
         outer = self
 
         class Harness:
@@ -77,7 +78,8 @@ class HarnessDurabilityTests(unittest.TestCase):
                 return self
 
             def __exit__(self, *_):
-                pass
+                if outer.close_error:
+                    raise outer.close_error
 
             def run(self, content, session_id):
                 outer.calls.append((content, session_id))
@@ -106,6 +108,34 @@ class HarnessDurabilityTests(unittest.TestCase):
         second = execute(self.config, self.request)
         self.assertEqual(first['response'], second['response'])
         self.assertEqual(len(self.calls), 1)
+
+    def test_publication_interruption_keeps_completed_output_without_reexecution(self):
+        with patch('rsi_agent.engineering.publish', side_effect=TimeoutError('publication interrupted')) as publish:
+            with self.assertRaises(TimeoutError):
+                execute(self.config, self.request)
+            path = self.state / 'calls' / (self.request['id'] + '.json')
+            frozen = path.read_bytes()
+            completed = json.loads(frozen)
+            self.assertEqual(completed['state'], 'sdk_completed')
+            self.assertEqual(completed['response'], self.response)
+            self.assertEqual(completed['session'], self.request['session'])
+            self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+            self.assertTrue((Path(self.config['engineering_workspace']).parent / 'engineering-current.json').exists())
+            with self.assertRaisesRegex(ValueError, 'uncertain'):
+                execute(self.config, self.request)
+            self.assertEqual(path.read_bytes(), frozen)
+            self.assertEqual(len(self.calls), 1)
+            publish.assert_called_once()
+
+    def test_sdk_shutdown_cannot_erase_already_completed_output(self):
+        self.close_error = TimeoutError('SDK shutdown interrupted')
+        with patch('rsi_agent.engineering.publish') as publish:
+            with self.assertRaises(TimeoutError):
+                execute(self.config, self.request)
+            publish.assert_not_called()
+        completed = json.loads((self.state / 'calls' / (self.request['id'] + '.json')).read_text())
+        self.assertEqual(completed['state'], 'sdk_completed')
+        self.assertEqual(completed['response'], self.response)
 
     def test_interrupted_original_and_changed_input_do_not_run_again(self):
         execute(self.config, self.request)
