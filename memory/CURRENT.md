@@ -1,58 +1,54 @@
 # Current checkpoint
 
-## Delivery lookup
+## Delivered baseline
 
-PR #21 (owner links and curated preferences) was merged, released and activated.
-Actual installed modules/public HTTPS read and existing-Session preference update
-have private receipts in operator metadata and the PR. New real WeChat link/card
-delivery still requires fresh input; do not replay historical messages. PR #20
-quoted text remains delivered. Read actual current/release metadata, resident cwd
-and latest delivery receipt for the running version, not a historical SHA.
+PR #22's local Codex handoff is merged, published and resident-active. Its private
+operator port is enabled. The next actual heartbeat completed the private nonce
+wake fixture and recorded the app thread/turn evidence in the same PR receipt.
+This proves scheduled conversation wake-up only. No fresh real /codex request
+has been claimed or delivered; keep the original claim/input/result protocol.
+Do not repeat the completed fixture or the failed default Dot socket probes.
+PR #21 links/preferences and PR #20 quoted text remain delivered. Read live
+current/release metadata, resident cwd and the latest PR receipt for the version;
+pre-release checkpoint wording is not another WIP.
 
-## Current increment: local Codex alongside DSH
+## Current increment: official search popup geometry
 
-The owner requested a second route that triggers Codex on this computer, with no
-Codex installation/execution dependency on the client host. Fresh native-owner
-private text explicitly prefixed /codex is held in the existing durable inbox.
-Its handoff commits before source ACK and skips DSH generation. Other text,
-images, cards and group discussion retain the resident DSH path. No historical
-insertion, probe send or default backend migration is requested.
+The frozen current official popup passes native parent/process/type proof, but
+its relative geometry is [74,73,321] while both navigation and modal admission
+previously required [76,75,333]. The unmodified source rejects this real variant
+before native row selection. The failure-time popup was not recorded, so this
+reproducer does not establish the original incident's full cause.
 
-Local claims are bound to the same existing desktop conversation, original input
-and one durable claim. A different claimant cannot take unresolved work; a
-completed reply is immutable. Completion is cached atomically before the original
-resident V2 sender resumes. Waiting and delivery are separate visible states.
-See harness/LOCAL-CODEX.md for the worker/recovery contract.
-
-Baseline/candidate inbox fixtures show DSH generation/send on the baseline and
-waiting_codex with no generation/send on the candidate. Claim/restart/lost-send
-and authority fixtures verify one original result. These are isolated fixtures,
-not actual fresh WeChat-to-local-Codex delivery. The supported experiment uses the
-existing 30-minute heartbeat. Immediate Dot activation is unaccepted: documented
-local proxy/version probes cannot connect to the desktop control socket, Windows
-error 10050. No application restart, private IPC bypass or target-host CLI call.
+The minimal candidate shares one exact geometry predicate in those two paths,
+admitting the observed compact variant alongside the existing calibrated one.
+It does not replace native parent/process/type proof, unique/new window checks,
+exact scene proof or final native recipient title/identity. Frozen isolated
+navigation fixtures keep the legacy path, reject foreign/ambiguous/preexisting
+windows, and refuse a wrong final recipient. No live controls or sends are used
+in those fixtures. The fixture contains normalized IDs, no chats/screenshots.
 
 ## Unique next step
 
-Finish this increment's actual-head review/CI, reversible publication and resident
-activation. Then have the existing scheduled conversation consume the separate
-private wake experiment and, when available, one fresh real /codex request. Save
-its claim before work and completion before upload; inspect uncertain running
-work rather than running it again. A scheduled nonce-only local receipt does not
-establish native WeChat end-to-end acceptance or immediate Dot activation.
+Finish actual-head review/CI and reversible publication/activation of this
+increment if its live receipt does not already record delivery. Preserve the
+original group needs_attention request, cached reply, ACK and navigation journal.
+The latest maintenance scope explicitly forbids clearing/replaying/confirming
+that original request. A proposed one-off cleanup must be concrete and separately
+allowed: prove the original query/window, restore its owned search navigation,
+settle it as not sent, retain the reply and permit only future inbound work. Do
+not claim the group is restored from code/fixture acceptance alone.
 
-## Preserved independent work
+Fresh /codex tasks take priority when present. If navigation cleanup remains
+outside the allowed scope, retain its specific blocker and move to independent
+SDK-completed publication recovery, reconciling real Git/remote effects without
+rerunning the original model/tools. No repeated geometry probes or delay tweaks.
 
-The newly admitted group still has a pre-confirmation official-search preparation
-failure: consumer attention / original V2 needs_attention. Its original reply,
-ID and review state are preserved in private metadata, not retried or hidden.
-Normal owner and original-group replies remain independent resident services.
-After the requested local-handoff trial, return to that real recipient path.
+## Remaining boundaries
 
-The native sticker library/search/decoded GIF and agent-autoloop CLI with separate
-Node 24 are installed in isolation. Actual WeChat sticker output and task-engine
-binding remain incomplete; dsh-bridges was rejected as incompatible. Scoped
-retrieval/correction, SDK publication recovery and Penguin's real DSH adapter,
-frozen Benchmark and Formal Baseline remain separate. No RSI gain is claimed.
-Client persistence, folded albums and whole-video understanding retain their
-limits. Secrets, raw chats and private assets stay outside Git.
+Ordinary owner/group replies are resident DSH, independent of maintenance. The
+sticker library/native search/GIF and separate Node 24/autoloop CLI are installed;
+actual WeChat sticker output and task-engine binding remain incomplete. Scoped
+memory retrieval/correction, fixed-runtime Penguin evaluation/Formal Baseline,
+client persistence, folded albums and whole-video understanding remain distinct.
+Secrets, raw chats and private assets stay outside Git. No RSI gain is claimed.

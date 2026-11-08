@@ -70,8 +70,8 @@ def main_window(driver):
   hosts=[v for v in windows if v['title']=='Weixin' and (v['width'],v['height'])==(905,667)]
   if len(hosts)!=1 or len(extras)!=1:deny('An unrelated or ambiguous official modal is visible; it was left unchanged.','MODAL_OR_HOST_AMBIGUOUS',[v['id'] for v in extras])
   host=hosts[0];popup=extras[0]
-  if not (popup['title']=='wechat' and popup['x']==host['x']+76 and popup['y']==host['y']+75 and popup['width']==333 and 40<=popup['height']<=host['height']-75):deny('An unrelated official modal is visible; it was left unchanged.','MODAL_GEOMETRY_UNSUPPORTED',[popup['id']])
-  from .windows import search_parent_proof
+  from .windows import search_parent_proof,search_geometry
+  if not search_geometry(popup,host):deny('An unrelated official modal is visible; it was left unchanged.','MODAL_GEOMETRY_UNSUPPORTED',[popup['id']])
   try:
    identity=search_parent_proof(popup,host);scene=_search_scene(driver,popup)
    if driver.app_windows()!=windows or search_parent_proof(popup,host)!=identity or hashlib.sha256(screen(driver).crop(tuple(scene['box'])).tobytes()).hexdigest()!=scene['pixelsSHA256']:raise ValueError('search scene changed')

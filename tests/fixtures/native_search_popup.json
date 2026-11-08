@@ -1,0 +1,8 @@
+{
+  "provenance": "Observed official popup geometry; IDs, process and leader normalized. Unrelated old chats omitted. Required native identity subset retained. Failure-time geometry was not recorded.",
+  "observation_sha256": "55fc8c3b0c55468003cc0fa1618b208fc2eb03314d3191ec835f3b9f49317b67",
+  "parent_proof_sha256": "0131794b2a75f581502b0dfbe58a987a4d0ff4b3e95ba076725b50e43017c164",
+  "main": {"id": "0x100001", "title": "Weixin", "x": 131, "y": 120, "width": 905, "height": 667},
+  "popup": {"id": "0x100002", "title": "wechat", "x": 205, "y": 193, "width": 321, "height": 231},
+  "identity": {"class": ["wechat", "wechat"], "pid": 4200, "leader": "0x100000", "transientFor": null, "types": ["_NET_WM_WINDOW_TYPE_NORMAL"]}
+}
