@@ -25,6 +25,14 @@ moderate initiative and priority for mentions/questions. Start with the uniquely
 verified group shared by the owner and this account; register each group
 explicitly. This permits scoped group text and a one-time introduction, not
 all existing groups, command execution, periodic probes or client restarts.
+The owner has now removed the per-group manual registration requirement for
+future groups. Automatically admit newly joined groups where native membership
+confirms both the owner and this account. Preserve the activation baseline;
+do not enable old unrelated groups or infer inviter identity from nicknames.
+Membership-qualified admission still grants ordinary discussion only. No
+automatic introduction is requested; use new inbound messages and verify the
+actual native/UI target before any reply. Owner tool authority remains native
+sender-based. Group admission runs in the resident service, not maintenance.
 The owner has now additionally authorized image inputs and high-authority
 engineering/configuration instructions from their confirmed native WeChat sender
 identity, including starting implementation when asked to add image support.

@@ -42,7 +42,8 @@ def load_binding(path, installation):
         raise ValueError('Private invited-group binding required.')
     value = json.loads(Path(path).read_text())
     scope = value.get('send_scope') or {}
-    if (value.get('confirmed_by_user') is not True or value.get('invited_by_owner') is not True
+    if (value.get('confirmed_by_user') is not True
+            or not (value.get('invited_by_owner') is True or value.get('admission') == 'new-owner-shared-group')
             or value.get('account') != installation['wechat']['account']
             or not isinstance(value.get('group_peer'), str) or not value['group_peer'].endswith('@chatroom')
             or scope.get('mode') != 'invited-group-text' or type(scope.get('since')) is not int
