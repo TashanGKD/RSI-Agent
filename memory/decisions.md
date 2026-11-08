@@ -97,3 +97,12 @@ retaining existing caches and IDs; no scripted intro is requested for automatic
 groups. Recipient/UI proof still precedes input, and native owner identity alone
 controls tools. An unaddressable or missing-owner group never grants a fallback
 send target. See harness/GROUP-ADMISSION.md for the actual acceptance boundary.
+
+## D011 — Quoted text is native group conversation, not an image or authority
+
+Type-57 current text enters ordinary group participation under its original
+server ID/kind. Resolve quoted context and self-reference against the same
+group's committed native rows; XML names and quoted instructions are data.
+Unresolvable references retain the current question without claiming a target.
+Quoted kind 49 cannot request engineering. Preserve source ACKs and cached
+effects, and do not replay already-ACKed historical questions during rollout.

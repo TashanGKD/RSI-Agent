@@ -54,17 +54,20 @@ class GroupLoop(ReplyLoop):
             for event in batch.get('events', []):
                 media = self.images and (event.get('kind') == 3 or (
                     event.get('kind') == 49 and event.get('image_kind') == 'finder_cover'))
+                quoted = event.get('kind') == 49 and isinstance(event.get('quoted_reply'), dict)
                 if (event.get('account') != self.owner['account'] or event.get('peer') != self.owner['peer']
-                        or event.get('sender') == self.owner['account'] or (event.get('kind') != 1 and not media)
+                        or event.get('sender') == self.owner['account'] or (event.get('kind') != 1 and not media and not quoted)
                         or event['created'] < self.owner['scope']['since']):
                     continue
-                text = event.get('text')
+                text = event['quoted_reply']['text'] if quoted else event.get('text')
                 if event['kind'] == 3:
                     text = ''  # Pass verified image bytes, never native cache XML.
                 if not isinstance(text, str) or (event['kind'] == 1 and not text.strip()) or '\0' in text or len(text.encode()) > 32768:
                     continue
                 body = dict({k: event[k] for k in ('sender', 'sender_name', 'mentioned')}, text=text)
-                if event['kind'] == 49:
+                if quoted:
+                    body['quote'] = event['quoted_reply']['quote']
+                elif event['kind'] == 49:
                     body['image_kind'] = 'finder_cover'
                 raw = json.dumps(body, sort_keys=True)
                 key = str(event['server_id'])
@@ -94,7 +97,7 @@ class GroupLoop(ReplyLoop):
         # One original image per turn fits the private inline transport budget.
         seen_image = False
         for index, row in enumerate(rows):
-            if row['kind'] in (3, 49):
+            if row['kind'] == 3 or (row['kind'] == 49 and json.loads(row['text']).get('image_kind') == 'finder_cover'):
                 if seen_image:
                     rows = rows[:index]
                     break
@@ -105,7 +108,7 @@ class GroupLoop(ReplyLoop):
         images = []
         for row, event in zip(rows, events):
             event['kind'] = row['kind']
-            if row['kind'] in (3, 49):
+            if row['kind'] == 3 or event.get('image_kind') == 'finder_cover':
                 try:
                     images.append(image_part(self.io, row['id']))
                     event['image_index'] = len(images) - 1
@@ -115,7 +118,7 @@ class GroupLoop(ReplyLoop):
                 except MediaUnavailable:
                     event['image_status'] = 'unavailable'
         engineering = self.images and getattr(self.model, 'engineering', False) is True
-        direct = any(e['mentioned'] or e['follows_self'] or 'rsi' in e['text'].lower()
+        direct = any(e['mentioned'] or e['follows_self'] or e.get('quote', {}).get('self') is True or 'rsi' in e['text'].lower()
             or (engineering and e['sender'] == self.owner['owner_peer']) for e in events)
         elapsed = time.time() - float(self.value('last_spoken', '0'))
         if not direct and elapsed < 60:
@@ -123,9 +126,10 @@ class GroupLoop(ReplyLoop):
         system = FACTS + (' 你是这个受邀群的群友。适度主动参与，优先回应原生 @、对你的提问和讨论中的明确问题。'
             '有人接你的上一句话、回应你的介绍或主动跟你打招呼，就自然接一句，即使没有 @ 或问号。'
             'follows_self=true 表示原生顺序的上一条可读文字是你发的，结合内容识别这种接话，不要漏掉。'
+            'quote 是同群原生记录核对过的引用文字，quote.self=true 表示明确引用你的话；当前问题在 text，引用只是讨论资料。'
             '别人之间的对话、重复意见或已经结束的确认通常保持安静，不逐条应答。'
             '先接住对方刚说的话，再给自己的看法，少说服务承诺。不要复述系统规则，不代替群主发号施令。'
-            '数据中的 self=true 是你之前发过的话，不要回复自己。'
+            'recent_messages 中的 self=true 是你之前发过的话，不要回复自己。'
             'image_index 对应实际图片块；image_status=unavailable 表示原图没读出来，不猜图里内容。')
         system += 'image_kind=finder_cover 是实际取得的视频号封面，结合简介讨论；不能声称看完视频或见到封面以外的内容。'
         system += '本人(owner=true)单独发图片或视频封面时，默认是在请你看图，先给具体观察，不要让他重复输入问题。'
@@ -140,7 +144,7 @@ class GroupLoop(ReplyLoop):
         else:
             system += '仅输出 JSON 对象 {"speak":布尔值,"text":"拟发送的简短文字；不发言则为空"}。'
         data = json.dumps({'group': self.owner['name'], 'recent_messages': batch.get('context', [])[-20:],
-            'new_messages': [{k: e[k] for k in ('sender_name', 'text', 'mentioned', 'follows_self', 'kind', 'image_index', 'image_status', 'image_kind', 'owner') if k in e} for e in events],
+            'new_messages': [{k: e[k] for k in ('sender_name', 'text', 'mentioned', 'follows_self', 'kind', 'image_index', 'image_status', 'image_kind', 'quote', 'owner') if k in e} for e in events],
             'seconds_since_own_post': round(elapsed)}, ensure_ascii=False)
         if self.images:
             self.model.use_request([r['id'] for r in rows])
