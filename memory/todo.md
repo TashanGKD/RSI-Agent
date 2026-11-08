@@ -3,16 +3,17 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-1. **Owner engineering and DSH plugin foundation: PR #17 is the sole WIP.**
-   The runtime-produced structured-tool candidate is recovered and remains in
-   draft review. The native read-only WeChat status bundle and four-module plan
-   join that PR; inspect its actual head/CI and receipt before any rollout.
-   Candidate now durably retains SDK output before shutdown/publication; real
-   SDK + publisher SIGKILL and original-request no-reexecution checks passed.
-   After review, reconcile original Git/remote publication effects for recovery;
-   sdk_completed is not a published change or permission to rerun tools.
-   PR #16's cover delivery is closed; a fresh ordinary-photo automatic reply
-   remains unobserved. Preserve original requests rather than replaying them.
+1. **Publication recovery: the sole WIP after PR #17.**
+   PR #17 merged as fdaa778 and is deployed at releases/fdaa77861705 with both
+   resident reply workers fresh/idle and engineering state clear. The delivered
+   increment durably retains SDK output before shutdown/publication (real SDK +
+   publisher SIGKILL, original-request no-reexecution). Next: recover publication
+   from the frozen sdk_completed response, reconciling actual Git/remote effects
+   before any retry; sdk_completed is not a published change or permission to
+   rerun tools. The status bundle ships in that release but is not mounted in
+   owner/group replies. PR #16's cover delivery is closed; a fresh ordinary-photo
+   automatic reply remains unobserved. Preserve original requests rather than
+   replaying them.
 2. **Harness readiness diagnostics: independent reproduced candidate.**
    Private copied owner configurations report prepared with missing Python or
    missing SDK. Use that frozen install/check path when image acceptance awaits

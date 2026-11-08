@@ -2,69 +2,56 @@
 
 ## Delivered baseline
 
-PR #16's delivery receipt supersedes its candidate checkpoint. Current, release
-metadata and both resident reply workers are at main 22bb0c6b21de, with pinned
-DeepSeek Harness and SCNET. The actual Channels cover entered the production
+PR #16's delivery receipt superseded its candidate checkpoint. Current, release
+metadata and both resident reply workers are now at main fdaa77861705, with
+pinned DeepSeek Harness and SCNET. The actual Channels cover entered the production
 model and received one independently audited native group reply. Ordinary-photo
 official-visible export and isolated recognition passed; a fresh ordinary-photo
 automatic-reply turn remains unobserved. Do not replay old image requests.
 
-## One WIP: owner tools and first native DSH plugin (PR #17)
+## PR #17 merged and deployed (fdaa778)
 
-A native confirmed-owner text generated this change in the isolated runtime
-workspace. Its original SDK session has a completed turn, matching frozen input
-and paired tool results, but the outer bridge did not persist completion or
-publish the source before its bounded invocation expired. Session/work/call
-locks were free. Preserve the original input, completed session and already-sent
-fallback reply; do not regenerate or send another reply under a new ID.
+PR #17 merged into main as fdaa778 (parents 22bb0c6 and 4bf8810) and was
+deployed as `/opt/rsi-agent/releases/fdaa77861705`: `current`, `release.json`
+and `DEPLOYMENT.json` all name fdaa77861705a065800954125c4b277a59733ae2, with
+22bb0c6b21de as prior release. Both resident reply workers (974922 owner, 974921
+groups) started at 23:25 on that release and report fresh/idle, current code,
+empty queues; engineering state is clear; the DSH worker runs on
+deepseek-harness 0.2.1rc2. `scripts/check.py --linux` passes at this head
+(10/41/59-test suites plus the unified-notebook check). Remote CI status is not
+readable from this host (no `gh`, no token, the private repo API returns 404),
+so merge/deploy is verified from Git, host release metadata and systemd rather
+than from a CI receipt.
 
-Candidate loads engineering.patch.yml only in owner engineering mode. Actual
-runtime request headers register read/write/edit/read_image/web_fetch plus the
-existing bash/working_directory. Independent SCNET verification exercised exact
-random-file reading, write/edit/readback, public fetch and loopback refusal.
-The model also issued an extra pwd; strict no-bash prompt adherence is not
-claimed. Production chat request headers omit tool definitions and contain no
-tool calls. Ordinary chat stays tool-free; media does not grant owner authority.
+The release ships `plugins/dsh-rsi-wechat-status`, but production chat still
+mounts only `harness/deepseek/chat.patch.yml` and `engineering.patch.yml`; the
+bundle is installed in the isolated `rsi-ops` SDK profile, not mounted in owner
+or group replies. `DEPLOYMENT.json` records `publication_recovery_implemented:
+false`.
 
-web_search has no configured provider and remains disabled. The attempted
-tool-fs-search insertion never registered in sdk-minimal and was removed;
-filesystem search still uses the existing engineering shell. Do not describe
-these unavailable tools as installed. Read-image is registered, not separately
-exercised by this tool probe.
+The owner engineering mode still loads read/write/edit/read_image/web_fetch plus
+bash/working_directory; ordinary chat stays tool-free and media grants no owner
+authority. web_search has no provider and stays disabled; the failed
+tool-fs-search insertion was removed. Read-image is registered, not separately
+exercised by the tool probe.
 
-Original publication was reconciled without rerunning the model/tools or sending
-another message. The work marker is now clear and the original call is completed;
-the PR's recovery receipt is authoritative. Runtime-generated owner work is not
-automatically merged, deployed or activated. Production stays at the delivered
-baseline.
+## Audit signal worth knowing
 
-The owner requested several DSH plugins. `harness/DSH-PLUGINS.md` defines WeChat,
-memory, tasks and evaluation boundaries; only `dsh-rsi-wechat-status` is implemented
-as a native bundle. Its tarball was installed in an isolated SDK profile and the
-configured SCNET model actually called `rsi_wechat_status`, returning a successful
-native tool/result. Both production workers were fresh/idle on the current code,
-with no pending/attention items; original records, configs and PIDs were unchanged.
-The frozen unresolved-work fixture separately reports needs_review even with idle
-chat. The package was not mounted in production replies and does not send or retry.
-Keep the increment in the existing PR and verify CI for the combined actual head.
-
-The completion-durability increment now saves the validated original SDK response
-as sdk_completed before SDK shutdown or publication, with file/directory fsync.
-Frozen baseline/candidate cases reproduced the previous running-only journal.
-An isolated real SDK turn followed by SIGKILL inside publication retained the
-response/input digest; same-request re-entry refused model/publication execution
-and preserved the checkpoint. Status reports needs_review / sdk_completed. The
-private acceptance receipt is beside the prior plugin receipt; production native
-records, configs and worker PIDs were unchanged. This is a candidate in PR #17,
-not automatic publication recovery or a production rollout.
+Run as the runtime user against `installation.json`, `audit` reports only
+`SERVICES_NOT_PERSISTENT`, matching the install-time receipt. The same audit run
+as root with the pilot venv instead reports
+`INSTALLATION_PREREQUISITES_INCOMPLETE`: `db-keys.json`, `native-ui.json` and
+`operations-state/config.json` are 0600 wechat-gui files that the uid check
+rejects, and PyGObject/Pillow exist only in system python. That combination is
+an invocation artifact, not a production regression.
 
 ## Unique next step
 
-Review the actual PR #17 head/CI and its delivery boundary first. The next task
-boundary is recovery of publication from the frozen original sdk_completed
-response, reconciling actual Git/remote effects before any retry. Preserve the
-original input and generated output; do not rerun tools or merely increase a
-timeout. No automatic merge, client restart or test send.
+Treat publication recovery as the next task boundary: recover publication from
+the frozen original sdk_completed response, reconciling actual Git/remote effects
+before any retry. Preserve the original input, completed session and generated
+output; do not rerun tools, resend, or merely raise a timeout. No automatic merge,
+client restart or test send.
 
 Penguin's fixed-model Benchmark/Formal Baseline remains unestablished. Raw chats,
 native IDs, private traces, pictures and credentials stay outside Git.
