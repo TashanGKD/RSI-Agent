@@ -3,15 +3,15 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-1. **Automatic future-group admission: one WIP.**
-   The owner's latest instruction removes manual per-group registration. Admit
-   newly joined groups with confirmed native owner/self membership, retaining
-   the activation baseline, original scopes and existing pending replies.
-   Finish the candidate's complete gate, review/CI, reversible deployment and
-   private policy activation; real positive acceptance needs a newly invited
-   group. Do not fabricate a live group, intro or test message.
-   PR #17 is delivered, not a WIP. Publication recovery from sdk_completed with
-   actual Git/remote effect reconciliation is the next independent candidate.
+1. **Native quoted-text replies: one WIP.** The actual type-57 group question
+   was ACKed but dropped before the consumer/model. Preserve its original ID,
+   parse current text, verify quoted context in the same native group, and keep
+   quoted material out of engineering. Baseline/candidate fixtures and the
+   isolated actual-source path are verified; finish review/CI, reversible release
+   and worker activation. Fresh native delivery remains separate from fixtures;
+   do not replay the already-ACKed old question. PR #18 is delivered and #19 is
+   closed, with original completion preserved. Publication recovery from frozen
+   sdk_completed and actual Git/remote effects is the next independent candidate.
 2. **Harness readiness diagnostics: independent reproduced candidate.**
    Private copied owner configurations report prepared with missing Python or
    missing SDK. Use that frozen install/check path when image acceptance awaits

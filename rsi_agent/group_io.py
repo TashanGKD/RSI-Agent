@@ -62,8 +62,26 @@ def mentioned(source, account):
         return False
 
 
+def quoted_reply(raw):
+    """Read the current text of a native type-57 reply, without trusting its quoted identity."""
+    if (not isinstance(raw, str) or len(raw.encode()) > 100000
+            or '<!DOCTYPE' in raw.upper() or '<!ENTITY' in raw.upper()):
+        return None
+    try:
+        apps = ET.fromstring(raw).findall('appmsg')
+    except ET.ParseError:
+        return None
+    if (len(apps) != 1 or apps[0].findtext('type') != '57'
+            or len(apps[0].findall('title')) != 1 or len(apps[0].findall('refermsg')) != 1):
+        return None
+    text = apps[0].findtext('title') or ''
+    if not text.strip() or len(text.encode()) > 32768:
+        return None
+    return {'text': text, 'reference': apps[0].findtext('refermsg/svrid') or ''}
+
+
 def read_group(root, value, request, members):
-    from linux_tool import native, decode
+    from linux_tool import native, decode, signed
     from receive_source import SourceInbox, sid
     peer, scope = value['group_peer'], value['send_scope']
     table = 'Msg_' + hashlib.md5(peer.encode()).hexdigest()
@@ -74,10 +92,33 @@ def read_group(root, value, request, members):
             ' WHERE (local_type & 4294967295)=1 AND (create_time,COALESCE(sort_seq,0),local_id)<(?,?,?)'
             ' ORDER BY create_time DESC,COALESCE(sort_seq,0) DESC,local_id DESC LIMIT 1',
             (row['create_time'], row['sort_seq'] or 0, row['local_id'])).fetchone()
-        return {'sender_name': members.get(event['sender']) or '群成员',
+        extra = {'sender_name': members.get(event['sender']) or '群成员',
                 'mentioned': mentioned(decode(row['source']), value['account']) if 'source' in row.keys() else False,
                 'follows_self': bool(previous and names.get(previous['real_sender_id']) == value['account']
                     and int(previous['local_type']) & 0xffffffff == 1)}
+        if event['kind'] == 49:
+            raw = decode(row['message_content'])
+            if raw.startswith(event['sender'] + ':\n'):
+                raw = raw[len(event['sender']) + 2:]
+            current = quoted_reply(raw)
+            if current:
+                quote = {'self': False}
+                try:
+                    reference = signed(current['reference'])
+                except ValueError:
+                    reference = None
+                originals = db.execute('SELECT real_sender_id,local_type,message_content FROM ' + table +
+                    ' WHERE server_id=?', (reference,)).fetchall() if reference is not None else []
+                if len(originals) == 1 and int(originals[0]['local_type']) & 0xffffffff == 1:
+                    sender = names.get(originals[0]['real_sender_id'])
+                    if sender in members:
+                        text = decode(originals[0]['message_content'])
+                        if text.startswith(sender + ':\n'):
+                            text = text[len(sender) + 2:]
+                        quote = {'self': sender == value['account'], 'text': text[:2000],
+                                 'sender_name': members[sender] or '群成员'}
+                extra['quoted_reply'] = {'text': current['text'], 'quote': quote}
+        return extra
 
     if request['op'] == 'ack':
         inbox = SourceInbox(path, None, table, value['account'], peer, decode, str(scope['since']),
