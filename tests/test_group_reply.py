@@ -1,4 +1,5 @@
 import contextlib
+import base64
 import hashlib
 import json
 from pathlib import Path
@@ -149,6 +150,57 @@ class GroupTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.loop().cycle()
         self.assertFalse(self.effects)
+
+    def test_group_image_is_actual_separate_block_and_preserves_cached_send(self):
+        self.model.backend = 'deepseek-harness'
+        self.batch['events'] = [self.event(kind=3, text='<img aeskey="private-cache-token"/>')]
+        raw = b'verified group image fixture'
+        original_io = self.io
+
+        def io(request):
+            if request['op'] == 'image':
+                return {'state': 'image_ready', 'source_verified': True, 'mime': 'image/png',
+                        'data': base64.b64encode(raw).decode(), 'sha256': hashlib.sha256(raw).hexdigest()}
+            return original_io(request)
+
+        loop = GroupLoop(self.path, self.group, self.model, io)
+        self.addCleanup(loop.close)
+        with loop.db:
+            loop.save('introduction', 'sent')
+        self.assertEqual(loop.cycle()['state'], 'pending')
+        content = self.model.complete.call_args.args[0][1]['content']
+        self.assertNotIn('private-cache-token', str(content))
+        self.assertEqual(json.loads(content[0]['text'])['new_messages'][0]['image_status'], 'verified')
+        self.assertEqual(base64.b64decode(content[1]['image_url']['url'].split(',')[1]), raw)
+        self.assertEqual(loop.cycle()['state'], 'sent')
+        self.model.complete.assert_called_once()
+
+    def test_engineering_admission_uses_native_owner_not_display_name(self):
+        self.model.backend = 'deepseek-harness'
+        self.model.engineering = True
+        self.group['owner_peer'] = 'owner'
+        self.model.complete.return_value = {'message': {'content': '{"speak":true,"text":"","work_index":0}'}}
+        self.batch['events'] = [self.event(sender_name='Owner', text='修改 Harness')]
+        loop = self.loop()
+        with self.assertRaisesRegex(ValueError, 'exact native owner'):
+            loop.cycle()
+        self.model.engineer.assert_not_called()
+        self.assertFalse(self.effects)
+
+    def test_native_owner_instruction_executes_before_cached_text_is_sent(self):
+        self.model.backend = 'deepseek-harness'
+        self.model.engineering = True
+        self.group['owner_peer'] = 'owner'
+        self.model.complete.return_value = {'message': {'content': '{"speak":true,"text":"","work_index":0}'}}
+        self.model.engineer.return_value = '已修改实际模块，定向验证通过；候选尚未发布。'
+        self.batch['events'] = [self.event(sender='owner', text='修改 Harness')]
+        loop = self.loop()
+        self.assertEqual(loop.cycle()['state'], 'pending')
+        self.model.engineer.assert_called_once_with('修改 Harness')
+        self.assertFalse(self.effects)
+        self.assertEqual(loop.cycle()['state'], 'sent')
+        self.assertEqual(loop.cycle()['state'], 'idle')
+        self.model.engineer.assert_called_once()
 
 
 class ContextTests(unittest.TestCase):

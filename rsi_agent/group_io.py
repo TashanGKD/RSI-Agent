@@ -129,7 +129,7 @@ def handle(installation, value, request):
     if request.get('_binding') != token(value):
         raise ValueError('Invited group scope changed.')
     request = {k: v for k, v in request.items() if k != '_binding'}
-    fields = {'read': {'op'}, 'context': {'op'}, 'ack': {'op', 'batch_id', 'batch_hash', 'ack_ids'},
+    fields = {'read': {'op'}, 'context': {'op'}, 'image': {'op', 'server_id'}, 'ack': {'op', 'batch_id', 'batch_hash', 'ack_ids'},
         'submit': {'op', 'server_id', 'text'}, 'advance': {'op', 'server_id'}}
     op = request.get('op')
     if op not in fields or set(request) != fields[op] or value.get('auto_reply_enabled') is not True:
@@ -138,6 +138,9 @@ def handle(installation, value, request):
     root = Path(installation['wechat']['runtime_root'])
     if op in ('read', 'ack', 'context'):
         return read_group(root, value, request, members)
+    if op == 'image':
+        from .media_io import image
+        return image(root, value['account'], value['group_peer'], request['server_id'], set(members) - {value['account']})
     from operations.cli import load_config
     from operations.public_api import PublicAPI
     from receive_source import sid
@@ -183,6 +186,7 @@ def main():
     if args.check:
         members = group_info(value)
         print(json.dumps({'state': 'ready', 'account': value['account'], 'peer': value['group_peer'],
+            'owner_peer': value['owner_peer'],
             'name': value['send_scope']['name'], 'scope': value['send_scope'],
             'enabled': value.get('auto_reply_enabled') is True, 'binding_token': token(value),
             'member_count': len(members)}, ensure_ascii=False))

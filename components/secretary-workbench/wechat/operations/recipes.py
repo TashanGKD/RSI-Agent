@@ -462,7 +462,7 @@ def prepare(driver,j):
   return dict(p,programRecipe=True,summary={'peer':j['peer'],'action':action,'groupName':p['groupName']})
  if action=='save_attachment':
   kind=driver._native_source(j)['kind']
-  if j['payload'].get('representation')=='visible' and kind!=3:raise PreparationError('NOT_AN_IMAGE','Visible image representation requires an exact native image source.')
+  if (j['payload'].get('representation')=='visible' or j['payload'].get('source_mode')=='inbound') and kind!=3:raise PreparationError('NOT_AN_IMAGE','Image representation requires an exact native image source.')
   if kind==3:
    from .images import prepare
    return prepare(driver,j)

@@ -1,0 +1,20 @@
+name: Owner work review
+on:
+  push:
+    branches: ['rsi/runtime/owner-work']
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  review:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Open or retain the one owner work PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          existing=$(gh pr list --head rsi/runtime/owner-work --state open --json number --jq '.[0].number // empty')
+          if [ -z "$existing" ]; then
+            gh pr create --head rsi/runtime/owner-work --base main --draft --title 'feat(agent): apply verified owner instruction' --body 'Changes produced in the isolated owner worktree. Review the source diff and the Integration checks for this exact head before merging or deploying.'
+          fi

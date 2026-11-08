@@ -17,7 +17,7 @@ def anchor(text):
  if not 4<=len(compact(body))<=160:raise ImageReadError('IMAGE_CONTEXT_UNSUPPORTED','Neighbor text is not a bounded distinctive anchor.')
  return {'text':text,'body':body,'hasLeadingMentions':body!=text.strip()}
 
-def build_context(peer,server,records,resource_id=None,resources=()):
+def build_context(peer,server,records,resource_id=None,resources=(),inbound=False):
  selected=[(i,r) for i,r in enumerate(records) if r['id']==server and r['peer']==peer]
  if len(selected)!=1:raise ImageReadError('IMAGE_SOURCE_NOT_FOUND','Exact image source is missing or outside the bounded native window.')
  i,r=selected[0]
@@ -26,6 +26,10 @@ def build_context(peer,server,records,resource_id=None,resources=()):
  m=r['meta'];md5=m.get('md5','')
  if not re.fullmatch('[a-f0-9]{32}',md5):raise ImageReadError('IMAGE_IDENTITY_MISSING','A unique native image MD5 is required.')
  if any(type(m.get(k)) is not int or m[k]<=0 for k in ('length','hdlength') if k in m):raise ImageReadError('IMAGE_IDENTITY_MISSING','Positive native image length required.')
+ if inbound:
+  if resource_id is not None and sum(v['resourceId']==resource_id for v in resources)!=1:raise ImageReadError('IMAGE_RESOURCE_MISMATCH','Requested resource differs from the exact source.')
+  return {'peer':peer,'sourceId':server,'sender':r['sender'],'time':r['time'],'nativeMD5':md5,'resourceId':resource_id,
+   'sourceMode':'inbound','thumbnailWidth':m.get('cdnthumbwidth'),'thumbnailHeight':m.get('cdnthumbheight')}
  if not 0<i<len(records)-1:raise ImageReadError('IMAGE_CONTEXT_UNSUPPORTED','Both immediate text neighbors are required.')
  before,after=records[i-1],records[i+1]
  if any(v['peer']!=peer or v['kind']!=1 or v['sender']!=r['sender'] or not v['id'].isdecimal() or int(v['id'])==0 for v in (before,after)):
@@ -66,7 +70,7 @@ def load_context(driver,j):
   with native('message/message_resource.db') as (db,receipt):
    if receipt.get('consistency')!='committed':raise ImageReadError('IMAGE_SOURCE_UNAVAILABLE','Resource snapshot is not committed.')
    rows=db.execute('SELECT d.resource_id FROM MessageResourceDetail d JOIN MessageResourceInfo i ON i.message_id=d.message_id JOIN ChatName2Id n ON n.rowid=i.chat_id WHERE n.user_name=? AND i.message_svr_id=? AND d.resource_id=? LIMIT 2',(peer,signed(server),rid)).fetchall();resources=[{'resourceId':x[0]} for x in rows]
- return build_context(peer,server,records,rid,resources)
+ return build_context(peer,server,records,rid,resources,inbound=j['payload'].get('source_mode')=='inbound')
 
 def validate_payload(data,expected_md5):
  if not isinstance(data,bytes) or not data:raise ImageReadError('IMAGE_NOT_DECODABLE','Actual image bytes required.')
@@ -84,13 +88,15 @@ def locate_visible(image,box,rows,context):
  def match(v,a):
   text=compact(v['text']);body=compact(a['body'])
   return text==compact(a['text']) or text==body or (a['hasLeadingMentions'] and '@' in text and text.endswith(body))
- found=[]
- for name in ('before','after'):
-  candidates=[v['point'][1] for v in rows if match(v,context[name])]
-  if len(candidates)!=1:raise ImageReadError('IMAGE_ANCHORS_NOT_VISIBLE','Both exact unique anchor texts must be visible in the current message pane.')
-  found.append(candidates[0])
- top,bottom=found[0]+15,found[1]-15
- if not box[1]<top<bottom<box[3]:raise ImageReadError('IMAGE_CONTEXT_AMBIGUOUS','Visible anchors are reversed, clipped, or too close.')
+ if context.get('sourceMode')=='inbound':top,bottom=box[1],box[3]
+ else:
+  found=[]
+  for name in ('before','after'):
+   candidates=[v['point'][1] for v in rows if match(v,context[name])]
+   if len(candidates)!=1:raise ImageReadError('IMAGE_ANCHORS_NOT_VISIBLE','Both exact unique anchor texts must be visible in the current message pane.')
+   found.append(candidates[0])
+  top,bottom=found[0]+15,found[1]-15
+  if not box[1]<top<bottom<box[3]:raise ImageReadError('IMAGE_CONTEXT_AMBIGUOUS','Visible anchors are reversed, clipped, or too close.')
  region=[box[0],top,box[2],bottom];im=image.crop(tuple(region)).convert('RGB');w,h=im.size
  if w*h>500000:raise ImageReadError('IMAGE_OVER_BUDGET','Visible locator region exceeds its budget.')
  bg=Counter(im.getpixel((w-2,y)) for y in range(h)).most_common(1)[0][0]
@@ -104,6 +110,9 @@ def locate_visible(image,box,rows,context):
    for q in ([p-1] if x else [])+([p+1] if x+1<w else [])+([p-w] if y else [])+([p+w] if y+1<h else []):
     if mask[q]:mask[q]=0;stack.append(q)
   if x1-x0>=70 and y1-y0>=35 and n>=1500:
+   if context.get('sourceMode')=='inbound' and context.get('thumbnailWidth') and context.get('thumbnailHeight'):
+    expected=context['thumbnailWidth']/context['thumbnailHeight'];actual=(x1-x0)/(y1-y0)
+    if not .8*expected<=actual<=1.2*expected:continue
    if x0==0 or y0==0 or x1==w-1 or y1==h-1:raise ImageReadError('IMAGE_CANDIDATE_CLIPPED','Image candidate is not fully within the proven visible range.')
    candidates.append([region[0]+(x0+x1)//2,region[1]+(y0+y1)//2])
  if len(candidates)!=1:raise ImageReadError('IMAGE_CANDIDATE_AMBIGUOUS','Exactly one complete substantial image card must be visible between the native anchors.')
@@ -117,7 +126,7 @@ def prepare(driver,j):
  if j['payload'].get('representation')=='visible':raise ImageReadError('IMAGE_VISIBLE_SOURCE_NOT_VERIFIED','No source-qualified official visible file is registered for this exact client/peer/source.')
  from .recipes import main_window,screen,rows
  context=load_context(driver,j);driver._select(j);w=main_window(driver)
- if (w['width'],w['height'])!=(905,667):raise ImageReadError('UNSUPPORTED_IMAGE_LAYOUT','Only the calibrated official main-window image layout is supported.')
+ if (w['width'],w['height']) not in ((905,667),(623,667)):raise ImageReadError('UNSUPPORTED_IMAGE_LAYOUT','A calibrated official main or conversation window is required.')
  cfg=driver.binding(j['peer']);pane=[cfg['header_box'][0],cfg['header_box'][3]+1,cfg['header_box'][2],cfg['editor'][1]-34];body=[pane[0]+70,pane[1],pane[2]-75,pane[3]]
  image=screen(driver);observed=rows(driver,body,contrast=160);point=locate_visible(image,body,observed,context)
  # OCR must not race a changed message pane.

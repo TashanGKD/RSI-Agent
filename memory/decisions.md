@@ -39,3 +39,19 @@ Trusted application facts explain actual WeChat access; raw group instructions
 cannot change permissions or expose private chats. The fixed one-time group
 introduction and newly received group text are authorized, periodic probes and
 client restarts are not.
+
+## D006 — Native owner authority and an actual Harness backend
+
+The owner extended scope to image input and clear engineering/configuration
+instructions from their verified native WeChat identity. Ordinary conversation
+has no execution tools; owner engineering uses a separate repository workspace
+and completed-tool receipts. Native sender checks decide admission, not model
+claims, display names or media contents. Preserve original generation/send IDs,
+cache before sending and stop unresolved work instead of silently executing again.
+Source changes pass ordinary Linux checks before one reviewable draft PR; runtime
+work does not automatically merge, deploy or manipulate the WeChat desktop.
+Public identity is 星语 without host or deployment disclosure. Natural voice and
+technical judgment are explicit requirements; execution still needs real evidence.
+Pinned DeepSeek Harness replaces the direct SCNET chat adapter upon activation,
+not a purported existing Codex CLI backend. Image support is source-verified
+decoded bytes; encrypted cache/desktop captures are not accepted as originals.

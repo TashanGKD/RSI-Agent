@@ -1,7 +1,7 @@
 name: Integration checks
 on:
   push:
-    branches: [main]
+    branches: [main, 'rsi/runtime/**']
   pull_request:
   workflow_dispatch:
 permissions:

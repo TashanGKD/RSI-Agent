@@ -160,12 +160,15 @@ def handle(installation, owner, request):
         raise ValueError('Owner reply scope changed; preserve the original request.')
     request = {key: value for key, value in request.items() if key != '_binding'}
     op = request.get('op')
-    fields = {'read': {'op'}, 'ack': {'op', 'batch_id', 'batch_hash', 'ack_ids'},
+    fields = {'read': {'op'}, 'image': {'op', 'server_id'}, 'ack': {'op', 'batch_id', 'batch_hash', 'ack_ids'},
               'submit': {'op', 'server_id', 'text'}, 'advance': {'op', 'server_id'}}
     if op not in fields or set(request) != fields[op]:
         raise ValueError('Unsupported owner reply transport fields.')
     if op in ('read', 'ack'):
         return source(root, owner, request)
+    if op == 'image':
+        from .media_io import image
+        return image(root, owner['account'], owner['owner_peer'], request['server_id'], {owner['owner_peer']})
     from operations.cli import load_config
     from operations.public_api import PublicAPI
     from receive_source import sid

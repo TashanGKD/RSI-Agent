@@ -2,7 +2,7 @@ import json,re,hashlib
 
 ACTIONS={
  'send_text':({'text'},set()),'send_image':({'asset'},set()),'send_file':({'asset'},set()),
- 'open_chat':(set(),set()),'open_message':({'source_id'},set()),'save_attachment':({'source_id'}, {'resource_id','representation'}),
+ 'open_chat':(set(),set()),'open_message':({'source_id'},set()),'save_attachment':({'source_id'}, {'resource_id','representation','source_mode'}),
  'join_group':({'inviter','source_id'},set()),'request_friend':({'alias','greeting'},set()),
  'accept_friend':(set(),{'source_id'}),'reply':({'source_id','text'},set()),
  'mention':({'members','text'},set()),'forward':({'source_peer','source_id'},set()),
@@ -49,6 +49,8 @@ def validate_job(x):
    if type(v) is not int or v<0:raise ValueError('native resource id required')
   elif k=='representation':
    if not isinstance(v,str) or v not in ('original','visible'):raise ValueError('explicit original or visible representation required')
+  elif k=='source_mode':
+   if v!='inbound':raise ValueError('explicit inbound image source required')
   elif k in ('inviter','source_peer'):peer(v)
   elif k=='asset':
    if not isinstance(v,str) or not re.fullmatch('[a-f0-9]{64}',v):raise ValueError('asset digest required, never a path')
