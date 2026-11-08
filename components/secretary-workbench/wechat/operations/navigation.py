@@ -146,7 +146,7 @@ def begin(d,j):
 def search_named(d,j,target,cfg,query):
  from .recipes import controls,activate,paste_field,rows,screen,main_window,PreparationError
  from .selectors import selected_chat_row
- from .windows import window_identity,search_parent_proof
+ from .windows import window_identity,search_parent_proof,search_geometry
  v=load(d.root,j)
  if not v or v['state']!='started':raise PreparationError('NAVIGATION_RECOVERY_PENDING','Original navigation must be settled before another selection.',clean=False)
  # Native/account/group relation proof is authoritative before any composer input.
@@ -154,7 +154,7 @@ def search_named(d,j,target,cfg,query):
  try:
   activate(c,main);v.update(state='search-intent',querySHA256=hashlib.sha256(query.encode()).hexdigest());save(d.root,j,v)
   paste_field(c,[main['x']+165,main['y']+58],query);c.wait(550)
-  windows=d.app_windows();pop=[w for w in windows if w['id'] not in {x['id'] for x in v['beforeWindows']} and w['title']=='wechat' and w['x']==main['x']+76 and w['y']==main['y']+75 and w['width']==333]
+  windows=d.app_windows();pop=[w for w in windows if w['id'] not in {x['id'] for x in v['beforeWindows']} and search_geometry(w,main)]
   if len(pop)!=1:raise PreparationError('SEARCH_RESULTS_NOT_SUPPORTED','Exact official native-search popup missing.')
   popup=pop[0];search_parent_proof(popup,main);v.update(state='search-open',search=popup);save(d.root,j,v)
   box=[popup['x'],popup['y'],popup['x']+popup['width'],popup['y']+popup['height']]

@@ -3,19 +3,21 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-1. **Local Codex handoff: current owner-requested experiment.** Finish actual-head
-   review/CI and reversible release/activation, then the same scheduled desktop
-   conversation consumes the private wake fixture and a fresh real owner /codex
-   request when present. Freeze claim/input before work, result before upload;
-   no second generation after an uncertain running turn. Immediate Dot activation
-   lacks a successful connection. See LOCAL-CODEX.md; fixture/scheduled/native
-   acceptance are separate. PR #21 link/preferences delivery is already complete;
-   fresh link/card acceptance is observation only, not an old WIP.
-2. **Newly admitted group: preserve and inspect the original reply.** Native
-   admission worked, but official search preparation failed before confirmation
-   or execution. Consumer attention / original V2 needs_attention are retained.
-   Inspect the original navigation evidence and actual target; do not change IDs,
-   resubmit the cached reply, auto-confirm review or claim delivery from admission.
+1. **Official search popup geometry: current source increment.** The frozen real
+   compact popup is rejected by both old candidate filters, despite proven native
+   parent/process/type. Finish review/CI and reversible release; preserve unique
+   new-window and final-recipient proof. The old V2 needs_attention/reply/journal
+   stays intact. No group-restored claim from fixtures or code activation. The
+   latest maintenance scope forbids old navigation cleanup; prepare a bounded
+   not-sent recovery and obtain explicit one-off permission before that action.
+   When blocked on live recovery, move to SDK publication rather than repeat it.
+2. **Local Codex handoff: delivered; native acceptance awaits fresh input.**
+   Scheduled wake fixture completed in the actual desktop heartbeat and receipt
+   is in PR #22/operator metadata. Do not repeat it or the failed Dot probes.
+   Observe/claim one new owner /codex request when present, freeze local input and
+   completed output, preserve the original V2. No synthetic message or second
+   generation after an uncertain running turn. PR #21 links/preferences are
+   delivered too; only fresh link/card native acceptance remains observation.
 3. **Task publication recovery and agent-autoloop binding.** Restore the frozen
    sdk_completed result after reconciling validation/staging/commit/push effects.
    Stable task-engine CLI and separate Node 24 are installed, with no active

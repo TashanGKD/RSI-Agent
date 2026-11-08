@@ -16,6 +16,11 @@ def parse_window_identity(raw):
  if not 0<pid<2**31 or int(leader,16)==0 or any(not re.fullmatch('[A-Z_]+',v) for v in kinds):raise ValueError('invalid official window identity')
  return {'class':list(cls),'pid':pid,'leader':leader,'transientFor':trans[0].lower() if trans else None,'types':kinds}
 
+def search_geometry(popup,parent):
+ # Geometry selects candidates; native parent/process proof is still mandatory.
+ shape=(popup['x']-parent['x'],popup['y']-parent['y'],popup['width'])
+ return popup['title']=='wechat' and shape in ((76,75,333),(74,73,321)) and 40<=popup['height']<=parent['height']-shape[1]
+
 def search_parent_proof(popup,parent):
  for w in (popup,parent):
   if not isinstance(w.get('id'),str) or not re.fullmatch(r'0x[0-9a-fA-F]{1,16}',w['id']):raise ValueError('exact native window ID required')

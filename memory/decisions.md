@@ -131,3 +131,14 @@ unresolved local work cannot be stolen or replayed. No target-host Codex process
 or public webhook is needed. Scheduled polling is not immediate Dot activation;
 that requires a separately verified desktop entrypoint. Preserve the original
 input, local turn/tools, review state and delivery identity through interruption.
+
+
+## D014 — Observed search geometry selects candidates, never recipients
+
+The official compact search popup and prior calibrated shape share one exact
+geometry predicate in modal admission and navigation. A supported shape alone
+is insufficient: native parent/process/type, stable scene/unique new window and
+final native recipient title/identity still govern input. Frozen source evidence
+proves current geometry rejection, not the unrecorded original failure-time
+scene. Preserve the existing review request; future recognition support does not
+authorize clearing it or replaying its cached response.
