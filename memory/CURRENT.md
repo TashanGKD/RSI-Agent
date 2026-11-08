@@ -9,7 +9,7 @@ model and received one independently audited native group reply. Ordinary-photo
 official-visible export and isolated recognition passed; a fresh ordinary-photo
 automatic-reply turn remains unobserved. Do not replay old image requests.
 
-## One WIP: recovered owner engineering tool candidate
+## One WIP: owner tools and first native DSH plugin (PR #17)
 
 A native confirmed-owner text generated this change in the isolated runtime
 workspace. Its original SDK session has a completed turn, matching frozen input
@@ -32,11 +32,21 @@ filesystem search still uses the existing engineering shell. Do not describe
 these unavailable tools as installed. Read-image is registered, not separately
 exercised by this tool probe.
 
-Recover publication of this same candidate after the normal Linux gate, verify
-the actual head's remote CI and retain one draft PR. Runtime-generated owner
-work is not automatically merged, deployed or activated. Production stays at
-the delivered baseline. The PR receipt records reconciliation of the original
-completion; candidate text here does not establish delivery.
+Original publication was reconciled without rerunning the model/tools or sending
+another message. The work marker is now clear and the original call is completed;
+the PR's recovery receipt is authoritative. Runtime-generated owner work is not
+automatically merged, deployed or activated. Production stays at the delivered
+baseline.
+
+The owner requested several DSH plugins. `harness/DSH-PLUGINS.md` defines WeChat,
+memory, tasks and evaluation boundaries; only `dsh-rsi-wechat-status` is implemented
+as a native bundle. Its tarball was installed in an isolated SDK profile and the
+configured SCNET model actually called `rsi_wechat_status`, returning a successful
+native tool/result. Both production workers were fresh/idle on the current code,
+with no pending/attention items; original records, configs and PIDs were unchanged.
+The frozen unresolved-work fixture separately reports needs_review even with idle
+chat. The package was not mounted in production replies and does not send or retry.
+Keep the increment in the existing PR and verify CI for the combined actual head.
 
 ## Unique next step
 

@@ -3,17 +3,18 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-1. **Real image recognition: one WIP.**
-   PR #15 is delivered. Finish native single-image/official-visible export and
-   Channels-cover intake through the actual model and same-conversation reply.
-   Candidate exported the real ordinary JPEG and recognized its workflow text;
-   the actual shared cover also passed SDK vision. Publish/activate reviewed
-   source, then recover only the owner's skipped cover with its original ID/ACK.
-   Preserve the ordinary image's original failed read and already-sent reply.
+1. **Owner engineering and DSH plugin foundation: PR #17 is the sole WIP.**
+   The runtime-produced structured-tool candidate is recovered and remains in
+   draft review. The native read-only WeChat status bundle and four-module plan
+   join that PR; inspect its actual head/CI and receipt before any rollout.
+   The next task-plugin prerequisite is persisting completed SDK output before
+   verification/publication, using the frozen interrupted-publication case.
+   PR #16's cover delivery is closed; a fresh ordinary-photo automatic reply
+   remains unobserved. Preserve original requests rather than replaying them.
 2. **Harness readiness diagnostics: independent reproduced candidate.**
    Private copied owner configurations report prepared with missing Python or
    missing SDK. Use that frozen install/check path when image acceptance awaits
-   external input; do not combine it with the current image repair.
+   external input; do not combine it with the active plugin increment.
 3. **Service persistence: awaiting production window.** Bundle/bootstrap and
    isolated transient→persistent→rollback transport paths are verified. Two rounds
    are complete; do not spend another round repeating those checks. Actual X,
