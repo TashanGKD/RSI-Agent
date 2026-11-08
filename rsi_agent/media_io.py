@@ -36,7 +36,7 @@ def image(root, account, peer, server, allowed_senders):
             preview = job.get('preview') or {}
             context = preview.get('imageContext') or preview.get('sourceContext') or {}
             if (not preview.get('imageRecipe') or not preview.get('programRecipe')
-                    or preview.get('needs_assistance') or preview.get('workflow')
+                    or preview.get('needs_assistance') or preview.get('workflow') or preview.get('reviewRequired')
                     or context.get('peer') != peer or context.get('sourceId') != server
                     or context.get('nativeMD5') != native['imageMetadata']['md5']):
                 return {'state': 'media_attention', 'code': 'IMAGE_SOURCE_PREVIEW_UNPROVEN'}

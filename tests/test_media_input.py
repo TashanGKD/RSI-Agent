@@ -81,11 +81,12 @@ class InboundImageTests(unittest.TestCase):
 
             class Native:
                 executions = 0
+                review = False
                 def acquire(self): return True
                 def release(self): pass
                 def cleanup(self, job): return True
                 def prepare(self, job):
-                    return {'imageRecipe': True, 'programRecipe': True, 'context': 'fixture',
+                    return {'imageRecipe': True, 'programRecipe': True, 'context': 'fixture', 'reviewRequired': self.review,
                             'imageContext': {'peer': job['peer'], 'sourceId': job['payload']['source_id'],
                                              'nativeMD5': native['imageMetadata']['md5']}}
                 def execute(self, job):
@@ -102,10 +103,17 @@ class InboundImageTests(unittest.TestCase):
                     image(root, 'account', 'group@chatroom', '42', {'other'})
                 first = image(root, 'account', 'group@chatroom', '42', {'member'})
                 second = image(root, 'account', 'group@chatroom', '42', {'member'})
+                job = api.s.list_jobs()[0]
+                self.assertEqual(job['state'], 'succeeded')
+                driver.review = True
+                reviewed = image(root, 'account', 'group@chatroom', '43', {'member'})
+                self.assertEqual(reviewed['state'], 'media_attention')
+                self.assertEqual(driver.executions, 1)
+                api.s.set_state(job['id'], 'unknown', {'reason': 'fixture interrupted result'})
+                uncertain = image(root, 'account', 'group@chatroom', '42', {'member'})
+                self.assertEqual(uncertain['state'], 'media_attention')
             self.assertEqual(first['state'], 'image_ready')
             self.assertEqual(base64.b64decode(first['data']), data)
             self.assertEqual(first, second)
             self.assertEqual(driver.executions, 1)
-            job = api.s.list_jobs()[0]
             self.assertNotEqual(job.get('execution_mode'), 'verified_fast')
-            self.assertEqual(job['state'], 'succeeded')
