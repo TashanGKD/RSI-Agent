@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "baseline_revision": "995c8c6c8ca3309b526130d8f4a50ed572400528",
+  "user_path": "Reply to the latest confirmed-owner private text and continue replying to future private text in that same conversation.",
+  "authorization": "Explicit restoration requested by the user after identity, provider and sending-range clarification. No other recipients, model tools or client restarts.",
+  "hypothesis": "Reuse the existing native SourceInbox and V2 queue/executor with durable consumer commit, cached model output, native-message-derived IDs and a fixed scope token.",
+  "baseline": {
+    "model_interface_installed": true,
+    "reply_worker_installed": false,
+    "auto_reply_enabled": false,
+    "native_source_consistency": "committed",
+    "native_text_metadata_available": true
+  },
+  "candidate_source_sha256": {
+    "rsi_agent/owner_reply.py": "3fa23530740e01d51096b016253bc0db8daf7c8144d0ba6da172dab90a016469",
+    "rsi_agent/reply_io.py": "f6c084cfe7d1b97d8a49bf7835dad898aef9dbe930d9079899c84dab6e1f7375",
+    "rsi_agent/__main__.py": "7fab2de61a12e3cf187a7be703a058b3873c86fd6d1259bc0f90b221f52bf5b1",
+    "rsi_agent/model.py": "af3a053b18ce62bae380ce8e08a602c10f30fc5ef1431ed165f1c18302cfdccb",
+    "tests/test_owner_reply.py": "fccd5c15e49cde1730c1418ec9d347434935f7a3e27d5ce284dd561050c990c8"
+  },
+  "fixture": "tests/test_owner_reply.py",
+  "reproduce": "python3 -B -m unittest discover -s tests -p test_owner_reply.py -v",
+  "candidate": {
+    "targeted_tests_passed": 10,
+    "original_sdk_store_and_executor_used": true,
+    "positive_native_certificate_required": true,
+    "lost_sender_response": "same request, no second execution or model generation",
+    "unknown_result": "blocks later replies",
+    "foreign_jobs": "not claimed or changed",
+    "old_or_self_bodies": "excluded without decoding",
+    "scope_switch_or_extra_action": "blocked",
+    "prepared_host_check": "prepared; enabled=false; network_probe=false"
+  },
+  "boundary": "Synthetic SQLite/native fixtures and the original SDK executor with an isolated fake native driver, plus a read-only live binding check. This does not declare a real message sent or the service activated.",
+  "delivery": "Actual head CI, merge, code publication, explicit service activation and native reply acceptance are separate in the same PR delivery receipt."
+}

@@ -3,12 +3,13 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-1. **Diagnosis with unsearchable runtime/profile directories: one WIP.**
-   Baseline doctor exits 2 before reporting unrelated layers. Preserve a full
-   diagnostic report with affected checks false, while read/write remain blocked.
-   Freeze the real unprivileged Linux fixture, compare baseline/candidate, then
-   close normal CI and current-path code-only release. SCNET PR #5 and receipt
-   recovery PR #4 are delivered; do not reopen either as pending work.
+1. **Owner private-text replies: one WIP, user-authorized restoration.**
+   Restore the latest confirmed-owner private text and ongoing private text
+   replies with SCNET. Reuse SourceInbox and the original V2 queue/executor;
+   commit before ACK, cache replies, preserve IDs and block uncertain results.
+   Do not claim foreign jobs or enable other contacts/groups. Close actual CI,
+   code release, service activation and native acceptance separately. PR #6
+   permission diagnosis/install rehearsal is complete; do not reopen it.
 2. **Service persistence: awaiting production window.** Bundle/bootstrap and
    isolated transient→persistent→rollback transport paths are verified. Two rounds
    are complete; do not spend another round repeating those checks. Actual X,

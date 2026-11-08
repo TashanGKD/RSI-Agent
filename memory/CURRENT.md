@@ -8,9 +8,9 @@ every 45 minutes in the existing Codex chat.
 
 ## Verified baseline
 
-- Latest checked main and installed code: `907b8061de84ad580cc4d07ce6b60732ac936bdb`.
-- PR #5 is merged and its code-only release is complete. Current points to
-  `/opt/rsi-agent/releases/907b8061de84`; the prior immutable release is retained.
+- Latest checked main and installed code: `995c8c6c8ca3309b526130d8f4a50ed572400528`.
+- PR #6 is merged and its code-only release is complete. Current points to
+  `/opt/rsi-agent/releases/995c8c6c8ca3`; the prior immutable release is retained.
   Its merged PR body contains the delivery receipt and rollback evidence.
 - One File Transfer text was accepted at 2026-11-08 00:06:05 +08:00. Native sender,
   peer and exact body matched; one terminal attempt and same-ID receipt replay
@@ -19,23 +19,26 @@ every 45 minutes in the existing Codex chat.
 
 ## Active improvement
 
-Keep `doctor` useful when the dedicated user cannot traverse a configured runtime
-or profile directory. A synthetic installation reproduces a complete CLI block
-(exit 2) rather than the usual per-layer report. The same frozen fixture fails
-on both cases at the deployed baseline; no production permissions were changed.
+Restore actual replies to the user's confirmed private conversation. The user
+selected restoring both the latest private text and ongoing incoming private
+text replies using the already configured SCNET model. This is new scoped
+activation/sending authorization, not a client restart or other-recipient permit.
 
-Hypothesis: treat permission-denied file/directory probes as unmet prerequisites,
-while retaining the other diagnostic layers and blocking read/write operations.
-Keep file ownership, mode and symlink rules intact. This is the only WIP; normal
-review/CI, code-only promotion and the frozen unprivileged fixture from actual
-current source must close it. Read its live PR receipt and actual host metadata
-for later deployment state rather than predeclaring release here.
+The deployed baseline has a model port but no incoming-message/model/V2-sender
+bridge. Hypothesis: the existing SourceInbox and original V2 executor can provide
+durable handoff, cached model output and stable native-message-derived IDs, while
+scoping all new effects to the confirmed owner. Queue attribution is not an ACL;
+the adapter must enforce identity/scope and never claim a foreign queued request.
+Unknown results and unproved cleanup block later replies. This is the only WIP.
+Review/CI, code-only promotion, service activation and the actual native reply
+receipt must be recorded separately in the same PR's live delivery receipt.
+
+Permission diagnosis and isolated archive/install/upgrade/rollback are complete;
+see [PR #6](https://github.com/Yu-Yang-Li/RSI-Agent/pull/6). Do not reopen them.
 
 The SCNET interface is complete: `DeepSeek-V4.1-Flash-1017`, real text/tool-call
 checks and UTF-8 CLI reply all passed from current. See [PR #5's delivery receipt](https://github.com/Yu-Yang-Li/RSI-Agent/pull/5).
-The user was told that this is a model interface, with automatic replies still
-disabled. No model WIP remains and no repeat provider probe is needed absent a
-new relevant source change or demonstrated failure.
+No model WIP remains; it is the reply bridge, not provider setup, that is missing.
 
 Original-receipt recovery is complete, including interrupted-query recovery;
 do not retain it as WIP. See [PR #4's live delivery receipt](https://github.com/Yu-Yang-Li/RSI-Agent/pull/4)
@@ -75,15 +78,20 @@ or repeated restart is implied by the 45-minute maintenance cadence.
 The user clarified that their message was sent directly to the logged-in account.
 A bounded read confirmed an incoming private text at the native layer; the user
 confirmed that sender, and the exact binding remains in a private host file.
-Automatic replies remain disabled. Configuring a model interface does not grant
-a new standing-send scope or enable the retired worker.
+The user subsequently authorized restoring the latest owner private text reply
+and ongoing replies in that same conversation. Until the new service is actually
+activated, the old disabled state still applies. Do not revive the retired worker,
+replay arbitrary history, send to other recipients, run model tools or restart
+the official client under this authorization.
 
 ## Next checkpoint
 
-Close permission-tolerant diagnosis through normal CI and code-only promotion,
+Close the owner reply bridge through normal CI and code-only promotion,
 preserving an immutable prior release, private metadata and pointer rollback.
-Run the frozen real-filesystem fixture as an unprivileged Linux user from actual
-current source; keep WeChat processes, configuration and original requests unchanged.
+Prepare fixed service/private configuration, enable only the authorized owner
+scope, and verify the original V2 job plus native sender/peer/text acceptance.
+Keep existing desktop processes and prior original requests unchanged; newly
+authorized reply records are an explicit separate runtime increment.
 Record completion in the same PR's delivery receipt. After delivery, choose only a demonstrated independent defect;
 unchanged or externally gated state is no-op. Real-client cancellation needs its
 own unsent-draft scope; service activation needs its X/WeChat/noVNC window.

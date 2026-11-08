@@ -49,6 +49,21 @@ printf '你好，请介绍你能协助的工作。' | python3 -B -m rsi_agent --
 配置中的 Base URL 已含 `/v1`，入口只追加 `/chat/completions`。请求使用直接 HTTPS 连接，不跟随重定向。
 此入口不启动微信自动回复或执行模型返回的工具；现有微信与记事本的执行授权各自保留。
 
+本人私聊托管使用单独的明确授权入口：
+
+```sh
+python3 -B -m rsi_agent --config /var/lib/rsi-agent/owner-replies/config.json replies check
+python3 -B -m rsi_agent --config /var/lib/rsi-agent/owner-replies/config.json replies run
+```
+
+配置、确认过的会话身份、原生接收回执及对话状态均保存在主机私有目录。
+`check` 仅核对私有配置和身份，不调用模型或发送消息；`run` 需要两侧启用开关和
+固定的会话/模型/发送范围指纹一致。只处理启用后的本人私聊文字与明确选定的最近一条，
+不回放其他历史消息。接收批次在持久提交后 ACK，模型回复在提交原 V2 队列前保存，
+每条原生消息派生固定请求 ID。发送仍须原 SDK 的原生认证；回执未知、需要人工确认或
+清理未证实时停止后续回复，保留原请求，不盲目确认或换 ID 重发。模型只生成回复文字。
+服务模板在 `deploy/owner-replies/`；代码发布、服务启用和真实微信回执须分别验收。
+
 ## Linux 微信接入
 
 先在私有配置中填写自己的准确账号、profile 和运行目录。`examples/linux.json` 适配合睿当前 `:92` 显示与 Xauthority 路径，但没有填账号或密钥，写操作默认关闭。
