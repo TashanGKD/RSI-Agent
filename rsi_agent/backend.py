@@ -90,7 +90,7 @@ class DshBackend:
         result = subprocess.run([self.config['python'], '-B', '-m', 'rsi_agent.dsh_worker',
             '--config', self.path], cwd=ROOT, input=path.read_text(), capture_output=True,
             text=True, timeout=600 if mode == 'engineering' else 240,
-            env=dict(os.environ, PYTHONDONTWRITEBYTECODE='1'))
+            env=dict(os.environ, PYTHONDONTWRITEBYTECODE='1'), start_new_session=True)
         diagnostic = Path(self.config['state']) / (key + '.stderr')
         diagnostic.write_text(result.stderr)
         diagnostic.chmod(0o600)

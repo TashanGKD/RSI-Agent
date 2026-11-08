@@ -60,17 +60,23 @@ def source_tree(workspace, base):
         Path(name).unlink(missing_ok=True)
 
 
-def publisher_idle(workspace):
+def publisher_idle(workspace, process_group=None):
     # A killed worker can leave validation/Git children behind. Never race or kill them.
     for entry in Path('/proc').glob('[0-9]*'):
         if entry.name == str(os.getpid()):
             continue
         try:
+            if process_group and os.getpgid(int(entry.name)) == process_group:
+                raise BlockingIOError('Original publisher still has live children; wait without reexecution.')
             if os.getuid() != 0 and entry.stat().st_uid != os.getuid():
                 continue
             if (entry / 'cwd').resolve(strict=True) == Path(workspace).resolve():
                 raise BlockingIOError('Original workspace still has a live process; wait without reexecution.')
         except (FileNotFoundError, ProcessLookupError):
+            continue
+        except PermissionError:
+            # Unrelated nondumpable processes can share our UID. The original
+            # worker's isolated process group above does not require cwd access.
             continue
 
 
@@ -102,6 +108,7 @@ def publish(workspace, checkpoint, binding):
         if git(workspace, 'rev-parse', 'HEAD') != binding['base']:
             raise ValueError('SDK changed the original Git head; inspect its effects before publication.')
         record = {'binding': binding, 'phase': 'prepared', 'commit': None,
+                  'process_group': os.getpgrp() if os.getpgrp() == os.getpid() else None,
                   'index': git(workspace, 'write-tree'), 'tree': source_tree(workspace, binding['base']),
                   'remote': git(workspace, 'ls-remote', 'origin', 'refs/heads/' + BRANCH).split('\t')[0]}
         save_publication(checkpoint, record)
@@ -137,7 +144,7 @@ def publish(workspace, checkpoint, binding):
             review('Validation changed the frozen source; inspect before publication.')
         record['phase'] = 'validated'
         save_publication(checkpoint, record)
-    publisher_idle(workspace)
+    publisher_idle(workspace, record['process_group'])
     if git(workspace, 'write-tree') not in (record['index'], record['tree']):
         review('Validation changed the original index; preserve its staging for review.')
     if not record['commit']:
