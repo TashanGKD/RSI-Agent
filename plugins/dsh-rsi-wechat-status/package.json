@@ -1,0 +1,13 @@
+{
+  "name": "dsh-rsi-wechat-status",
+  "version": "0.1.0",
+  "description": "Read-only RSI WeChat worker and unresolved-work observations for DeepSeek Harness",
+  "license": "MIT",
+  "type": "module",
+  "main": "index.js",
+  "exports": {".": "./index.js", "./package.json": "./package.json", "./locale/*.json": "./locale/*.json"},
+  "files": ["index.js", "cordis.patch.yml", "locale/*.json", "README.md"],
+  "engines": {"node": ">=20.19", "dsh": ">=0.2.1-rc.2 <0.3.0"},
+  "dsh": {"bundle": {"patch": "./cordis.patch.yml"}},
+  "scripts": {"test": "node --test test/*.test.js"}
+}

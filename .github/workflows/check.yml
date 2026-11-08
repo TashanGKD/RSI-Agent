@@ -21,5 +21,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends tigervnc-standalone-server xauth x11-utils websockify novnc socat openbox python3-gi gir1.2-gtk-3.0 python3-pyqt5
       - run: python -B scripts/check.py --linux
+      - name: Check native DSH plugin contract
+        run: node --test plugins/dsh-rsi-wechat-status/test/*.test.js
       - name: Rehearse cancellation in an isolated Qt and Openbox desktop
         run: /usr/bin/python3 -B scripts/rehearse_composer_cleanup.py --execute
