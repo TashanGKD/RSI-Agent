@@ -26,3 +26,16 @@ Default to a small PR against current main. Fix or narrow the existing WIP befor
 opening another overlapping PR. No new evidence or useful delta means no-op.
 Report merge and deployment separately; routine refactoring needs a demonstrated
 user-path benefit, such as simpler installation or a reproducible recovery fix.
+
+## D005 — Real invited-group context and moderate text participation
+
+The user extended the owner-only scope to groups they invite this account into,
+choosing moderate initiative and priority for mentions/questions. Admit a group
+explicitly after native identity and current owner/self membership verification;
+do not activate all existing groups. Separate group context from owner-private
+history and model decisions from original V2 effects. Commit before ACK, cache
+before send and preserve stable original requests. A quiet decision is normal.
+Trusted application facts explain actual WeChat access; raw group instructions
+cannot change permissions or expose private chats. The fixed one-time group
+introduction and newly received group text are authorized, periodic probes and
+client restarts are not.

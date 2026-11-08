@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "path": "owner-invited group native context and moderate participation",
+  "baseline": "3134fd9b1f52b0c9931cf7c079cb5225335a50f9",
+  "hypothesis": "Native group input and explicit runtime facts can replace false capability denial; a durable moderated bridge can speak selectively through the original V2 sender.",
+  "fixture": "tests/test_group_reply.py",
+  "candidate_source_sha256": {
+    "rsi_agent/group_context.py": "c283f10da0edd0223942bcf23d3fac5b7b34aecfbb5577f3073eb317459c7864",
+    "rsi_agent/group_io.py": "c660a522d98eead4ddd3ae172134bf26e2cf1c50d3b19f821a4bf75ebbae984d",
+    "rsi_agent/group_reply.py": "6e6412448c263213d1d83c6664bf4239de4ce9263fc48aeb06508e0144d525a5",
+    "rsi_agent/owner_reply.py": "4bd4a486a5e0994c493133350bf5cabae33e65a63ff6bdb71ebe67c336390c30",
+    "rsi_agent/reply_io.py": "f6c084cfe7d1b97d8a49bf7835dad898aef9dbe930d9079899c84dab6e1f7375",
+    "rsi_agent/__main__.py": "b6bd6e44480d191f90b8d21334bc16c0fcd547480f8000c0acc3a8bea96ac05d",
+    "rsi_agent/model.py": "af3a053b18ce62bae380ce8e08a602c10f30fc5ef1431ed165f1c18302cfdccb",
+    "components/secretary-workbench/wechat/receive_source.py": "77e19a299b546f868ef2e82a8508efa054441eb0181421cdbef5598c84d232df",
+    "tests/test_group_reply.py": "f0d4516ea652cbd422e40a15b26cc015c9931e04ff969925bf2727ccc29b6557",
+    "deploy/group-replies/rsi-group-replies.service": "baba2a8bcf152c92a8e7ae249ff86a07cba80db6db210ed5bb5ce5335e52f6e1"
+  },
+  "targeted_linux": {
+    "command": "python3 -B -m unittest discover -s tests -p test_*reply.py -v",
+    "passed": 20,
+    "skipped": 0
+  },
+  "linux_gate": {
+    "command": "python3 -B scripts/check.py --linux",
+    "passed_suites": [
+      61,
+      325,
+      10,
+      31,
+      59
+    ],
+    "notebook_http": 200,
+    "mac": "source-only manifest passed"
+  },
+  "real_provider_isolated": {
+    "model": "DeepSeek-V4.1-Flash-1017",
+    "mention_question": "speak",
+    "acknowledgement": "quiet",
+    "production_sends": 0
+  },
+  "runtime_read_only": {
+    "native_membership": "owner and self verified",
+    "member_count": 30,
+    "recent_texts": 20,
+    "consistency": "committed"
+  },
+  "operator_enrollment": {
+    "native_window_identity_verified": true,
+    "empty_editor_proven": true,
+    "existing_registry_preserved": true,
+    "editor_frame_offset": 8,
+    "sent": false
+  },
+  "delivery": "candidate; actual CI, publication, worker activation and native acceptance are separate in the PR receipt",
+  "limitations": [
+    "new groups require explicit identity/UI admission",
+    "desktop services remain transient",
+    "no server/model tool execution",
+    "not an RSI performance evaluation"
+  ]
+}

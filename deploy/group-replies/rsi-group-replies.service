@@ -1,0 +1,19 @@
+[Unit]
+Description=RSI Agent invited-group text participation
+After=network-online.target wechat-gui-desktop.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=@RELEASE@
+Environment=PYTHONPATH=/opt/rsi-agent/python
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/python3 -B -m rsi_agent --config /var/lib/rsi-agent/groups/config.json groups run
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=yes
+TimeoutStopSec=210
+StandardOutput=journal
+StandardError=journal

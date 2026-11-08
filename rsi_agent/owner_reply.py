@@ -14,12 +14,13 @@ from .wechat import private_file
 
 
 class Transport:
+    module = 'rsi_agent.reply_io'
     def __init__(self, config):
         self.config = config
 
     def __call__(self, request=None):
         command = ['runuser', '-u', 'wechat-gui', '--', sys.executable, '-B', '-m',
-            'rsi_agent.reply_io', '--installation', self.config['installation'],
+            self.module, '--installation', self.config['installation'],
             '--binding', self.config['binding']]
         if request is None:
             command.append('--check')
@@ -38,7 +39,7 @@ class Transport:
 
 
 class ReplyLoop:
-    def __init__(self, path, owner, model, transport):
+    def __init__(self, path, owner, model, transport, context=None):
         path = Path(path)
         if path.is_symlink():
             raise ValueError('Private owner reply state required.')
@@ -61,6 +62,7 @@ class ReplyLoop:
             with self.db:
                 self.db.execute('INSERT INTO meta VALUES(?)', (identity,))
         self.owner, self.model, self.io = owner, model, transport
+        self.context = context
 
     def close(self):
         self.db.close()
@@ -100,6 +102,8 @@ class ReplyLoop:
             history = []
             for old in reversed(self.db.execute("SELECT text,reply FROM inbox WHERE state='sent' ORDER BY created DESC,id DESC LIMIT 3").fetchall()):
                 history.extend([{'role': 'user', 'content': old['text']}, {'role': 'assistant', 'content': old['reply']}])
+            if self.context:
+                history = self.context(row['text']) + history
             reply = self.model.reply(row['text'], history)
             if not isinstance(reply, str) or not reply.strip() or '\0' in reply or len(reply.encode()) > 16384:
                 raise ValueError('Model reply does not satisfy the text-only sender contract.')
@@ -147,7 +151,8 @@ def run(path, mode):
         fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
         signal.signal(signal.SIGTERM, stop)
         signal.signal(signal.SIGINT, stop)
-        loop = ReplyLoop(state / 'inbox.sqlite', owner, model, transport)
+        from .group_context import owner_context
+        loop = ReplyLoop(state / 'inbox.sqlite', owner, model, transport, context=owner_context)
         previous = None
         while not stopped:
             # The private switches can stop future input without changing identities or IDs.

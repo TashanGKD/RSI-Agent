@@ -23,6 +23,8 @@ def main(argv=None):
     model.add_argument('mode', choices=['check', 'reply'])
     replies = commands.add_parser('replies', help='Explicitly scoped owner-only reply bridge.')
     replies.add_argument('mode', choices=['check', 'once', 'run'])
+    groups = commands.add_parser('groups', help='Moderated text participation in explicitly invited groups.')
+    groups.add_argument('mode', choices=['check', 'once', 'run'])
     services = commands.add_parser('services', help='Stage service definitions for review; no live activation.')
     service_commands = services.add_subparsers(dest='mode', required=True)
     service_stage = service_commands.add_parser('stage')
@@ -54,6 +56,10 @@ def main(argv=None):
         return 0
     if args.command == 'replies':
         from .owner_reply import run
+        print(json.dumps(run(args.config, args.mode), ensure_ascii=False))
+        return 0
+    if args.command == 'groups':
+        from .group_reply import run
         print(json.dumps(run(args.config, args.mode), ensure_ascii=False))
         return 0
     if args.command == 'services':

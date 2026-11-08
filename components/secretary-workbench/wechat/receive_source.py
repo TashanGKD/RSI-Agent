@@ -13,7 +13,7 @@ def sid(value):
     return value
 
 class SourceInbox:
-    def __init__(self,path,native,table,account,peer,decode,epoch,stamp=None,only_incoming=False):
+    def __init__(self,path,native,table,account,peer,decode,epoch,stamp=None,only_incoming=False,incoming_senders=None,event_context=None):
         path=Path(path)
         if path.is_symlink():raise ValueError('symlink receipt database refused')
         if not path.exists():
@@ -22,6 +22,9 @@ class SourceInbox:
         if not re.fullmatch(r'Msg_[A-Za-z0-9_]+',table):raise ValueError('unsafe fixed native table')
         self.c=sqlite3.connect(path,timeout=5);self.c.row_factory=sqlite3.Row
         self.native=native;self.table=table;self.account=account;self.peer=peer;self.decode=decode;self.epoch=epoch;self.stamp=stamp;self.only_incoming=only_incoming
+        self.incoming_senders=None if incoming_senders is None else set(incoming_senders)-{account}
+        self.event_context=event_context
+        if self.incoming_senders is not None and (not only_incoming or not self.incoming_senders or len(self.incoming_senders)>1000):raise ValueError('bounded nonself group senders required')
         self.c.executescript('''CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY,v TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS acked(server_id TEXT PRIMARY KEY,at REAL NOT NULL);
         CREATE TABLE IF NOT EXISTS batches(id TEXT PRIMARY KEY,hash TEXT NOT NULL,events TEXT NOT NULL,ids TEXT NOT NULL,state TEXT NOT NULL,at REAL NOT NULL,has_more INTEGER NOT NULL);''')
@@ -53,9 +56,12 @@ class SourceInbox:
             n=self.native()
             if n.row_factory is None:n.row_factory=sqlite3.Row
             n.execute('BEGIN')
-            ids={int(r[0]):r[1] for r in n.execute('select rowid,user_name from Name2Id where user_name in (?,?)',(self.account,self.peer))}
-            if set(ids.values())!={self.account,self.peer}:raise ValueError('paired identities unavailable')
-            allowed=tuple(k for k,v in ids.items() if not self.only_incoming or v==self.peer)
+            names=[self.account,self.peer] if self.incoming_senders is None else [self.account,*sorted(self.incoming_senders)]
+            ids={int(r[0]):r[1] for r in n.execute('select rowid,user_name from Name2Id where user_name in ('+','.join('?' for _ in names)+')',names)}
+            if self.account not in ids.values() or (self.incoming_senders is None and set(ids.values())!={self.account,self.peer}):raise ValueError('paired identities unavailable')
+            if self.incoming_senders is None:allowed=tuple(k for k,v in ids.items() if not self.only_incoming or v==self.peer)
+            else:allowed=tuple(k for k,v in ids.items() if v in self.incoming_senders)
+            if not allowed:self.c.commit();return self._empty()
             rows=n.execute('select local_id,server_id,local_type,real_sender_id,create_time,sort_seq from '+self.table+
                 ' where real_sender_id in ('+','.join('?' for _ in allowed)+') order by create_time,sort_seq,local_id,server_id limit 100001',allowed).fetchall()
             if len(rows)>100000:raise ValueError('paired metadata catalog exceeds bounded review limit')
@@ -86,6 +92,10 @@ class SourceInbox:
                    'local_id':int(row['local_id']),'server_id':int(sid(row['server_id'])),'kind':kind,
                    'created':int(row['create_time']),'sort_seq':int(row['sort_seq'] or 0),
                    'text':self.decode(row['message_content']) if kind==1 else ''}
+                if self.event_context:
+                    extra=self.event_context(row,e)
+                    if set(extra)&set(e):raise ValueError('source identity/context collision')
+                    e.update(extra)
                 encoded=json.dumps(e,ensure_ascii=False,sort_keys=True)
                 if len(encoded.encode())>40000:raise ValueError('source event exceeds body cap')
                 if events and size+len(encoded.encode())>1000000:break

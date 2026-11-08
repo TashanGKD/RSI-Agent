@@ -20,6 +20,11 @@ The user subsequently authorized restoring the latest confirmed-owner private
 text reply and ongoing replies in that same private conversation. This permits
 the explicitly scoped owner reply service, not periodic test messages, other
 contacts/groups, model tool execution or additional client restarts.
+The user subsequently authorized participation in owner-invited groups, with
+moderate initiative and priority for mentions/questions. Start with the uniquely
+verified group shared by the owner and this account; register each group
+explicitly. This permits scoped group text and a one-time introduction, not
+all existing groups, command execution, periodic probes or client restarts.
 
 One user-approved ordinary client restart and cached login have been verified.
 That one-shot restart and the earlier one-shot send are not a recurring

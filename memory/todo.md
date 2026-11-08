@@ -3,13 +3,12 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-1. **Owner private-text replies: one WIP, user-authorized restoration.**
-   Restore the latest confirmed-owner private text and ongoing private text
-   replies with SCNET. Reuse SourceInbox and the original V2 queue/executor;
-   commit before ACK, cache replies, preserve IDs and block uncertain results.
-   Do not claim foreign jobs or enable other contacts/groups. Close actual CI,
-   code release, service activation and native acceptance separately. PR #6
-   permission diagnosis/install rehearsal is complete; do not reopen it.
+1. **Invited-group participation: one WIP, newly authorized.**
+   Add actual group intake/context and moderate participation, prioritizing
+   mentions/questions. Initially admit only the unique group shared by owner and
+   account; preserve the delivered PR #7 owner service, caches and original IDs.
+   Close normal CI, reversible code release, pinned worker upgrades and native
+   introduction acceptance separately. Details and unique next step: CURRENT.md.
 2. **Service persistence: awaiting production window.** Bundle/bootstrap and
    isolated transient→persistent→rollback transport paths are verified. Two rounds
    are complete; do not spend another round repeating those checks. Actual X,
