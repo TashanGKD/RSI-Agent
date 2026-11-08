@@ -67,6 +67,8 @@ def publisher_idle(workspace, process_group=None):
             continue
         try:
             if process_group and os.getpgid(int(entry.name)) == process_group:
+                if (entry / 'stat').read_text().rsplit(')', 1)[1].split()[0] == 'Z':
+                    continue
                 raise BlockingIOError('Original publisher still has live children; wait without reexecution.')
             if os.getuid() != 0 and entry.stat().st_uid != os.getuid():
                 continue
@@ -112,6 +114,8 @@ def publish(workspace, checkpoint, binding):
                   'index': git(workspace, 'write-tree'), 'tree': source_tree(workspace, binding['base']),
                   'remote': git(workspace, 'ls-remote', 'origin', 'refs/heads/' + BRANCH).split('\t')[0]}
         save_publication(checkpoint, record)
+
+    publisher_idle(workspace, record['process_group'])
 
     def review(message):
         record['phase'] = 'review'

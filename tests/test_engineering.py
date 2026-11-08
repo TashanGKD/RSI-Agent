@@ -176,6 +176,17 @@ class PublicationTests(unittest.TestCase):
         self.assertEqual(engineering.git(self.workspace, 'write-tree'), before)
         self.assertEqual((self.workspace / 'README.md').read_text(), 'frozen\n')
 
+    def test_original_process_group_blocks_children_without_requiring_their_cwd(self):
+        child = subprocess.Popen(['/usr/bin/python3', '-c', 'import time; time.sleep(30)'],
+                                 cwd=self.root, start_new_session=True)
+        try:
+            with self.assertRaisesRegex(BlockingIOError, 'live children'):
+                engineering.publisher_idle(self.workspace, child.pid)
+            self.assertIsNone(child.poll())
+        finally:
+            child.terminate()
+            child.wait(timeout=5)
+
     def test_changed_remote_is_not_pushed_over(self):
         (self.workspace / 'README.md').write_text('frozen\n')
         real_git = engineering.git
