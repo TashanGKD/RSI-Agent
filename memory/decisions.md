@@ -154,3 +154,14 @@ stop on changed source/index/head/remote. Resident retries retain the original
 inbox/group batch instead of sending a final fallback. Unknown live workspace
 processes are left alone. The frozen-output/local-bare replay is engineering
 acceptance, not a new live owner task, autonomous historical recovery or RSI gain.
+
+## D016 — Explicit private notes do not become shared profiles or new authority
+
+Only fresh native-owner kind-1 text in the ongoing private scope can mutate named
+notes. Store them in that identity-bound private inbox DB and commit their reply
+cache atomically. Ordinary groups/cards/images cannot write or retrieve them.
+Notes remain data; tool/recipient admission is unchanged. Corrections/forgetting
+change the subsequent chat epoch/history boundary, retaining old SDK inputs and
+receipts. The original generation key/input remains immutable. First-feature
+rollback must not restore an older chat scope after real notes changed. Named
+lookup is the first path, not automatic profiling or a complete memory plugin.

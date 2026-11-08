@@ -1,0 +1,31 @@
+{
+  "case": "explicit_private_named_memory_lifecycle",
+  "baseline_commit": "351c0eef4ded049439b77a41f9da8bb6ec58c6f8",
+  "hypothesis": "native-owner named notes can be reviewed and corrected across restart with atomic reply caching and peer isolation, without relying on SDK conversational recall",
+  "interfaces": [
+    "rsi_agent.owner_reply.ReplyLoop.cycle",
+    "rsi_agent.owner_memory.command/context/position",
+    "rsi_agent.backend.DshBackend.has_original_input",
+    "rsi_agent.backend.DshBackend._run frozen input and chat session selection"
+  ],
+  "frozen_evaluator_sha256": "c5b054648a513aa9107381134096ae508a8979ed752347d93ee78f6d8046a477",
+  "baseline_log_sha256": "4000e2d0397bb35f6c59e6320bd6d94b3b276296de54923d5f8b6684b0e76272",
+  "candidate_log_sha256": "597943baab12336cb5297f043272aad6df81d66f839768a15f8e6e2db3be0eca",
+  "candidate": {
+    "save_review_correct_forget_survives_restart": true,
+    "note_and_reply_rollback_together": true,
+    "original_generation_not_replaced_by_memory_command": true,
+    "old_facts_excluded_from_subsequent_history_and_chat_scope": true,
+    "foreign_sender_and_card_cannot_write": true,
+    "group_does_not_open_private_notes_or_receive_the_snapshot": true,
+    "over_budget_note_not_stored_or_reinjected": true,
+    "external_model_requests": 0,
+    "live_wechat_sends": 0
+  },
+  "limits": [
+    "private temporary inboxes, native identity fixtures, transport doubles and captured SDK-input requests",
+    "actual model behavior and fresh native WeChat command delivery are not established",
+    "old chats, SDK inputs/results and send receipts remain retained after forgetting",
+    "named lookup only; no automatic profiling, semantic search, group notes, new memory plugin package or RSI gain"
+  ]
+}

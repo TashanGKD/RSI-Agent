@@ -42,10 +42,18 @@ class DshBackend:
             raise ModelError('HARNESS_RUNTIME_UNAVAILABLE: reinstall the pinned runtime wheel and executable.')
 
     def bind(self, account, peer):
+        if getattr(self, 'scope', None) != [account, peer]:
+            self.memory_epoch = 0
         self.scope = [account, peer]
 
     def use_request(self, identities):
         self.request = [str(i) for i in identities]
+
+    def has_original_input(self, identities):
+        identity = [self.scope, [str(i) for i in identities], 'chat']
+        key = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
+        path = Path(self.config['state']) / 'inputs' / (key + '.json')
+        return path.exists() or path.is_symlink()
 
     def complete(self, messages, *, tools=None, tool_choice=None, json_output=False):
         if tools is not None or tool_choice is not None:
@@ -99,7 +107,10 @@ class DshBackend:
             raise ModelError('Private original Harness inputs required.')
         path = calls / (key + '.json')
         if not path.exists():
-            scope = hashlib.sha256(json.dumps(self.scope or key).encode()).hexdigest()[:40] if mode == 'chat' and not stage else key[:40]
+            conversation = self.scope or key
+            if mode == 'chat' and not stage and getattr(self, 'memory_epoch', 0):
+                conversation = [conversation, self.memory_epoch]
+            scope = hashlib.sha256(json.dumps(conversation).encode()).hexdigest()[:40] if mode == 'chat' and not stage else key[:40]
             raw = json.dumps({'id': key, 'session': 'rsi-' + mode + '-' + scope, 'mode': mode, 'messages': messages})
             fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY | os.O_NOFOLLOW, 0o600)
             with os.fdopen(fd, 'w') as stream:
