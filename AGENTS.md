@@ -61,3 +61,12 @@ later operation would interrupt login or require phone availability.
 checks live process/layout/service conditions without input. Neither establishes
 general message delivery or RSI gains. Keep code, CI, merge, deploy and live
 acceptance states separate in the PR and project memory.
+
+The owner additionally requested a parallel experiment: native WeChat requests
+may be handed to Codex on this computer, without installing or running Codex CLI
+on the target host. The explicit `/codex` prefix in fresh confirmed-owner private
+text selects this route; other conversation retains DSH. Use the same existing
+desktop conversation/30-minute heartbeat and preserve one original request,
+claim and completion. Only the local Codex worker resolves the handed-off task;
+the host stores and delivers its result. See `harness/LOCAL-CODEX.md`. A failed
+direct desktop control-socket probe is not an automatic Dot wake-up acceptance.
