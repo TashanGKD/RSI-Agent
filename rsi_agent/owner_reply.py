@@ -13,6 +13,7 @@ from .model import ModelError
 from .media import image_part, MediaPending, MediaUnavailable
 from .link_reader import linked_pages
 from .wechat import private_file
+from .local_codex import settings as codex_settings, instruction as codex_instruction, initialize as codex_initialize, enqueue as codex_enqueue
 
 
 class Transport:
@@ -69,6 +70,11 @@ class ReplyLoop:
             with self.db:
                 self.db.execute('INSERT INTO meta VALUES(?)', (identity,))
         self.owner, self.model, self.io = owner, model, transport
+        self.local_codex = codex_settings(path.parent) if owner['scope']['mode'] == 'owner-private-text' else None
+        if self.local_codex and self.local_codex['since'] < owner['scope']['since']:
+            raise ValueError('Local Codex cannot expand the original owner scope.')
+        if self.local_codex:
+            codex_initialize(self.db)
         self.context = context
         self.images = getattr(model, 'backend', None) == 'deepseek-harness'
         if self.images:
@@ -109,12 +115,16 @@ class ReplyLoop:
                     raise ValueError('Original native link changed; preserve its request.')
                 self.db.execute('INSERT OR IGNORE INTO inbox(id,created,text,kind,link_url) VALUES(?,?,?,?,?)',
                                 (key, event['created'], text, event['kind'], url))
+                if (not old and self.local_codex and event['kind'] == 1
+                        and event['created'] >= self.local_codex['since'] and codex_instruction(text)):
+                    codex_enqueue(self.db, key)
         # Consumer commit precedes source ACK; a lost ACK is harmless on replay.
         if batch.get('batch_id'):
             self.io({key: batch[key] for key in ('batch_id', 'batch_hash', 'ack_ids')} | {'op': 'ack'})
         row = self.db.execute("SELECT * FROM inbox WHERE state IN ('new','pending') ORDER BY created,id LIMIT 1").fetchone()
         if row is None:
-            return {'state': 'idle', 'counts': self.counts()}
+            waiting = self.db.execute("SELECT 1 FROM inbox WHERE state='local_codex'").fetchone()
+            return {'state': 'waiting_codex' if waiting else 'idle', 'counts': self.counts()}
         reply = row['reply']
         if reply is None:
             images = []

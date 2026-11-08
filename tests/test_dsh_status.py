@@ -74,6 +74,18 @@ class StatusTests(unittest.TestCase):
         self.assertFalse(result['current_code'])
         self.assertTrue(result['process_active'])
 
+    def test_local_codex_wait_is_visible_without_disclosing_the_instruction(self):
+        self.write('owner/status.json', {'state': 'waiting_codex', 'checked_at': time.time(),
+                                        'model_backend': 'deepseek-harness'})
+        with sqlite3.connect(self.database) as db:
+            db.execute("UPDATE inbox SET state='local_codex'")
+        before = self.hashes()
+        result = self.read()['workers'][0]
+        self.assertEqual(result['observation'], 'waiting_codex')
+        self.assertEqual(result['queue']['local_codex'], 1)
+        self.assertNotIn(self.canary, json.dumps(result))
+        self.assertEqual(before, self.hashes())
+
     def test_unreadable_layer_does_not_discard_other_layers(self):
         self.write('groups.json', {'groups': [str(self.root / 'missing.json')]})
         result = self.read()

@@ -3,11 +3,14 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-1. **Owner links and curated preferences: verify delivery from the live receipt.**
-   Finish review/CI and reversible publication/activation if not yet delivered.
-   Then accept only a fresh real owner link/card and its original native reply;
-   no historical replay or maintenance probe. Source/HTTPS/SDK fixtures are not
-   native WeChat end-to-end acceptance. The settled conversational voice stays.
+1. **Local Codex handoff: current owner-requested experiment.** Finish actual-head
+   review/CI and reversible release/activation, then the same scheduled desktop
+   conversation consumes the private wake fixture and a fresh real owner /codex
+   request when present. Freeze claim/input before work, result before upload;
+   no second generation after an uncertain running turn. Immediate Dot activation
+   lacks a successful connection. See LOCAL-CODEX.md; fixture/scheduled/native
+   acceptance are separate. PR #21 link/preferences delivery is already complete;
+   fresh link/card acceptance is observation only, not an old WIP.
 2. **Newly admitted group: preserve and inspect the original reply.** Native
    admission worked, but official search preparation failed before confirmation
    or execution. Consumer attention / original V2 needs_attention are retained.

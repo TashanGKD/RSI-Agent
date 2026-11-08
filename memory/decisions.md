@@ -118,3 +118,16 @@ not a replacement ID for uncertain work, and the native V2 ID does not change.
 Ordinary conversation does not inherit full prior articles. Curated private
 communication preferences have a digest in each new completion; raw Codex
 memories, private transcripts and other-project files are not copied into groups.
+
+
+## D013 — Local Codex is an explicitly selected owner handoff, not a second sender
+
+The owner requested a parallel local-computer route alongside DSH. Fresh native
+owner private /codex text alone selects it after a new activation cutoff. The
+host commits one held inbox/job before ACK, with no DSH fallback generation.
+The existing desktop conversation/heartbeat claims it once and caches one result
+before returning it to the original V2 sender. A completed result cannot change;
+unresolved local work cannot be stolen or replayed. No target-host Codex process
+or public webhook is needed. Scheduled polling is not immediate Dot activation;
+that requires a separately verified desktop entrypoint. Preserve the original
+input, local turn/tools, review state and delivery identity through interruption.

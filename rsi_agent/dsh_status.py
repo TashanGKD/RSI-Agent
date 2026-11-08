@@ -45,7 +45,7 @@ def worker(path, channel, service, current, now):
         timestamp = status['checked_at']
         result['fresh'] = (type(timestamp) in (int, float) and 0 <= now - timestamp <= 90)
         allowed = {'idle', 'sent', 'pending', 'attention', 'media_pending',
-                   'model_unavailable', 'transport_attention', 'quiet', 'stopped'}
+                   'model_unavailable', 'transport_attention', 'quiet', 'stopped', 'waiting_codex'}
         result['observation'] = status['state'] if status.get('state') in allowed else 'unknown'
         result['enabled'] = config.get('enabled') is True
         backend = status.get('model_backend')
@@ -56,7 +56,7 @@ def worker(path, channel, service, current, now):
             raise ValueError('Private inbox required.')
         with sqlite3.connect(database.resolve().as_uri() + '?mode=ro', uri=True, timeout=1) as db:
             counts = dict(db.execute('SELECT state,count(*) FROM inbox GROUP BY state'))
-        result['queue'] = {key: counts.get(key, 0) for key in ('new', 'pending', 'attention')}
+        result['queue'] = {key: counts.get(key, 0) for key in ('new', 'pending', 'attention', 'local_codex')}
     except (OSError, ValueError, KeyError, TypeError, sqlite3.Error):
         result['observation'] = 'unavailable'
     return result
