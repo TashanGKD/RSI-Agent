@@ -11,40 +11,38 @@ PR #22 local Codex handoff and #21 links/preferences remain delivered. Scheduled
 wake is verified; no fresh native /codex request has been claimed. Do not repeat
 the nonce or failed Dot probes. No open old PR is inferred from candidate text.
 
-## Current increment: truthful offline Harness readiness
+## Current increment: explicit owner-private named memory
 
-PR #24 publication recovery is merged, published and resident-active, with
-installed frozen-output acceptance in its live receipt. Do not reopen that work
-or rerun historical SDK output. Fresh native owner-task acceptance still awaits
-actual input; the local Codex queue was empty when this increment was selected.
+PR #25 offline readiness and #24 publication recovery are merged, published and
+resident-active according to their live receipts. Do not reopen their candidates.
+The real local Codex queue was empty. GIF carrier evidence is retained in Issue
+#26: the current Pixbuf path loses animation. Do not repeat that probe or claim
+native GIF delivery; its original-reply asset/native-carrier work is independent.
 
-Frozen copied owner/group configs report prepared despite missing configured
-Python or SDK. The candidate probes that explicit interpreter in isolation,
-checks pinned imports and bundled runtime presence, and returns distinct blocked
-reasons with installation guidance. Direct-provider checks stay offline. Actual
-CLI replay blocks the four broken paths and preserves healthy owner/group
-controls, original inbox/V2/SDK/ACK, with no model requests or native sends.
-See harness/evidence/2026-11-09-harness-readiness.json. It is prerequisite
-validation, not provider authentication, SDK startup or delivery acceptance.
+The new candidate closes an explicit private lifecycle: named save, same-name
+correction, lookup and forgetting, surviving worker restart. Native owner/kind-1
+admission precedes mutation; commands and original reply cache share a private
+SQLite transaction. Subsequent chat epochs/history boundaries exclude superseded
+memory, while original SDK inputs/receipts remain frozen. Ordinary group models
+reset private context and never open the owner's notes. No raw Codex profile or
+chat is mirrored into shared context. See harness/OWNER-MEMORY.md.
 
 ## Unique next step
 
-Finish actual-head review/CI and reversible publication/activation if the live
-PR receipt does not already record delivery. Verify the installed current CLI
-against the same frozen inputs, preserving original state. Then prioritize a
-fresh authorized owner request; without one choose an independent evidenced
-backlog path rather than re-probing delivered dependencies or publisher cases.
+Finish exact-head review/CI and reversible delivery if its live PR receipt does
+not already record them. Validate the installed private lifecycle using isolated
+inputs, not a production test message. A real new owner command is still needed
+for native acceptance. First activation rollback must detect real note changes
+before returning to an older SDK chat scope; never rewind private state.
 
-The old group's original needs_attention/reply/ACK/navigation are preserved.
-Its concrete one-off navigation cleanup remains unapproved. Do not repeat that
-permission question, operate the UI, replay the old reply or infer approval from
-maintenance text. Only a later explicit answer can change that boundary.
+The old group's original needs_attention/reply/ACK/navigation remains preserved.
+Its one-off navigation cleanup is unapproved and the concrete question is already
+pending. Do not repeat it, operate the UI or infer permission from maintenance.
 
 ## Remaining boundaries
 
 Ordinary owner/group replies are resident DSH, independent of maintenance. The
 sticker library/native search/GIF and separate Node 24/autoloop CLI are installed;
-native WeChat sticker output and task-event binding remain incomplete. Scoped
-memory retrieval/correction, fixed-runtime Penguin evaluation/Formal Baseline,
+native WeChat sticker output and task-event binding remain incomplete. Group/semantic memory retrieval, fixed-runtime Penguin evaluation/Formal Baseline,
 client persistence, folded albums and whole-video understanding remain separate.
 Secrets, raw chats and private assets stay outside Git. No RSI gain is claimed.

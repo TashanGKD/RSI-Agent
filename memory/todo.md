@@ -3,13 +3,13 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-1. **Harness readiness diagnostics: current source increment.** Frozen private
-   copied owner/group configurations returned prepared with missing Python/SDK.
-   The candidate checks the configured interpreter, pinned imports and bundled
-   runtime offline. Four broken CLI paths now block with concrete repair reasons;
-   real healthy owner/group controls remain prepared with inbox/V2/SDK/ACK intact.
-   Finish exact-head review/CI and reversible delivery if not already recorded.
-   This is prerequisite diagnosis, not model-network or native-delivery proof.
+1. **Owner-private named memory: current source increment.** Close explicit save,
+   same-name correction, lookup and forgetting in the native-bound private inbox.
+   Cache mutation and reply atomically; rotate subsequent chat epoch/history on
+   actual changes while preserving old SDK inputs/receipts. Ordinary groups and
+   card/image content do not write/read these notes. Finish review/CI/delivery if
+   not already in the live receipt; positive native acceptance needs fresh input.
+   PR #25 dependency diagnosis is delivered and is not another WIP.
 2. **Completed task publication recovery: delivered.** A private
    post-shutdown journal binds the frozen result to its original Git effects.
    Branch-update/push SIGKILL replay resumes one original result without another
@@ -33,12 +33,13 @@ as candidates rather than silently expanding the active task.
    the same original Session/input/result and publication effects; do not create
    a second model consumer, fake task/PR or claim the manual recovery autonomous.
 5. **Dafeiyu native WeChat output.** The library/native search/actual GIF are
-   prepared. Add the original-request asset/recipient/V2 transport path, keeping
+   prepared. Issue #26 freezes the static-carrier animation loss; do not repeat
+   that probe. Add the original-request asset/recipient/V2 path and native carrier, keeping
    moderate reactions in the already-authorized owner/groups. Web Markdown is
    not a send receipt; no periodic probe or other-recipient test is authorized.
-6. **Scoped long-term memory.** Build retrieval/correction and verified identity
-   separation from the Markdown memory reference. Curated communication context
-   is implemented separately; no raw Codex memory mirror or nickname authority.
+6. **Group/semantic memory after the private lifecycle.** Keep native identities
+   and peer stores separate; no raw Codex mirror, automatic profiling or nickname
+   authority. Do not relabel named lookup as semantic retrieval or a full plugin.
 7. **Service persistence: awaiting production window.** Bundle/bootstrap and
    isolated transient→persistent→rollback transport paths are verified. Two rounds
    are complete; do not spend another round repeating those checks. Actual X,
