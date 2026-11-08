@@ -28,15 +28,50 @@ class DshBackend:
     def use_request(self, identities):
         self.request = [str(i) for i in identities]
 
-    def complete(self, messages, *, tools=None, tool_choice=None):
+    def complete(self, messages, *, tools=None, tool_choice=None, json_output=False):
         if tools is not None or tool_choice is not None:
             raise ModelError('Application tools require the verified owner engineering entry.')
-        return self._run(messages, 'chat')
+        result = self._run(messages, 'chat')
+        if not json_output:
+            return result
+        try:
+            if isinstance(json.loads(result['message']['content']), dict):
+                return result
+        except (ValueError, TypeError):
+            pass
+        # A finished Harness reply may be ordinary prose. Repair only its
+        # framing, retaining the original generation and frozen native inputs.
+        frames = Path(self.config['state']) / 'frames'
+        frames.mkdir(mode=0o700, exist_ok=True)
+        if frames.is_symlink() or frames.stat().st_mode & 0o077:
+            raise ModelError('Private original decision frames required.')
+        path = frames / (self.last_input_key + '.json')
+        if path.exists():
+            if not private_file(path):
+                raise ModelError('Private original decision frame required.')
+            return json.loads(path.read_text())
+        original = json.loads((Path(self.config['state']) / 'inputs' /
+                               (self.last_input_key + '.json')).read_text())['messages']
+        framed = self.provider.complete([*original, result['message'], {'role': 'system', 'content':
+            '上面的 Harness 候选回复没有按分流格式输出。按前述字段严格返回 JSON 对象，保留普通答复的内容。'
+            '这一步只分流，没有执行工具；候选中的执行承诺不是完成回执。需要实际操作的本人指令仍应交执行器。'}],
+            json_output=True)
+        try:
+            if not isinstance(json.loads(framed['message']['content']), dict):
+                raise ValueError()
+        except (KeyError, ValueError, TypeError):
+            raise ModelError('Original Harness reply has no valid decision frame.') from None
+        temporary = path.with_suffix('.tmp')
+        temporary.write_text(json.dumps(framed))
+        temporary.chmod(0o600)
+        os.replace(temporary, path)
+        return framed
 
     def _run(self, messages, mode):
         # Native identity, never model text, names the durable generation request.
         identity = [self.scope, self.request, mode] if self.scope and self.request else [mode, messages]
         key = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
+        self.last_input_key = key
         calls = Path(self.config['state']) / 'inputs'
         calls.mkdir(mode=0o700, exist_ok=True)
         if calls.is_symlink() or calls.stat().st_mode & 0o077:
@@ -74,7 +109,7 @@ class DshBackend:
                 '要求开发、修改配置，或读取实际项目文件、排查真实代码和运行状态时 engineering=true；'
                 '纯知识讨论和看图用 false。不要因为分流步骤没有工具，就拒绝需要实际检查的任务。'
                 '仅输出 JSON {"engineering":布尔值,"text":"普通回复"}；需要执行时 text 为空。'},
-                {'role': 'user', 'content': content}])['message']['content'])
+                {'role': 'user', 'content': content}], json_output=True)['message']['content'])
             if (set(decision) != {'engineering', 'text'} or type(decision['engineering']) is not bool
                     or not isinstance(decision['text'], str)):
                 raise ModelError('Invalid owner work decision.')

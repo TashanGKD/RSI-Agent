@@ -6,8 +6,10 @@ import tempfile
 import types
 import unittest
 from unittest.mock import patch
+from unittest.mock import Mock
 
 from rsi_agent.dsh_worker import blocks, execute
+from rsi_agent.backend import DshBackend
 
 
 class ImageBlocksTests(unittest.TestCase):
@@ -23,6 +25,32 @@ class ImageBlocksTests(unittest.TestCase):
         for url in ['https://example.com/private.png', 'file:///etc/passwd', 'data:text/plain;base64,YQ==']:
             with self.assertRaises(ValueError):
                 blocks([{'role': 'user', 'content': [{'type': 'image_url', 'image_url': {'url': url}}]}])
+
+
+@unittest.skipUnless(sys.platform == 'linux', 'requires private original framing cache')
+class DecisionFramingTests(unittest.TestCase):
+    def test_plain_reply_is_framed_once_from_original_inputs_without_replacing_it(self):
+        with tempfile.TemporaryDirectory() as folder:
+            state = Path(folder)
+            (state / 'inputs').mkdir(mode=0o700)
+            original = [{'role': 'system', 'content': 'Output JSON with speak/text/work_index.'},
+                        {'role': 'user', 'content': 'original native question'}]
+            (state / 'inputs' / ('a' * 64 + '.json')).write_text(json.dumps({'messages': original}))
+            backend = DshBackend.__new__(DshBackend)
+            backend.config = {'state': folder}
+            backend.last_input_key = 'a' * 64
+            prose = {'message': {'role': 'assistant', 'content': 'An already generated ordinary reply.'}}
+            backend._run = Mock(return_value=prose)
+            backend.provider = Mock()
+            wanted = {'message': {'role': 'assistant', 'content': '{"speak":true,"text":"An already generated ordinary reply.","work_index":null}'}}
+            backend.provider.complete.return_value = wanted
+            self.assertEqual(backend.complete([{'role': 'user', 'content': 'changed live context'}], json_output=True), wanted)
+            self.assertEqual(backend.complete([], json_output=True), wanted)
+            backend.provider.complete.assert_called_once()
+            request = backend.provider.complete.call_args
+            self.assertEqual(request.args[0][:2], original)
+            self.assertTrue(request.kwargs['json_output'])
+            self.assertEqual(prose['message']['content'], 'An already generated ordinary reply.')
 
 
 @unittest.skipUnless(sys.platform == 'linux', 'requires Linux private journals and lock')

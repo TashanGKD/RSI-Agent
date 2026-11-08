@@ -55,3 +55,13 @@ technical judgment are explicit requirements; execution still needs real evidenc
 Pinned DeepSeek Harness replaces the direct SCNET chat adapter upon activation,
 not a purported existing Codex CLI backend. Image support is source-verified
 decoded bytes; encrypted cache/desktop captures are not accepted as originals.
+
+## D007 — Natural conversation and the bridge protocol are different outputs
+
+A real group turn made Harness return ordinary prose despite the requested JSON,
+blocking native delivery. Request the provider's tested JSON-object mode for
+decisions. When SDK prose is already completed, frame it from its frozen original
+inputs and cache the frame; retain the SDK result. Persist a group's selected
+native IDs before generation so a later arrival cannot replace the unresolved
+batch. Schema/native-owner checks still govern tools and sending. A model's good
+isolated JSON example is not proof that every real conversation follows it.

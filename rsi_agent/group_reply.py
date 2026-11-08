@@ -75,7 +75,14 @@ class GroupLoop(ReplyLoop):
                 if state == 'sent':
                     self.save('last_spoken', time.time())
             return {'state': state, 'counts': self.counts()}
-        rows = self.db.execute("SELECT * FROM inbox WHERE state='new' ORDER BY created,id LIMIT 128").fetchall()
+        active = self.value('model_batch')
+        if active:
+            identities = json.loads(active)
+            rows = [self.db.execute("SELECT * FROM inbox WHERE id=? AND state='new'", (key,)).fetchone() for key in identities]
+            if not identities or len(identities) > 128 or any(row is None for row in rows):
+                raise ValueError('Original group model batch changed.')
+        else:
+            rows = self.db.execute("SELECT * FROM inbox WHERE state='new' ORDER BY created,id LIMIT 128").fetchall()
         # One original image per turn fits the private inline transport budget.
         seen_image = False
         for index, row in enumerate(rows):
@@ -127,8 +134,11 @@ class GroupLoop(ReplyLoop):
             'seconds_since_own_post': round(elapsed)}, ensure_ascii=False)
         if self.images:
             self.model.use_request([r['id'] for r in rows])
+        if not active:
+            with self.db:
+                self.save('model_batch', json.dumps([r['id'] for r in rows]))
         result = self.model.complete([{'role': 'system', 'content': system}, {'role': 'user',
-            'content': [{'type': 'text', 'text': data}, *images] if images else data}])
+            'content': [{'type': 'text', 'text': data}, *images] if images else data}], json_output=True)
         decision = json.loads(result['message']['content'])
         expected = {'speak', 'text', 'work_index'} if engineering else {'speak', 'text'}
         work = decision.get('work_index')
@@ -150,6 +160,7 @@ class GroupLoop(ReplyLoop):
             self.db.executemany("UPDATE inbox SET state='quiet' WHERE id=?", [(r['id'],) for r in rows])
             if decision['speak']:
                 self.db.execute("UPDATE inbox SET reply=?,state='pending' WHERE id=?", (decision['text'], rows[-1]['id']))
+            self.db.execute("DELETE FROM participation WHERE k='model_batch'")
         # Deliver only cached output on the next cycle, including after restart.
         return {'state': 'pending' if decision['speak'] else 'quiet', 'counts': self.counts()}
 
