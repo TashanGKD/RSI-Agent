@@ -181,7 +181,8 @@ class GroupSourceTests(unittest.TestCase):
                     'real_sender_id INTEGER,create_time INTEGER,sort_seq INTEGER,message_content TEXT,source TEXT);')
                 db.executemany('INSERT INTO ' + table + ' VALUES(?,?,?,?,?,?,?,?)', [
                     (1, 1, 1, 2, 50, 1, 'old', ''), (6, 6, 1, 1, 120, 1, 'own introduction', ''),
-                    (2, 2, 1, 2, 120, 2, 'a:\nquestion', '<msgsource><atuserlist>self</atuserlist></msgsource>'),
+                    (7, 7, 47, 2, 120, 2, 'sticker-must-not-decode', ''),
+                    (2, 2, 1, 2, 120, 3, 'a:\nquestion', '<msgsource><atuserlist>self</atuserlist></msgsource>'),
                     (3, 3, 1, 3, 130, 3, 'reply', ''), (4, 4, 1, 1, 140, 4, 'own', ''),
                     (5, 5, 1, 4, 150, 5, 'foreign', '')])
             sys.path.insert(0, str(WORKBENCH / 'wechat'))
@@ -199,12 +200,14 @@ class GroupSourceTests(unittest.TestCase):
                 with patch.object(linux_tool, 'native', opened), patch.object(linux_tool, 'decode', lambda text: text or ''):
                     members = {'self': 'Bot', 'a': 'A', 'b': 'B'}
                     batch = read_group(root, binding, {'op': 'read'}, members)
-                    self.assertEqual([e['server_id'] for e in batch['events']], [2, 3])
-                    self.assertEqual(batch['events'][0]['text'], 'question')
-                    self.assertTrue(batch['events'][0]['mentioned'])
-                    self.assertTrue(batch['events'][0]['follows_self'])
-                    self.assertFalse(batch['events'][1]['follows_self'])
-                    self.assertEqual(batch['events'][1]['sender_name'], 'B')
+                    texts = [e for e in batch['events'] if e['kind'] == 1]
+                    self.assertEqual([e['server_id'] for e in texts], [2, 3])
+                    self.assertEqual(texts[0]['text'], 'question')
+                    self.assertTrue(texts[0]['mentioned'])
+                    self.assertTrue(texts[0]['follows_self'])
+                    self.assertFalse(texts[1]['follows_self'])
+                    self.assertEqual(texts[1]['sender_name'], 'B')
+                    self.assertEqual(next(e['text'] for e in batch['events'] if e['kind'] == 47), '')
                     read_group(root, binding, {'op': 'ack', **{k: batch[k] for k in ('batch_id', 'batch_hash', 'ack_ids')}}, members)
                     self.assertEqual(read_group(root, binding, {'op': 'read'}, members)['events'], [])
             finally:

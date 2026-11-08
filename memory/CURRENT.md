@@ -2,13 +2,17 @@
 
 ## Delivered baseline
 
-Latest main/current checked: `2a6d61d5d569470cc08894bb3edd65f16724ac19`.
+Latest main/current checked: `000ccd4a1f7719d2d491c49421734f2cf8a59104`.
 PR #7 delivered owner-private replies; PR #8 delivered admitted group intake,
 context, moderate decisions and a native accepted introduction; PR #9 delivered
 natural conversational tone. Their live delivery receipts supersede the old
 candidate states. Both server workers are active and independent of Codex.
-Owner PID 259347 and group PID 259346 are pinned to that release; verify live
-again before acting. The admitted group still contains account and owner.
+The owner worker remains on `2a6d61d5d569` with PID 259347, intentionally
+uninterrupted because its source did not change. PR #10 published follow-up
+code, but its activation guard found an intervening native sticker before the
+identified reply. That guard stopped recovery without changing the quiet event;
+the existing group worker was restored on `2a6d61d5d569`. Verify its current PID.
+The admitted group still contains account and owner.
 
 ## One active failure: follow-up incorrectly ignored
 
@@ -23,6 +27,8 @@ Native previous-message identity can distinguish this case without requiring an
 @ or punctuation. Candidate: carry follows_self from the same committed native
 metadata order, persist it in the private group inbox, prioritize the message
 through spacing, and tell the model to answer actual conversational follow-ups.
+The relation must use the same readable-text projection as the model context:
+an intervening sticker/media cannot make that available prior text disappear.
 Finished acknowledgements and other people's conversations may still be quiet.
 Original message text, source ACKs and request identities remain unchanged.
 
