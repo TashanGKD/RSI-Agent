@@ -145,6 +145,20 @@ class ReplyLoopTests(unittest.TestCase):
         context.assert_called_once_with('')
         self.assertFalse(self.model.reply.call_args.kwargs['allow_engineering'])
 
+    def test_owner_shared_link_reaches_real_page_context_without_image_or_tools(self):
+        self.model.backend = 'deepseek-harness'
+        self.batch['events'] = [event(kind=49, text='', link={
+            'url': 'https://mp.weixin.qq.com/s/fixture', 'text': 'Article title\nhttps://mp.weixin.qq.com/s/fixture'})]
+        page = {'state': 'ready', 'url': 'https://mp.weixin.qq.com/s/fixture', 'text': 'Actual extracted article body.'}
+        with patch('rsi_agent.owner_reply.linked_pages', create=True, return_value=[page]) as read:
+            self.assertEqual(self.loop().cycle()['state'], 'sent')
+        read.assert_called_once()
+        self.assertIn('Actual extracted article body.', str(self.model.reply.call_args.kwargs['pages']))
+        self.assertNotIn('Actual extracted article body.', str(self.model.reply.call_args.args[1]))
+        self.assertFalse(self.model.reply.call_args.kwargs['allow_engineering'])
+        self.assertFalse(any(c['op'] == 'image' for c in self.calls))
+        self.assertEqual(list(self.effects), ['1'])
+
 
 @unittest.skipUnless(sys.platform == 'linux', 'requires Linux private state and executor lock')
 class ReplyNativeTests(unittest.TestCase):

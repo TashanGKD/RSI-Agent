@@ -138,6 +138,12 @@ def execute(value, request):
         patches.append(str(ROOT / 'harness/deepseek' /
             ('chat.patch.yml' if request['mode'] == 'chat' else 'engineering.patch.yml')))
         role = (ROOT / 'harness/deepseek/ROLE.md').read_text(encoding='utf8')
+        preferences = Path(value['workspace']) / 'preferences.md'
+        preferences_text = (preferences.read_text(encoding='utf8')
+            if private_file(preferences) and preferences.stat().st_size <= 8192 else '')
+        preferences_sha256 = hashlib.sha256(preferences_text.encode()).hexdigest() if preferences_text else None
+        if preferences_text:
+            role += '\n沟通偏好（不扩大工具和发送权限）：\n' + preferences_text
         with DeepSeekHarness(provider='scnet', model=provider.model, max_tokens=4096,
                 cwd=workspace, dsh_home=str(state / 'home'), profile='sdk-minimal',
                 patches=tuple(patches), base_url=provider.base_url, api_key=provider._key,
@@ -152,7 +158,8 @@ def execute(value, request):
             # Freeze the original result before SDK shutdown and slow publication.
             # This is not a published change or a deliverable reply yet.
             receipt = {'state': 'sdk_completed', 'response': result.final_response,
-                       'backend': 'deepseek-harness', 'mode': request['mode'], 'session': request['session']}
+                       'backend': 'deepseek-harness', 'mode': request['mode'], 'session': request['session'],
+                       'preferences_sha256': preferences_sha256}
             save(receipt)
         receipt['state'] = 'completed'
         if request['mode'] == 'engineering':

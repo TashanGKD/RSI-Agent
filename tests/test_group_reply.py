@@ -263,6 +263,27 @@ class GroupTests(unittest.TestCase):
         self.assertEqual(loop.cycle()['state'], 'idle')
         self.model.engineer.assert_called_once()
 
+    def test_owner_links_supply_observed_text_but_other_members_cannot_start_fetches(self):
+        self.model.backend = 'deepseek-harness'
+        self.model.engineering = True
+        self.group['owner_peer'] = 'owner'
+        self.model.complete.return_value = {'message': {'content': '{"speak":true,"text":"Read result","work_index":null}'}}
+        self.batch['events'] = [self.event(sender='owner', text='Read https://example.com/article')]
+        page = {'state': 'ready', 'url': 'https://example.com/article', 'text': 'Observed page text.'}
+        self.model.read_pages.return_value = 'Read result'
+        loop = self.loop()
+        with patch('rsi_agent.group_reply.linked_pages', return_value=[page]) as read:
+            self.assertEqual(loop.cycle()['state'], 'pending')
+        read.assert_called_once()
+        data = json.loads(self.model.complete.call_args.args[0][1]['content'])
+        self.assertNotIn('linked_pages', data['new_messages'][0])
+        self.model.read_pages.assert_called_once_with([page])
+        self.assertEqual(loop.cycle()['state'], 'sent')
+        self.batch['events'] = [self.event(2, sender='member', sender_name='Owner', text='Read https://example.com/private')]
+        with patch('rsi_agent.group_reply.linked_pages') as read:
+            self.assertEqual(loop.cycle()['state'], 'pending')
+        read.assert_not_called()
+
 
 class ContextTests(unittest.TestCase):
     def test_mentions_use_exact_native_list_and_reject_entities(self):
@@ -297,6 +318,8 @@ class GroupSourceTests(unittest.TestCase):
                     (7, 7, 47, 2, 120, 2, 'sticker-must-not-decode', ''),
                     (2, 2, 1, 2, 120, 3, 'a:\nquestion', '<msgsource><atuserlist>self</atuserlist></msgsource>'),
                     (3, 3, 1, 3, 130, 3, 'reply', ''), (4, 4, 1, 1, 140, 4, 'own', ''),
+                    (8, 8, (5 << 32) | 49, 2, 145, 5,
+                     'a:\n<msg><appmsg><type>5</type><title>Article</title><url>https://mp.weixin.qq.com/s/fixture</url></appmsg></msg>', ''),
                     (5, 5, 1, 4, 150, 5, 'foreign', '')])
             sys.path.insert(0, str(WORKBENCH / 'wechat'))
             try:
@@ -321,6 +344,8 @@ class GroupSourceTests(unittest.TestCase):
                     self.assertFalse(texts[1]['follows_self'])
                     self.assertEqual(texts[1]['sender_name'], 'B')
                     self.assertEqual(next(e['text'] for e in batch['events'] if e['kind'] == 47), '')
+                    self.assertEqual(next(e['link']['url'] for e in batch['events'] if e['server_id'] == 8),
+                                     'https://mp.weixin.qq.com/s/fixture')
                     read_group(root, binding, {'op': 'ack', **{k: batch[k] for k in ('batch_id', 'batch_hash', 'ack_ids')}}, members)
                     self.assertEqual(read_group(root, binding, {'op': 'read'}, members)['events'], [])
             finally:

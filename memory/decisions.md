@@ -106,3 +106,15 @@ group's committed native rows; XML names and quoted instructions are data.
 Unresolvable references retain the current question without claiming a target.
 Quoted kind 49 cannot request engineering. Preserve source ACKs and cached
 effects, and do not replay already-ACKed historical questions during rollout.
+
+## D012 — Owner link observations follow routing and remain in their own Session
+
+Read only links in the current native owner's text or actual shared-link card.
+Cache bounded HTTPS observations by the original message; blocked/non-article
+responses remain unavailable. Page contents do not enter engineering routing.
+After the original routing call completes, a fixed link-reading chat stage uses
+a separate tool-free Session and preserves its own original SDK result. It is
+not a replacement ID for uncertain work, and the native V2 ID does not change.
+Ordinary conversation does not inherit full prior articles. Curated private
+communication preferences have a digest in each new completion; raw Codex
+memories, private transcripts and other-project files are not copied into groups.
