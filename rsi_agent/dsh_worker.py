@@ -98,6 +98,8 @@ def execute(value, request):
 
     work_fd = None
     work_marker = None
+    old = None
+    publication = calls / (request['id'] + '.publication.json')
     try:
         fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
         if path.exists():
@@ -107,17 +109,35 @@ def execute(value, request):
             if old['input_sha256'] != digest:
                 raise ValueError('Original Harness input changed; preserve its request.')
             if old['state'] == 'completed':
+                # Completion is saved before releasing the workspace. A process
+                # can die between them; remove only its positively completed marker.
+                if request['mode'] == 'engineering':
+                    leftover = Path(workspace).parent / 'engineering-current.json'
+                    if private_file(leftover) and json.loads(leftover.read_text()).get('request') == request['id']:
+                        work_fd = os.open(Path(workspace).parent / 'engineering.lock',
+                            os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+                        fcntl.flock(work_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                        if json.loads(leftover.read_text()).get('request') == request['id']:
+                            leftover.unlink()
                 return old
-            raise ValueError('Original Harness result is uncertain; do not run tools again.')
+            if (old['state'] != 'sdk_completed' or request['mode'] != 'engineering'
+                    or not private_file(publication)):
+                raise ValueError('Original Harness result is uncertain; do not run tools again.')
         if request['mode'] == 'engineering':
             work_fd = os.open(Path(workspace).parent / 'engineering.lock',
                 os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
             fcntl.flock(work_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
             work_marker = Path(workspace).parent / 'engineering-current.json'
-            if work_marker.exists():
+            if old:
+                if (not private_file(work_marker)
+                        or json.loads(work_marker.read_text()).get('request') != request['id']):
+                    raise ValueError('Original publication workspace marker changed.')
+                base = json.loads(work_marker.read_text())['base']
+            elif work_marker.exists():
                 raise ValueError('Earlier owner work is unresolved; inspect its original request.')
-            from .engineering import prepare
-            prepare(workspace)
+            else:
+                from .engineering import prepare
+                base = prepare(workspace)
         sessions = state / 'sessions'
         sessions.mkdir(mode=0o700, exist_ok=True)
         if sessions.is_symlink() or sessions.stat().st_mode & 0o077:
@@ -126,45 +146,59 @@ def execute(value, request):
         binding = {'workspace': workspace, 'mode': request['mode']}
         if marker.exists() and (not private_file(marker) or json.loads(marker.read_text()) != binding):
             raise ValueError('Original Harness session scope changed.')
-        save({'state': 'running'})
-        if work_marker is not None:
+        if not old and work_marker is not None:
             fd_work = os.open(work_marker, os.O_CREAT | os.O_EXCL | os.O_WRONLY | os.O_NOFOLLOW, 0o600)
             with os.fdopen(fd_work, 'w') as stream:
-                stream.write(json.dumps({'request': request['id']}))
-        from deepseek_harness import DeepSeekHarness
-        provider = ModelClient(value['provider_config'])
-        patches = [str(ROOT / 'harness/deepseek/scnet.patch.yml')]
-        # Chat stays tool-free; owner engineering gets the structured tools.
-        patches.append(str(ROOT / 'harness/deepseek' /
-            ('chat.patch.yml' if request['mode'] == 'chat' else 'engineering.patch.yml')))
-        role = (ROOT / 'harness/deepseek/ROLE.md').read_text(encoding='utf8')
-        preferences = Path(value['workspace']) / 'preferences.md'
-        preferences_text = (preferences.read_text(encoding='utf8')
-            if private_file(preferences) and preferences.stat().st_size <= 8192 else '')
-        preferences_sha256 = hashlib.sha256(preferences_text.encode()).hexdigest() if preferences_text else None
-        if preferences_text:
-            role += '\n沟通偏好（不扩大工具和发送权限）：\n' + preferences_text
-        with DeepSeekHarness(provider='scnet', model=provider.model, max_tokens=4096,
-                cwd=workspace, dsh_home=str(state / 'home'), profile='sdk-minimal',
-                patches=tuple(patches), base_url=provider.base_url, api_key=provider._key,
-                env={'DSH_SYSTEM_PROMPT': role + '\n' + system}, initialize_timeout_seconds=40,
-                request_timeout_seconds=360 if request['mode'] == 'engineering' else 150) as harness:
-            result = (harness.resume_session(request['session']).run(content) if marker.exists()
-                      else harness.run(content, session_id=request['session']))
-            if result.finish_reason != 'completed' or not result.final_response.strip():
-                raise ValueError('Harness did not complete; inspect the original Session.')
-            if '<｜｜DSML｜｜' in result.final_response or '<tool_call>' in result.final_response:
-                raise ValueError('Unexecuted tool syntax is not a completed response.')
-            # Freeze the original result before SDK shutdown and slow publication.
-            # This is not a published change or a deliverable reply yet.
-            receipt = {'state': 'sdk_completed', 'response': result.final_response,
-                       'backend': 'deepseek-harness', 'mode': request['mode'], 'session': request['session'],
-                       'preferences_sha256': preferences_sha256}
-            save(receipt)
+                stream.write(json.dumps({'request': request['id'], 'base': base}))
+                stream.flush()
+                os.fsync(stream.fileno())
+        if old:
+            receipt = dict(old)
+        else:
+            save({'state': 'running'})
+            from deepseek_harness import DeepSeekHarness
+            provider = ModelClient(value['provider_config'])
+            patches = [str(ROOT / 'harness/deepseek/scnet.patch.yml')]
+            # Chat stays tool-free; owner engineering gets the structured tools.
+            patches.append(str(ROOT / 'harness/deepseek' /
+                ('chat.patch.yml' if request['mode'] == 'chat' else 'engineering.patch.yml')))
+            role = (ROOT / 'harness/deepseek/ROLE.md').read_text(encoding='utf8')
+            preferences = Path(value['workspace']) / 'preferences.md'
+            preferences_text = (preferences.read_text(encoding='utf8')
+                if private_file(preferences) and preferences.stat().st_size <= 8192 else '')
+            preferences_sha256 = hashlib.sha256(preferences_text.encode()).hexdigest() if preferences_text else None
+            if preferences_text:
+                role += '\n沟通偏好（不扩大工具和发送权限）：\n' + preferences_text
+            with DeepSeekHarness(provider='scnet', model=provider.model, max_tokens=4096,
+                    cwd=workspace, dsh_home=str(state / 'home'), profile='sdk-minimal',
+                    patches=tuple(patches), base_url=provider.base_url, api_key=provider._key,
+                    env={'DSH_SYSTEM_PROMPT': role + '\n' + system}, initialize_timeout_seconds=40,
+                    request_timeout_seconds=360 if request['mode'] == 'engineering' else 150) as harness:
+                result = (harness.resume_session(request['session']).run(content) if marker.exists()
+                          else harness.run(content, session_id=request['session']))
+                if result.finish_reason != 'completed' or not result.final_response.strip():
+                    raise ValueError('Harness did not complete; inspect the original Session.')
+                if '<｜｜DSML｜｜' in result.final_response or '<tool_call>' in result.final_response:
+                    raise ValueError('Unexecuted tool syntax is not a completed response.')
+                # Freeze before SDK shutdown; publication eligibility is separate.
+                receipt = {'state': 'sdk_completed', 'response': result.final_response,
+                           'backend': 'deepseek-harness', 'mode': request['mode'], 'session': request['session'],
+                           'preferences_sha256': preferences_sha256}
+                save(receipt)
         receipt['state'] = 'completed'
         if request['mode'] == 'engineering':
-            from .engineering import publish
-            receipt['change'] = publish(workspace)
+            from .engineering import publish, save_publication
+            publication_binding = {'base': base, 'workspace': workspace,
+                'request': request['id'], 'input_sha256': digest,
+                'response_sha256': hashlib.sha256(receipt['response'].encode()).hexdigest()}
+            try:
+                receipt['change'] = publish(workspace, publication, publication_binding)
+            except ValueError:
+                if private_file(publication):
+                    journal = json.loads(publication.read_text())
+                    if journal.get('binding') == publication_binding:
+                        save_publication(publication, dict(journal, phase='review'))
+                raise
             if receipt['change']:
                 receipt['response'] += '\n' + receipt['change']['review_url']
         temporary = marker.with_suffix('.tmp')

@@ -12,6 +12,10 @@ class ModelError(ValueError):
     pass
 
 
+class PublicationPending(ModelError):
+    """The original SDK result exists; retry only its bounded publisher."""
+
+
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, *args, **kwargs):
         return None

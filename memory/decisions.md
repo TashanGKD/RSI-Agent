@@ -142,3 +142,15 @@ final native recipient title/identity still govern input. Frozen source evidence
 proves current geometry rejection, not the unrecorded original failure-time
 scene. Preserve the existing review request; future recognition support does not
 authorize clearing it or replaying its cached response.
+
+## D015 — SDK completion and publisher recovery have different admission proofs
+
+Keep `sdk_completed` before SDK shutdown. Only a separate post-shutdown journal
+bound to the original request/input/response/workspace/base/tree may resume the
+publisher; an old receipt alone does not prove shutdown or permit tool replay.
+Persist a validated immutable commit before compare-and-swap branch movement.
+Reconcile the actual remote before an ordinary push, adopt confirmed effects and
+stop on changed source/index/head/remote. Resident retries retain the original
+inbox/group batch instead of sending a final fallback. Unknown live workspace
+processes are left alone. The frozen-output/local-bare replay is engineering
+acceptance, not a new live owner task, autonomous historical recovery or RSI gain.

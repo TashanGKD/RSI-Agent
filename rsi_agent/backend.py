@@ -7,7 +7,7 @@ import subprocess
 
 from .config import ROOT
 from .dsh_worker import config as harness_config
-from .model import ModelClient, ModelError
+from .model import ModelClient, ModelError, PublicationPending
 from .wechat import private_file
 
 
@@ -90,7 +90,7 @@ class DshBackend:
         result = subprocess.run([self.config['python'], '-B', '-m', 'rsi_agent.dsh_worker',
             '--config', self.path], cwd=ROOT, input=path.read_text(), capture_output=True,
             text=True, timeout=600 if mode == 'engineering' else 240,
-            env=dict(os.environ, PYTHONDONTWRITEBYTECODE='1'))
+            env=dict(os.environ, PYTHONDONTWRITEBYTECODE='1'), start_new_session=True)
         diagnostic = Path(self.config['state']) / (key + '.stderr')
         diagnostic.write_text(result.stderr)
         diagnostic.chmod(0o600)
@@ -143,6 +143,22 @@ class DshBackend:
             return self._run([{'role': 'system', 'content': system}, {'role': 'user', 'content': prompt}],
                              'engineering')['message']['content']
         except (ModelError, subprocess.SubprocessError):
+            calls = Path(self.config['state']) / 'calls'
+            original = calls / (self.last_input_key + '.json')
+            publication = calls / (self.last_input_key + '.publication.json')
+            if private_file(original) and private_file(publication):
+                frozen = json.loads(original.read_text())
+                journal = json.loads(publication.read_text())
+                binding = journal.get('binding', {})
+                if (journal.get('phase') in ('prepared', 'validated', 'completed')
+                        and binding.get('request') == self.last_input_key
+                        and binding.get('input_sha256') == frozen.get('input_sha256')
+                        and (frozen.get('state') == 'completed'
+                             or (frozen.get('state') == 'sdk_completed'
+                                 and binding.get('response_sha256') == hashlib.sha256(frozen['response'].encode()).hexdigest()))):
+                    # Leave the native inbox/batch unresolved. The resident loop
+                    # retries this fixed input, not a fallback reply or new SDK run.
+                    raise PublicationPending('Original task publication is pending.') from None
             return '这次执行没拿到完整结果，原请求和改动已保留，还不能算完成。需要先核对这次执行，再继续修改。'
 
 

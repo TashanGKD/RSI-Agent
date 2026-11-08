@@ -2,53 +2,53 @@
 
 ## Delivered baseline
 
-PR #22's local Codex handoff is merged, published and resident-active. Its private
-operator port is enabled. The next actual heartbeat completed the private nonce
-wake fixture and recorded the app thread/turn evidence in the same PR receipt.
-This proves scheduled conversation wake-up only. No fresh real /codex request
-has been claimed or delivered; keep the original claim/input/result protocol.
-Do not repeat the completed fixture or the failed default Dot socket probes.
-PR #21 links/preferences and PR #20 quoted text remain delivered. Read live
-current/release metadata, resident cwd and the latest PR receipt for the version;
-pre-release checkpoint wording is not another WIP.
+PR #23's compact official search popup support is merged, published and
+resident-active. The same exact two known shapes are shared by navigation and
+modal admission, retaining native ownership/new-window and final-recipient
+proof. This is recognition support, not proof the held old group reply recovered.
+Read current/release metadata, resident cwd and the latest PR receipt for versions.
+PR #22 local Codex handoff and #21 links/preferences remain delivered. Scheduled
+wake is verified; no fresh native /codex request has been claimed. Do not repeat
+the nonce or failed Dot probes. No open old PR is inferred from candidate text.
 
-## Current increment: official search popup geometry
+## Current increment: resume only completed task publication
 
-The frozen current official popup passes native parent/process/type proof, but
-its relative geometry is [74,73,321] while both navigation and modal admission
-previously required [76,75,333]. The unmodified source rejects this real variant
-before native row selection. The failure-time popup was not recorded, so this
-reproducer does not establish the original incident's full cause.
+The frozen native completion case has an SDK result but no Git workspace or
+publisher journal; the real historical owner publication was already manually
+recovered and its later review closed. Neither is another task to regenerate,
+republish or resend. Their original receipts remain unchanged.
 
-The minimal candidate shares one exact geometry predicate in those two paths,
-admitting the observed compact variant alongside the existing calibrated one.
-It does not replace native parent/process/type proof, unique/new window checks,
-exact scene proof or final native recipient title/identity. Frozen isolated
-navigation fixtures keep the legacy path, reject foreign/ambiguous/preexisting
-windows, and refuse a wrong final recipient. No live controls or sends are used
-in those fixtures. The fixture contains normalized IDs, no chats/screenshots.
+The baseline publisher loses staged-only edits and treats committed-but-unpushed
+work as no change. The candidate freezes a post-SDK-shutdown publication journal,
+then reconciles validation, immutable commit, branch and remote effects. Only
+the same bound journal allows resume. Legacy/shutdown-uncertain calls remain
+review; unexpected source/index/head/remote changes stop publication. A resident
+retry keeps the original inbox/group batch, rather than sending a final fallback.
+
+The private frozen-output replay used local bare remotes and normalized source,
+killed owned publishers after branch update and after push, then completed from
+the original output without model/tools, duplicate commit or completed-gate
+rerun. It did not migrate a production legacy call or prove a fresh WeChat task.
+See harness/evidence/2026-11-09-publication-recovery.json for comparison boundaries.
 
 ## Unique next step
 
-Finish actual-head review/CI and reversible publication/activation of this
-increment if its live receipt does not already record delivery. Preserve the
-original group needs_attention request, cached reply, ACK and navigation journal.
-The latest maintenance scope explicitly forbids clearing/replaying/confirming
-that original request. A proposed one-off cleanup must be concrete and separately
-allowed: prove the original query/window, restore its owned search navigation,
-settle it as not sent, retain the reply and permit only future inbound work. Do
-not claim the group is restored from code/fixture acceptance alone.
+Finish actual-head review/CI and reversible publication/activation if the live PR
+receipt does not already record delivery. Then observe one fresh authorized
+owner task through the original result and V2; do not manufacture a task or PR.
+No periodic native probes are authorized. Empty local Codex input is not an
+engineering blocker; follow the backlog for an independent path after delivery.
 
-Fresh /codex tasks take priority when present. If navigation cleanup remains
-outside the allowed scope, retain its specific blocker and move to independent
-SDK-completed publication recovery, reconciling real Git/remote effects without
-rerunning the original model/tools. No repeated geometry probes or delay tweaks.
+The old group's original needs_attention/reply/ACK/navigation are preserved.
+Its concrete one-off navigation cleanup remains unapproved. Do not repeat that
+permission question, operate the UI, replay the old reply or infer approval from
+maintenance text. Only a later explicit answer can change that boundary.
 
 ## Remaining boundaries
 
 Ordinary owner/group replies are resident DSH, independent of maintenance. The
 sticker library/native search/GIF and separate Node 24/autoloop CLI are installed;
-actual WeChat sticker output and task-engine binding remain incomplete. Scoped
+native WeChat sticker output and task-event binding remain incomplete. Scoped
 memory retrieval/correction, fixed-runtime Penguin evaluation/Formal Baseline,
-client persistence, folded albums and whole-video understanding remain distinct.
+client persistence, folded albums and whole-video understanding remain separate.
 Secrets, raw chats and private assets stay outside Git. No RSI gain is claimed.

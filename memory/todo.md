@@ -3,14 +3,15 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-1. **Official search popup geometry: current source increment.** The frozen real
-   compact popup is rejected by both old candidate filters, despite proven native
-   parent/process/type. Finish review/CI and reversible release; preserve unique
-   new-window and final-recipient proof. The old V2 needs_attention/reply/journal
-   stays intact. No group-restored claim from fixtures or code activation. The
-   latest maintenance scope forbids old navigation cleanup; prepare a bounded
-   not-sent recovery and obtain explicit one-off permission before that action.
-   When blocked on live recovery, move to SDK publication rather than repeat it.
+1. **Completed task publication recovery: current source increment.** A private
+   post-shutdown journal binds the frozen result to its original Git effects.
+   Branch-update/push SIGKILL replay resumes one original result without another
+   SDK run, commit or completed gate. Finish review/CI and reversible release if
+   not already delivered; native fresh owner-task acceptance requires real input.
+   Legacy uncertain completions without the journal remain review. PR #23 popup
+   recognition is delivered. The old group V2/reply/ACK/navigation remains held;
+   the prepared one-off unsent navigation recovery still needs its pending
+   explicit answer. Do not re-ask, clear or replay it during routine maintenance.
 2. **Local Codex handoff: delivered; native acceptance awaits fresh input.**
    Scheduled wake fixture completed in the actual desktop heartbeat and receipt
    is in PR #22/operator metadata. Do not repeat it or the failed Dot probes.
@@ -18,11 +19,12 @@ as candidates rather than silently expanding the active task.
    completed output, preserve the original V2. No synthetic message or second
    generation after an uncertain running turn. PR #21 links/preferences are
    delivered too; only fresh link/card native acceptance remains observation.
-3. **Task publication recovery and agent-autoloop binding.** Restore the frozen
-   sdk_completed result after reconciling validation/staging/commit/push effects.
-   Stable task-engine CLI and separate Node 24 are installed, with no active
-   WeChat binding. Do not rerun the original model/tools, create a fake task/PR,
-   or label the earlier manual recovery as autonomous delivery.
+3. **Persistent task-event/agent-autoloop binding.** First retain delivery of the
+   bounded publisher above; do not rebuild its completed-output persistence or
+   reopen already manually recovered historical work. Stable task-engine CLI
+   and separate Node 24 are installed, with no active WeChat event binding. Reuse
+   the same original Session/input/result and publication effects; do not create
+   a second model consumer, fake task/PR or claim the manual recovery autonomous.
 4. **Dafeiyu native WeChat output.** The library/native search/actual GIF are
    prepared. Add the original-request asset/recipient/V2 transport path, keeping
    moderate reactions in the already-authorized owner/groups. Web Markdown is

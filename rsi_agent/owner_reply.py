@@ -9,7 +9,7 @@ import sys
 import time
 
 from .config import ROOT
-from .model import ModelError
+from .model import ModelError, PublicationPending
 from .media import image_part, MediaPending, MediaUnavailable
 from .link_reader import linked_pages
 from .wechat import private_file
@@ -209,6 +209,8 @@ def run(path, mode):
                 break
             try:
                 result = loop.cycle()
+            except PublicationPending:
+                result = {'state': 'work_pending', 'counts': loop.counts()}
             except ModelError:
                 result = {'state': 'model_unavailable', 'counts': loop.counts()}
             except (OSError, ValueError, subprocess.SubprocessError):

@@ -16,11 +16,30 @@ inputs and completed results are cached before native sending.
 The original call journal records `sdk_completed` with the validated SDK response
 before SDK shutdown and verification/publication. File and parent-directory fsync
 make that checkpoint durable. `completed` is written only after the remaining
-steps succeed. A shutdown/publication interruption keeps the original response,
-input digest and work marker; re-entry still refuses to run tools or publication
-again. Operator status reports this as `needs_review` / `sdk_completed`, never as
-a delivered change. Publication recovery remains a separate step that must
-reconcile actual Git/remote effects before retrying them.
+steps succeed. A shutdown interruption or legacy `sdk_completed` without a
+publication checkpoint remains `needs_review`; neither permits another SDK run.
+After SDK shutdown positively succeeds, the publisher freezes a separate private
+`calls/<id>.publication.json`, bound to the original input/response digests,
+workspace, base commit, source tree, index and remote ref. Only that journal
+permits same-request publication recovery. It is not retroactively created for
+an uncertain old result.
+
+Validation success and an immutable commit are saved before branch movement.
+The branch update compares against the original head; ordinary fast-forward push
+is reconciled against the actual remote ref. Re-entry adopts already-applied
+effects rather than creating another commit/push or invoking the SDK. Changed
+source/index/head, failed validation or a changed remote goes to review. A live
+workspace process delays recovery without killing it. Staged-only edits are
+included; no-change tasks do not create commits or PRs.
+
+The resident reply loop keeps the native inbox/frozen group batch unresolved as
+`work_pending` during recoverable publication interruption, instead of sending a
+final fallback. Once publication completes, the original cached result reaches
+the existing V2 sender. This is still a per-turn SDK followed by a durable
+publisher, not DSH jobs or an agent-autoloop daemon. The read-only engineering
+observation's `retry_allowed=false` continues to forbid model/tool reexecution.
+Frozen replay evidence is in [publication recovery](../evidence/2026-11-09-publication-recovery.json);
+fresh native engineering completion remains a separate acceptance.
 
 Engineering mode also loads `engineering.patch.yml`, which exposes the
 structured `read`/`write`/`edit`/`read_image` tools and a read-only `web_fetch`.
