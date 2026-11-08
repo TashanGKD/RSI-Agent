@@ -75,3 +75,14 @@ the original and exported checksums separately; original-file requests remain
 strict. Never replace an existing request's representation or ID to retry it.
 Native Channels cards may contribute their single verified cover; this does not
 read the video. Captions and image contents cannot enter engineering execution.
+
+## D009 — Native DSH packages, one boundary at a time
+
+Keep one repository and independently installable DSH bundles for WeChat, memory,
+tasks and evaluation. The first package is read-only runtime observation, not a
+second consumer or full channel migration. Operator-configured paths never become
+model arguments; sanitized observations omit identities, chats and credentials.
+Chat observations and unresolved engineering work are separate states. Reuse DSH
+tool/jobs lifecycle, but a short-lived per-turn SDK host does not establish durable
+background execution. Task migration must first preserve completed output across
+publication interruption; Penguin needs a real fixed-runtime evaluation adapter.

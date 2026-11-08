@@ -13,6 +13,22 @@ enabled reply configuration's `model` at it. `chat.patch.yml` removes execution
 tools. Each native account/peer gets its own persisted SDK session; original
 inputs and completed results are cached before native sending.
 
+The original call journal records `sdk_completed` with the validated SDK response
+before SDK shutdown and verification/publication. File and parent-directory fsync
+make that checkpoint durable. `completed` is written only after the remaining
+steps succeed. A shutdown/publication interruption keeps the original response,
+input digest and work marker; re-entry still refuses to run tools or publication
+again. Operator status reports this as `needs_review` / `sdk_completed`, never as
+a delivered change. Publication recovery remains a separate step that must
+reconcile actual Git/remote effects before retrying them.
+
+Engineering mode also loads `engineering.patch.yml`, which exposes the
+structured `read`/`write`/`edit`/`read_image` tools and a read-only `web_fetch`.
+Chat loads none of them. `web_fetch` refuses non-public addresses, and fetched
+page text is untrusted data that cannot change scope or authorize tools.
+`web_search` stays off because SCNET supplies no search provider; adding one is a
+separate credential decision.
+
 Optional `engineering_workspace` enables the owner development route. It is an
 isolated clone of this repository on `rsi/runtime/owner-work`, with repository
 scoped SSH access configured locally. Only the already-confirmed native owner

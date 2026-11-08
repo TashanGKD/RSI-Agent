@@ -2,47 +2,69 @@
 
 ## Delivered baseline
 
-PR #15's live receipt supersedes its candidate checkpoint. Current, release
-metadata and both resident workers were verified at
-`4aee56f1d10c07dce0d1a038848718d18faf6824`, using pinned DeepSeek Harness and
-SCNET. Replying runs independently of the ACTIVE 45-minute maintenance loop.
+PR #16's delivery receipt supersedes its candidate checkpoint. Current, release
+metadata and both resident reply workers are at main 22bb0c6b21de, with pinned
+DeepSeek Harness and SCNET. The actual Channels cover entered the production
+model and received one independently audited native group reply. Ordinary-photo
+official-visible export and isolated recognition passed; a fresh ordinary-photo
+automatic-reply turn remains unobserved. Do not replay old image requests.
 
-## One WIP: real image recognition
+## One WIP: owner tools and first native DSH plugin (PR #17)
 
-The owner's latest shared image is a native Channels video-cover card
-(kind 49/type 51). Old code ignored it. Candidate admits only this native card
-format's single source-bound HTTPS cover, validates/caches decoded bytes and
-passes a real model image block. It never claims to read the video. An actual
-1920x1080 cover produced a correct Rubin-paper recognition in the isolated SDK.
+A native confirmed-owner text generated this change in the isolated runtime
+workspace. Its original SDK session has a completed turn, matching frozen input
+and paired tool results, but the outer bridge did not persist completion or
+publish the source before its bounded invocation expired. Session/work/call
+locks were free. Preserve the original input, completed session and already-sent
+fallback reply; do not regenerate or send another reply under a new ID.
 
-Ordinary-image export exposed three additional blockers on the same user path:
-the crop started on the card's edge, the adapter reloaded a stale global binding,
-and the reparented viewer reported relative coordinates. Candidate preserves a
-margin and the frozen selected binding, reads absolute window coordinates and
-recognizes the observed inactive Save toolbar.
+Candidate loads engineering.patch.yml only in owner engineering mode. Actual
+runtime request headers register read/write/edit/read_image/web_fetch plus the
+existing bash/working_directory. Independent SCNET verification exercised exact
+random-file reading, write/edit/readback, public fetch and loopback refusal.
+The model also issued an extra pwd; strict no-bash prompt adherence is not
+claimed. Production chat request headers omit tool definitions and contain no
+tool calls. Ordinary chat stays tool-free; media does not grant owner authority.
 
-The received ordinary image has HEVC metadata; official Save As returns a JPEG
-with different bytes. Do not weaken the original-file checksum contract. The
-model reader explicitly requests an official-visible export, proves the native
-source and the Save dialog's default time/local-ID filename, and retains both
-checksums. Actual 612x284 JPEG export, decoder and SDK recognition of its Coze
-workflow text passed without sending. Original failed V2 read and its already
-sent unavailable-image reply remain unchanged. Existing requests keep their
-original payload even after the reader's new visible-export default.
+web_search has no configured provider and remains disabled. The attempted
+tool-fs-search insertion never registered in sdk-minimal and was removed;
+filesystem search still uses the existing engineering shell. Do not describe
+these unavailable tools as installed. Read-image is registered, not separately
+exercised by this tool probe.
 
-Publish reviewed fixed source after normal gates, then pin both idle workers to
-it. Recover only the owner's current skipped cover using its original source ID
-and retained ACK; confirm the actual image input and one native reply. Do not
-replay the already-replied ordinary image or any other history. PR delivery
-receipts supersede these pre-delivery candidate statements.
+Original publication was reconciled without rerunning the model/tools or sending
+another message. The work marker is now clear and the original call is completed;
+the PR's recovery receipt is authoritative. Runtime-generated owner work is not
+automatically merged, deployed or activated. Production stays at the delivered
+baseline.
 
-## Independent next evidence
+The owner requested several DSH plugins. `harness/DSH-PLUGINS.md` defines WeChat,
+memory, tasks and evaluation boundaries; only `dsh-rsi-wechat-status` is implemented
+as a native bundle. Its tarball was installed in an isolated SDK profile and the
+configured SCNET model actually called `rsi_wechat_status`, returning a successful
+native tool/result. Both production workers were fresh/idle on the current code,
+with no pending/attention items; original records, configs and PIDs were unchanged.
+The frozen unresolved-work fixture separately reports needs_review even with idle
+chat. The package was not mounted in production replies and does not send or retry.
+Keep the increment in the existing PR and verify CI for the combined actual head.
 
-Private copied configurations reproduced replies check reporting prepared with
-missing Python or missing SDK. Keep that separate from image delivery. Folded
-albums, whole-video reading, cross-boot desktop acceptance, the first substantive
-runtime-created PR and Penguin's Formal Baseline remain unproven.
+The completion-durability increment now saves the validated original SDK response
+as sdk_completed before SDK shutdown or publication, with file/directory fsync.
+Frozen baseline/candidate cases reproduced the previous running-only journal.
+An isolated real SDK turn followed by SIGKILL inside publication retained the
+response/input digest; same-request re-entry refused model/publication execution
+and preserved the checkpoint. Status reports needs_review / sdk_completed. The
+private acceptance receipt is beside the prior plugin receipt; production native
+records, configs and worker PIDs were unchanged. This is a candidate in PR #17,
+not automatic publication recovery or a production rollout.
 
-Native owner text admits reversible project work in its isolated Git workspace.
-Media/captions and other participants cannot grant tools. No periodic probes or
-client/X/desktop restart. Raw chats, images, native IDs and credentials stay private.
+## Unique next step
+
+Review the actual PR #17 head/CI and its delivery boundary first. The next task
+boundary is recovery of publication from the frozen original sdk_completed
+response, reconciling actual Git/remote effects before any retry. Preserve the
+original input and generated output; do not rerun tools or merely increase a
+timeout. No automatic merge, client restart or test send.
+
+Penguin's fixed-model Benchmark/Formal Baseline remains unestablished. Raw chats,
+native IDs, private traces, pictures and credentials stay outside Git.

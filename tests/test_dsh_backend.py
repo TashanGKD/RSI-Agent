@@ -67,6 +67,7 @@ class HarnessDurabilityTests(unittest.TestCase):
                        'engineering_workspace': str(work), 'provider_config': 'fixture'}
         self.calls, self.launches, self.resumed = [], [], []
         self.response = 'verified result'
+        self.close_error = None
         outer = self
 
         class Harness:
@@ -77,7 +78,8 @@ class HarnessDurabilityTests(unittest.TestCase):
                 return self
 
             def __exit__(self, *_):
-                pass
+                if outer.close_error:
+                    raise outer.close_error
 
             def run(self, content, session_id):
                 outer.calls.append((content, session_id))
@@ -107,6 +109,34 @@ class HarnessDurabilityTests(unittest.TestCase):
         self.assertEqual(first['response'], second['response'])
         self.assertEqual(len(self.calls), 1)
 
+    def test_publication_interruption_keeps_completed_output_without_reexecution(self):
+        with patch('rsi_agent.engineering.publish', side_effect=TimeoutError('publication interrupted')) as publish:
+            with self.assertRaises(TimeoutError):
+                execute(self.config, self.request)
+            path = self.state / 'calls' / (self.request['id'] + '.json')
+            frozen = path.read_bytes()
+            completed = json.loads(frozen)
+            self.assertEqual(completed['state'], 'sdk_completed')
+            self.assertEqual(completed['response'], self.response)
+            self.assertEqual(completed['session'], self.request['session'])
+            self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+            self.assertTrue((Path(self.config['engineering_workspace']).parent / 'engineering-current.json').exists())
+            with self.assertRaisesRegex(ValueError, 'uncertain'):
+                execute(self.config, self.request)
+            self.assertEqual(path.read_bytes(), frozen)
+            self.assertEqual(len(self.calls), 1)
+            publish.assert_called_once()
+
+    def test_sdk_shutdown_cannot_erase_already_completed_output(self):
+        self.close_error = TimeoutError('SDK shutdown interrupted')
+        with patch('rsi_agent.engineering.publish') as publish:
+            with self.assertRaises(TimeoutError):
+                execute(self.config, self.request)
+            publish.assert_not_called()
+        completed = json.loads((self.state / 'calls' / (self.request['id'] + '.json')).read_text())
+        self.assertEqual(completed['state'], 'sdk_completed')
+        self.assertEqual(completed['response'], self.response)
+
     def test_interrupted_original_and_changed_input_do_not_run_again(self):
         execute(self.config, self.request)
         path = self.state / 'calls' / (self.request['id'] + '.json')
@@ -125,6 +155,11 @@ class HarnessDurabilityTests(unittest.TestCase):
         self.assertTrue(self.launches[0]['patches'][-1].endswith('chat.patch.yml'))
         self.assertIn('scnet.patch.yml', self.launches[0]['patches'][0])
 
+    def test_engineering_selects_structured_tool_patch(self):
+        execute(self.config, self.request)
+        self.assertTrue(self.launches[0]['patches'][-1].endswith('engineering.patch.yml'))
+        self.assertNotIn('chat.patch.yml', ' '.join(self.launches[0]['patches']))
+
     def test_next_input_explicitly_resumes_same_chat(self):
         execute(self.config, dict(self.request, mode='chat'))
         execute(self.config, dict(self.request, mode='chat', id='b' * 64))
@@ -137,3 +172,27 @@ class HarnessDurabilityTests(unittest.TestCase):
             execute(self.config, dict(self.request, mode='chat'))
         with self.assertRaisesRegex(ValueError, 'uncertain'):
             execute(self.config, dict(self.request, mode='chat'))
+
+
+class HarnessToolAuthorityTests(unittest.TestCase):
+    """Engineering has structured tools; chat must keep none of them."""
+
+    def test_engineering_patch_enables_file_and_fetch_tools_only(self):
+        patch = (Path(__file__).resolve().parents[1] / 'harness/deepseek/engineering.patch.yml').read_text()
+        self.assertIn("- id: tool-fs", patch)
+        for flag in ('read: true', 'readImage: true', 'write: true', 'edit: true'):
+            self.assertIn(flag, patch)
+        self.assertIn("name: '@deepseek-ai/dsh-web'", patch)
+        self.assertIn("name: '@deepseek-ai/dsh-web-fetch-http'", patch)
+        self.assertIn("name: '@deepseek-ai/dsh-tool-web'", patch)
+        self.assertIn('fetch: true', patch)
+        # Scan/search is served by web_search; no provider is configured here.
+        self.assertIn('search: false', patch)
+        self.assertNotIn('disabled: true', patch)
+
+    def test_chat_patch_removes_every_execution_tool(self):
+        patch = (Path(__file__).resolve().parents[1] / 'harness/deepseek/chat.patch.yml').read_text()
+        self.assertNotIn('insert:', patch)
+        for entry in ('persistent-bash', 'persistent-pwsh', 'tool-fs', 'tool-working-directory'):
+            self.assertIn('- id: ' + entry, patch)
+        self.assertEqual(patch.count('disabled: true'), 4)
