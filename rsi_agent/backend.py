@@ -22,6 +22,25 @@ class DshBackend:
         self.engineering = bool(self.config.get('engineering_workspace'))
         self.scope, self.request = None, None
 
+    def check_runtime(self):
+        python = Path(self.config['python'])
+        if not python.is_absolute() or not python.is_file() or not os.access(python, os.X_OK):
+            raise ModelError('HARNESS_PYTHON_UNAVAILABLE: configure an executable private Harness Python.')
+        try:
+            result = subprocess.run([str(python), '-I', '-B', str(ROOT / 'harness/deepseek/check_runtime.py')],
+                cwd=ROOT, capture_output=True, text=True, timeout=15)
+            if result.returncode:
+                raise ValueError()
+            ready = json.loads(result.stdout)
+            if not isinstance(ready, dict):
+                raise ValueError()
+        except (OSError, ValueError, subprocess.SubprocessError):
+            raise ModelError('HARNESS_CHECK_FAILED: inspect the configured Python installation.') from None
+        if ready.get('sdk_ready') is not True:
+            raise ModelError('HARNESS_SDK_UNAVAILABLE: install requirements-harness.txt in the configured Python.')
+        if ready.get('runtime_ready') is not True:
+            raise ModelError('HARNESS_RUNTIME_UNAVAILABLE: reinstall the pinned runtime wheel and executable.')
+
     def bind(self, account, peer):
         self.scope = [account, peer]
 
@@ -162,8 +181,11 @@ class DshBackend:
             return '这次执行没拿到完整结果，原请求和改动已保留，还不能算完成。需要先核对这次执行，再继续修改。'
 
 
-def load_model(path):
+def load_model(path, *, verify_runtime=False):
     if not private_file(path):
         raise ModelError('Private model/backend configuration required.')
     value = json.loads(Path(path).read_text())
-    return DshBackend(path) if value.get('backend') == 'deepseek-harness' else ModelClient(path)
+    model = DshBackend(path) if value.get('backend') == 'deepseek-harness' else ModelClient(path)
+    if verify_runtime and isinstance(model, DshBackend):
+        model.check_runtime()
+    return model

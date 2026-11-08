@@ -11,33 +11,29 @@ PR #22 local Codex handoff and #21 links/preferences remain delivered. Scheduled
 wake is verified; no fresh native /codex request has been claimed. Do not repeat
 the nonce or failed Dot probes. No open old PR is inferred from candidate text.
 
-## Current increment: resume only completed task publication
+## Current increment: truthful offline Harness readiness
 
-The frozen native completion case has an SDK result but no Git workspace or
-publisher journal; the real historical owner publication was already manually
-recovered and its later review closed. Neither is another task to regenerate,
-republish or resend. Their original receipts remain unchanged.
+PR #24 publication recovery is merged, published and resident-active, with
+installed frozen-output acceptance in its live receipt. Do not reopen that work
+or rerun historical SDK output. Fresh native owner-task acceptance still awaits
+actual input; the local Codex queue was empty when this increment was selected.
 
-The baseline publisher loses staged-only edits and treats committed-but-unpushed
-work as no change. The candidate freezes a post-SDK-shutdown publication journal,
-then reconciles validation, immutable commit, branch and remote effects. Only
-the same bound journal allows resume. Legacy/shutdown-uncertain calls remain
-review; unexpected source/index/head/remote changes stop publication. A resident
-retry keeps the original inbox/group batch, rather than sending a final fallback.
-
-The private frozen-output replay used local bare remotes and normalized source,
-killed owned publishers after branch update and after push, then completed from
-the original output without model/tools, duplicate commit or completed-gate
-rerun. It did not migrate a production legacy call or prove a fresh WeChat task.
-See harness/evidence/2026-11-09-publication-recovery.json for comparison boundaries.
+Frozen copied owner/group configs report prepared despite missing configured
+Python or SDK. The candidate probes that explicit interpreter in isolation,
+checks pinned imports and bundled runtime presence, and returns distinct blocked
+reasons with installation guidance. Direct-provider checks stay offline. Actual
+CLI replay blocks the four broken paths and preserves healthy owner/group
+controls, original inbox/V2/SDK/ACK, with no model requests or native sends.
+See harness/evidence/2026-11-09-harness-readiness.json. It is prerequisite
+validation, not provider authentication, SDK startup or delivery acceptance.
 
 ## Unique next step
 
-Finish actual-head review/CI and reversible publication/activation if the live PR
-receipt does not already record delivery. Then observe one fresh authorized
-owner task through the original result and V2; do not manufacture a task or PR.
-No periodic native probes are authorized. Empty local Codex input is not an
-engineering blocker; follow the backlog for an independent path after delivery.
+Finish actual-head review/CI and reversible publication/activation if the live
+PR receipt does not already record delivery. Verify the installed current CLI
+against the same frozen inputs, preserving original state. Then prioritize a
+fresh authorized owner request; without one choose an independent evidenced
+backlog path rather than re-probing delivered dependencies or publisher cases.
 
 The old group's original needs_attention/reply/ACK/navigation are preserved.
 Its concrete one-off navigation cleanup remains unapproved. Do not repeat that
