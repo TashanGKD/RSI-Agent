@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "baseline_revision": "907b8061de84ad580cc4d07ce6b60732ac936bdb",
+  "user_path": "Run doctor as the dedicated Linux user while a configured runtime or profile directory is not searchable.",
+  "hypothesis": "Permission-denied probes can be unmet prerequisites while retaining other diagnosis and blocking reads/mutations.",
+  "interface": "python3 -B -m rsi_agent --config fixture.json doctor",
+  "module": "rsi_agent/wechat.py",
+  "baseline_module_sha256": "680e3e857c182a3268223003eede5fa24a515312ae9e15f65dda5bf1173ce7f9",
+  "candidate_module_sha256": "4dc0ed358a3cf2bac09fb71ae9962d94a17128d2592b45b665197490226d2c38",
+  "fixture": "tests/test_doctor_permissions.py",
+  "fixture_sha256": "ba2acf197e18570472bf70bbbeadaf516cedd700bc6564fe359b697fc7db4ee9",
+  "baseline": {
+    "normal_cli_exit": 0,
+    "runtime_denied_cli_exit": 2,
+    "profile_denied_cli_exit": 2,
+    "per_layer_report_preserved": false,
+    "frozen_fixture_failures": 2
+  },
+  "candidate": {
+    "runtime_denied_cli_exit": 0,
+    "profile_denied_cli_exit": 0,
+    "affected_prerequisites": false,
+    "other_diagnostic_layers_preserved": true,
+    "reads_and_confirm": "blocked before SDK delegation",
+    "fixture_files_unchanged": true,
+    "fixture_tests_passed": 2
+  },
+  "reproduce": "python3 -B -m unittest discover -s tests -p test_doctor_permissions.py -v",
+  "boundary": "Real filesystem permissions and actual CLI under a non-root Linux user; synthetic account/profile/key files only. No model call, queue executor, GUI input, real chat read/send or production permission changes. Root and non-Linux explicitly skip.",
+  "delivery": "This comparison is baseline/candidate evidence. Actual merge, fixed-source release and current-path fixture result are recorded in the live PR delivery receipt."
+}
