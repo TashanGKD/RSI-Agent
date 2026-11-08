@@ -28,7 +28,7 @@ def build_context(peer,server,records,resource_id=None,resources=(),inbound=Fals
  if any(type(m.get(k)) is not int or m[k]<=0 for k in ('length','hdlength') if k in m):raise ImageReadError('IMAGE_IDENTITY_MISSING','Positive native image length required.')
  if inbound:
   if resource_id is not None and sum(v['resourceId']==resource_id for v in resources)!=1:raise ImageReadError('IMAGE_RESOURCE_MISMATCH','Requested resource differs from the exact source.')
-  return {'peer':peer,'sourceId':server,'sender':r['sender'],'time':r['time'],'nativeMD5':md5,'resourceId':resource_id,
+  return {'peer':peer,'sourceId':server,'sender':r['sender'],'time':r['time'],'localId':r['local'],'nativeMD5':md5,'resourceId':resource_id,
    'sourceMode':'inbound','thumbnailWidth':m.get('cdnthumbwidth'),'thumbnailHeight':m.get('cdnthumbheight')}
  if not 0<i<len(records)-1:raise ImageReadError('IMAGE_CONTEXT_UNSUPPORTED','Both immediate text neighbors are required.')
  before,after=records[i-1],records[i+1]
@@ -43,7 +43,7 @@ def build_context(peer,server,records,resource_id=None,resources=(),inbound=Fals
     except ImageReadError:pass
   if count!=1:raise ImageReadError('IMAGE_CONTEXT_AMBIGUOUS','Repeated native anchor text is not a unique image locator.')
  if resource_id is not None and sum(v['resourceId']==resource_id for v in resources)!=1:raise ImageReadError('IMAGE_RESOURCE_MISMATCH','Requested resource is not uniquely bound to this peer/source.')
- return {'peer':peer,'sourceId':server,'sender':r['sender'],'time':r['time'],'nativeMD5':md5,'resourceId':resource_id,
+ return {'peer':peer,'sourceId':server,'sender':r['sender'],'time':r['time'],'localId':r['local'],'nativeMD5':md5,'resourceId':resource_id,
   'before':dict(a,sourceId=before['id']),'after':dict(b,sourceId=after['id'])}
 
 def load_context(driver,j):
@@ -127,11 +127,10 @@ def prepare(driver,j):
  try:verified=image_verified.prepare(driver,j)
  except ValueError as exc:raise ImageReadError('IMAGE_SOURCE_EVIDENCE_INVALID',str(exc)[:150]) from None
  if verified is not None:return verified
- if j['payload'].get('representation')=='visible':raise ImageReadError('IMAGE_VISIBLE_SOURCE_NOT_VERIFIED','No source-qualified official visible file is registered for this exact client/peer/source.')
  from .recipes import main_window,screen,rows
  context=load_context(driver,j);driver._select(j);w=main_window(driver)
  if (w['width'],w['height']) not in ((905,667),(623,667)):raise ImageReadError('UNSUPPORTED_IMAGE_LAYOUT','A calibrated official main or conversation window is required.')
- cfg=driver.binding(j['peer']);pane=[cfg['header_box'][0],cfg['header_box'][3]+1,cfg['header_box'][2],cfg['editor'][1]-34];body=[pane[0]+70,pane[1],pane[2]-75,pane[3]]
+ cfg=driver.binding(j['peer']);pane=[cfg['header_box'][0],cfg['header_box'][3]+1,cfg['header_box'][2],cfg['editor'][1]-34];body=[pane[0]+60,pane[1],pane[2]-75,pane[3]]
  image=screen(driver);observed=rows(driver,body,contrast=160);point=locate_visible(image,body,observed,context)
  # OCR must not race a changed message pane.
  pane_hash=hashlib.sha256(image.crop(tuple(pane)).tobytes()).hexdigest()
@@ -163,17 +162,28 @@ def export(driver,j):
    driver.check_lease(expected)
   require_guard();yield require_guard
  old=image_client.locked;image_client.locked=owned
+ from sender import UI
+ class SelectedImageUI(UI):
+  def config(self,target):
+   if target['username']!=j['peer']:raise ValueError('Exact selected image peer required.')
+   return p['uiBinding']
  try:
-  try:result=image_client.dispatch(driver.tool(),{'action':'image','peer':j['peer'],'server_id':context['sourceId'],'point':p['imagePoint'],'context_sha256':p['imagePaneSHA256']})
+  try:result=image_client.dispatch(driver.tool(),{'action':'image','peer':j['peer'],'server_id':context['sourceId'],'point':p['imagePoint'],'context_sha256':p['imagePaneSHA256'],'representation':j['payload'].get('representation','original')},ui=SelectedImageUI(driver.root))
   except ValueError:
    raise ImageReadError('IMAGE_EXPORT_NOT_PROVEN','Official image export did not prove the expected source; no bytes returned.',clean=clean(driver,j)) from None
  finally:image_client.locked=old
  if not clean(driver,j):raise ImageReadError('IMAGE_CLEANUP_UNPROVEN','Image export windows did not return to the verified initial state.',clean=False)
- if result.get('peer')!=context['peer'] or result.get('serverId')!=context['sourceId'] or result.get('senderId')!=context['sender'] or not result.get('messageMd5Matched') or not result.get('contentReady'):raise ImageReadError('IMAGE_SOURCE_MISMATCH','Official export receipt does not match the frozen native image source.')
+ visible=j['payload'].get('representation')=='visible'
+ if result.get('peer')!=context['peer'] or result.get('serverId')!=context['sourceId'] or result.get('senderId')!=context['sender'] or not result.get('contentReady'):raise ImageReadError('IMAGE_SOURCE_MISMATCH','Official export receipt does not match the frozen native image source.')
+ if visible:
+  if not result.get('nativeSourceIdentityVerified') or result.get('sourceLocalId')!=context['localId'] or result.get('time')!=context['time']:raise ImageReadError('IMAGE_SOURCE_MISMATCH','Official visible source identity is not proven.')
+  image_client.verify_filename(result.get('officialDefaultFilename'),result)
+ elif not result.get('messageMd5Matched'):raise ImageReadError('IMAGE_SOURCE_MISMATCH','Native original image MD5 is not proven.')
  encoded=result.get('content_base64')
  if not isinstance(encoded,str):raise ImageReadError('IMAGE_NOT_DECODABLE','Encoded exported image required.')
  try:data=base64.b64decode(encoded,validate=True)
  except ValueError:raise ImageReadError('IMAGE_NOT_DECODABLE','Invalid exported image bytes.') from None
- info=validate_payload(data,context['nativeMD5']);suffix={'JPEG':'jpg','TIFF':'tiff'}.get(info['format'],info['format'].lower())
- proof=dict(info,name='image-'+context['sourceId']+'.'+suffix,sourceId=context['sourceId'],sender=context['sender'],resourceId=context['resourceId'],nativeMessageMD5Matched=True,sourceContextVerified=True,origin='official-client-save-as-programmatic',exportPerformedThisRequest=True,cacheReused=False,contentReady=True,businessAIReadClaimed=False,messagesSent=0)
+ actual_md5=hashlib.md5(data).hexdigest();info=validate_payload(data,actual_md5 if visible else context['nativeMD5']);suffix={'JPEG':'jpg','TIFF':'tiff'}.get(info['format'],info['format'].lower());matched=actual_md5==context['nativeMD5']
+ proof=dict(info,name='image-'+context['sourceId']+'.'+suffix,sourceId=context['sourceId'],sender=context['sender'],resourceId=context['resourceId'],nativeMessageMD5Matched=matched,sourceContextVerified=True,origin='official-client-save-as-programmatic',exportPerformedThisRequest=True,cacheReused=False,contentReady=True,businessAIReadClaimed=False,messagesSent=0)
+ if visible:proof.update(nativeSourceIdentityVerified=True,nativeSourceMD5=context['nativeMD5'],sourceLocalId=context['localId'],sourceCreateTime=context['time'],officialDefaultFilename=result['officialDefaultFilename'],sourceIdentityMethod='official-save-as-native-time-and-local-id',representation='original' if matched else 'official-visible-variant')
  return data,proof

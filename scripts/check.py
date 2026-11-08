@@ -33,7 +33,7 @@ def main():
         cwd = ROOT / 'components/secretary-workbench/wechat'
         for pattern in ('test_operations*.py', 'test_snapshot.py'):
             subprocess.run([sys.executable, '-B', '-m', 'unittest', 'discover', '-s', 'tests', '-p', pattern], cwd=cwd, env=env, check=True)
-        code = "import sys,unittest;sys.path.insert(0,'tests');suite=unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromName(name) for name in ['test_linux_tool','test_sender','test_read_metadata','test_receive_source']);result=unittest.TextTestRunner().run(suite);sys.exit(not result.wasSuccessful())"
+        code = "import sys,unittest;sys.path.insert(0,'tests');suite=unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromName(name) for name in ['test_linux_tool','test_sender','test_read_metadata','test_receive_source','test_image_client']);result=unittest.TextTestRunner().run(suite);sys.exit(not result.wasSuccessful())"
         subprocess.run([sys.executable, '-B', '-c', code], cwd=cwd, env=env, check=True)
         subprocess.run([sys.executable, '-B', '-m', 'unittest', 'discover', '-s', 'reader-tests'], cwd=cwd, env=env, check=True)
         # Verify the unified entry really creates and serves the existing notebook.

@@ -119,6 +119,8 @@ def read_group(root, value, request, members):
             for event in result.get('events', []):
                 if event['text'].startswith(event['sender'] + ':\n'):
                     event['text'] = event['text'][len(event['sender']) + 2:]
+                from .finder_cover import annotate
+                annotate(event)
             result['context'] = history
             return result
         finally:

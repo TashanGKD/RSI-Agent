@@ -85,8 +85,10 @@ class ReplyLoop:
         with self.db:
             for event in batch.get('events', []):
                 bootstrap = str(event['server_id']) == scope.get('bootstrap_server_id')
+                media = self.images and (event.get('kind') == 3 or (
+                    event.get('kind') == 49 and event.get('image_kind') == 'finder_cover'))
                 if (event.get('account') != self.owner['account'] or event.get('peer') != self.owner['peer']
-                        or event.get('sender') != self.owner['peer'] or event.get('kind') not in ((1, 3) if self.images else (1,))
+                        or event.get('sender') != self.owner['peer'] or (event.get('kind') != 1 and not media)
                         or (not bootstrap and (scope['mode'] == 'one-message' or event['created'] < scope['since']))):
                     continue
                 text = event.get('text')
@@ -112,7 +114,7 @@ class ReplyLoop:
             image_error = None
             if self.images:
                 self.model.use_request([row['id']])
-            if row['kind'] == 3:
+            if row['kind'] in (3, 49):
                 try:
                     images = [image_part(self.io, row['id'])]
                 except MediaPending:
@@ -123,8 +125,9 @@ class ReplyLoop:
             for old in reversed(self.db.execute("SELECT text,reply FROM inbox WHERE state='sent' ORDER BY created DESC,id DESC LIMIT 3").fetchall()):
                 history.extend([{'role': 'user', 'content': old['text']}, {'role': 'assistant', 'content': old['reply']}])
             if self.context:
-                history = self.context(row['text']) + history
-            reply = image_error or (self.model.reply(row['text'] or '看看这张图，接着对话回答。', history, images=images)
+                history = self.context(row['text'] if row['kind'] == 1 else '') + history
+            reply = image_error or (self.model.reply(row['text'] or '看看这张图，接着对话回答。', history,
+                images=images, allow_engineering=False)
                 if images else self.model.reply(row['text'], history))
             if not isinstance(reply, str) or not reply.strip() or '\0' in reply or len(reply.encode()) > 16384:
                 raise ValueError('Model reply does not satisfy the text-only sender contract.')

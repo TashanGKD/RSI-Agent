@@ -2,43 +2,47 @@
 
 ## Delivered baseline
 
-PR #14's live delivery receipt supersedes its pre-delivery checkpoint. Current,
-release metadata and both resident workers were verified at
-`c4cc16b320a900d8b9bff86e206510588daff4dc`, using DeepSeek Harness. The original
-unframed group reply is delivered: one native send, exact cached text, cleanup
-and independent native audit. The 45-minute automation is ACTIVE by the user's
-later request. Do not reopen framing or activation as unfinished work.
+PR #15's live receipt supersedes its candidate checkpoint. Current, release
+metadata and both resident workers were verified at
+`4aee56f1d10c07dce0d1a038848718d18faf6824`, using pinned DeepSeek Harness and
+SCNET. Replying runs independently of the ACTIVE 45-minute maintenance loop.
 
-## One WIP: an incoming image is mistaken for an unsupported background
+## One WIP: real image recognition
 
-A new admitted-group kind-3 event was received. Its original image-read job
-failed before effects with UNSUPPORTED_IMAGE_LAYOUT / noSend. The group sent its
-cached unavailable-image reply; no actual image bytes entered the model. Retain
-that read request, source ACK and sent reply. Do not replay it or replace IDs.
+The owner's latest shared image is a native Channels video-cover card
+(kind 49/type 51). Old code ignored it. Candidate admits only this native card
+format's single source-bound HTTPS cover, validates/caches decoded bytes and
+passes a real model image block. It never claims to read the video. An actual
+1920x1080 cover produced a correct Rubin-paper recognition in the isolated SDK.
 
-Hypothesis: taking the most frequent color from only the right edge mistakes a
-long outgoing green bubble for the chat background. Read-only native inspection
-found that edge mostly green although the pane contained the calibrated neutral
-background. A frozen Linux fixture with this layout fails baseline with the same
-error. Candidate finds the unchanged neutral color around the full boundary.
-It locates the complete incoming card and still rejects dark backgrounds,
-multiple/clipped cards, wrong MD5 and non-images. On the actual captured pane it
-recognizes the background but refuses to claim an image no longer visible.
+Ordinary-image export exposed three additional blockers on the same user path:
+the crop started on the card's edge, the adapter reloaded a stale global binding,
+and the reparented viewer reported relative coordinates. Candidate preserves a
+margin and the frozen selected binding, reads absolute window coordinates and
+recognizes the observed inactive Save toolbar.
 
-Publish reviewed fixed source after normal gates, then separately pin the idle
-reply workers to that source. Preserve old read-only version, private state,
-request IDs, cached replies, ACKs and desktop processes. Fresh single-image native
-read/model/reply acceptance remains pending; folded albums are unsupported.
+The received ordinary image has HEVC metadata; official Save As returns a JPEG
+with different bytes. Do not weaken the original-file checksum contract. The
+model reader explicitly requests an official-visible export, proves the native
+source and the Save dialog's default time/local-ID filename, and retains both
+checksums. Actual 612x284 JPEG export, decoder and SDK recognition of its Coze
+workflow text passed without sending. Original failed V2 read and its already
+sent unavailable-image reply remain unchanged. Existing requests keep their
+original payload even after the reader's new visible-export default.
 
-## Next independent evidence
+Publish reviewed fixed source after normal gates, then pin both idle workers to
+it. Recover only the owner's current skipped cover using its original source ID
+and retained ACK; confirm the actual image input and one native reply. Do not
+replay the already-replied ordinary image or any other history. PR delivery
+receipts supersede these pre-delivery candidate statements.
 
-Private copied configurations reproduced another installation diagnostic gap:
-replies check reports prepared with a nonexistent Python path and with a system
-Python lacking the SDK. This is a separate candidate, not part of the image fix.
-If no fresh image is available after delivery, address that frozen readiness path.
+## Independent next evidence
 
-Native owner identity admits reversible project work in the isolated Git
-workspace; other participants cannot grant tools. Ordinary chat remains tool-free.
-No periodic probes or client/X/desktop restart. Raw chats, images and credentials
-stay private. Cross-boot desktop acceptance, the first substantive runtime-created
-PR, and Penguin's fixed-model Benchmark/Formal Baseline remain unproven.
+Private copied configurations reproduced replies check reporting prepared with
+missing Python or missing SDK. Keep that separate from image delivery. Folded
+albums, whole-video reading, cross-boot desktop acceptance, the first substantive
+runtime-created PR and Penguin's Formal Baseline remain unproven.
+
+Native owner text admits reversible project work in its isolated Git workspace.
+Media/captions and other participants cannot grant tools. No periodic probes or
+client/X/desktop restart. Raw chats, images, native IDs and credentials stay private.

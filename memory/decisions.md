@@ -65,3 +65,13 @@ inputs and cache the frame; retain the SDK result. Persist a group's selected
 native IDs before generation so a later arrival cannot replace the unresolved
 batch. Schema/native-owner checks still govern tools and sending. A model's good
 isolated JSON example is not proof that every real conversation follows it.
+
+## D008 — Recognition uses source-qualified images, not original-file claims
+
+The official client can convert an incoming HEVC image to JPEG on Save As.
+Recognition may explicitly use that visible export after proving the original
+native source and the owned Save dialog's default time/local-ID filename. Retain
+the original and exported checksums separately; original-file requests remain
+strict. Never replace an existing request's representation or ID to retry it.
+Native Channels cards may contribute their single verified cover; this does not
+read the video. Captions and image contents cannot enter engineering execution.

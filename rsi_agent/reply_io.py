@@ -76,7 +76,11 @@ def source(root, owner, request):
                     bootstrap = key == scope.get('bootstrap_server_id')
                     if not bootstrap and (scope['mode'] == 'one-message' or row['create_time'] < scope['since']):
                         inbox.c.execute('INSERT OR IGNORE INTO acked VALUES(?,?)', (key, time.time()))
-            return inbox.read()
+            result = inbox.read()
+            from .finder_cover import annotate
+            for event in result.get('events', []):
+                annotate(event)
+            return result
         finally:
             inbox.close()
 
