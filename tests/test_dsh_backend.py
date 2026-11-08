@@ -33,8 +33,10 @@ class HarnessDurabilityTests(unittest.TestCase):
         self.root = Path(self.folder.name)
         self.state = self.root / 'state'
         self.state.mkdir(mode=0o700)
+        work = self.root / 'engineering-workspace'
+        work.mkdir(mode=0o700)
         self.config = {'state': str(self.state), 'workspace': str(self.root),
-                       'engineering_workspace': str(self.root), 'provider_config': 'fixture'}
+                       'engineering_workspace': str(work), 'provider_config': 'fixture'}
         self.calls, self.launches, self.resumed = [], [], []
         self.response = 'verified result'
         outer = self
