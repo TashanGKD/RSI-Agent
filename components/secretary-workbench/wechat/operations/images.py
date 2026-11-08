@@ -99,8 +99,12 @@ def locate_visible(image,box,rows,context):
   if not box[1]<top<bottom<box[3]:raise ImageReadError('IMAGE_CONTEXT_AMBIGUOUS','Visible anchors are reversed, clipped, or too close.')
  region=[box[0],top,box[2],bottom];im=image.crop(tuple(region)).convert('RGB');w,h=im.size
  if w*h>500000:raise ImageReadError('IMAGE_OVER_BUDGET','Visible locator region exceeds its budget.')
- bg=Counter(im.getpixel((w-2,y)) for y in range(h)).most_common(1)[0][0]
- if min(bg)<245 or max(bg)-min(bg)>3:raise ImageReadError('UNSUPPORTED_IMAGE_LAYOUT','The calibrated neutral message background is not visible.')
+ # A long outgoing bubble can cover the right edge; find the same calibrated
+ # neutral color around the complete boundary instead of treating it as green.
+ edge=[im.getpixel((x,y)) for x in (0,w-1) for y in range(h)]+[im.getpixel((x,y)) for y in (0,h-1) for x in range(w)]
+ neutral=Counter(v for v in edge if min(v)>=245 and max(v)-min(v)<=3)
+ if not neutral:raise ImageReadError('UNSUPPORTED_IMAGE_LAYOUT','The calibrated neutral message background is not visible.')
+ bg=neutral.most_common(1)[0][0]
  mask=bytearray(max(abs(v[k]-bg[k]) for k in range(3))>2 for v in im.getdata());candidates=[]
  for idx in range(w*h):
   if not mask[idx]:continue

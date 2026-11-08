@@ -63,6 +63,25 @@ class InboundImageTests(unittest.TestCase):
         with self.assertRaises(images.ImageReadError):
             images.validate_payload(cipher, hashlib.md5(cipher).hexdigest())
 
+    def test_own_long_bubble_at_right_edge_does_not_hide_neutral_background(self):
+        from PIL import Image, ImageDraw
+        from operations import images
+        context = images.build_context('group@chatroom', '42', [self.source()], inbound=True)
+        picture = Image.new('RGB', (500, 400), (250, 250, 250))
+        draw = ImageDraw.Draw(picture)
+        draw.rectangle((20, 80, 220, 180), fill='white')
+        # Actual client color; a prior outgoing bubble occupied most of the
+        # sampled right edge when the real incoming image was rejected.
+        draw.rectangle((300, 10, 499, 380), fill=(157, 242, 159))
+        point = images.locate_visible(picture, [0, 0, 500, 400], [], context)
+        self.assertTrue(20 < point[0] < 220 and 80 < point[1] < 180)
+
+        dark = Image.new('RGB', (500, 400), (40, 40, 40))
+        ImageDraw.Draw(dark).rectangle((20, 80, 220, 180), fill='white')
+        with self.assertRaises(images.ImageReadError) as error:
+            images.locate_visible(dark, [0, 0, 500, 400], [], context)
+        self.assertEqual(error.exception.code, 'UNSUPPORTED_IMAGE_LAYOUT')
+
     def test_original_queue_exports_once_then_returns_the_same_verified_asset(self):
         from PIL import Image
         from operations.public_api import PublicAPI
