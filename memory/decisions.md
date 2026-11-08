@@ -86,3 +86,14 @@ Chat observations and unresolved engineering work are separate states. Reuse DSH
 tool/jobs lifecycle, but a short-lived per-turn SDK host does not establish durable
 background execution. Task migration must first preserve completed output across
 publication interruption; Penguin needs a real fixed-runtime evaluation adapter.
+
+## D010 — Future groups no longer require manual registration
+
+The owner changed the workflow to automatic admission of future groups. Native
+owner/self membership in a newly joined group qualifies admission under this
+policy; invitation nicknames do not prove an inviter. Keep the existing-group
+baseline and original message cutoffs private. Reload per-group consumers while
+retaining existing caches and IDs; no scripted intro is requested for automatic
+groups. Recipient/UI proof still precedes input, and native owner identity alone
+controls tools. An unaddressable or missing-owner group never grants a fallback
+send target. See harness/GROUP-ADMISSION.md for the actual acceptance boundary.

@@ -94,6 +94,14 @@ class StatusTests(unittest.TestCase):
         self.assertEqual(result, {'state': 'needs_review', 'recorded_state': 'sdk_completed', 'retry_allowed': False})
         self.assertNotIn(self.canary, json.dumps(result))
 
+    def test_automatic_group_admission_status_is_sanitized(self):
+        self.write('admission-status.json', {'state': 'enabled', 'checked_at': time.time(),
+            'waiting_owner': 1, 'unaddressable': 0, 'private_names': self.canary})
+        value = self.read()
+        self.assertEqual(value['group_admission'], {'state': 'enabled', 'fresh': True,
+            'waiting_owner': 1, 'unaddressable': 0})
+        self.assertNotIn(self.canary, json.dumps(value))
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -83,6 +83,14 @@ class GroupTests(unittest.TestCase):
         self.assertFalse(self.effects)
         self.assertFalse(any(c['op'] == 'submit' for c in self.calls))
 
+    def test_automatically_admitted_group_waits_for_input_without_an_introduction(self):
+        self.group['scope']['introduction'] = False
+        loop = self.loop(introduction=True)
+        self.assertEqual(loop.value('introduction'), 'not_requested')
+        self.assertEqual(loop.cycle()['state'], 'pending')
+        self.assertFalse(self.effects)
+        self.assertEqual(self.model.complete.call_count, 1)
+
     def test_recent_own_post_slows_proactive_but_not_native_mention(self):
         loop = self.loop()
         with loop.db:

@@ -2,69 +2,46 @@
 
 ## Delivered baseline
 
-PR #16's delivery receipt supersedes its candidate checkpoint. Current, release
-metadata and both resident reply workers are at main 22bb0c6b21de, with pinned
-DeepSeek Harness and SCNET. The actual Channels cover entered the production
-model and received one independently audited native group reply. Ordinary-photo
-official-visible export and isolated recognition passed; a fresh ordinary-photo
-automatic-reply turn remains unobserved. Do not replay old image requests.
+PR #17 was explicitly approved, merged and deployed. Its live delivery receipt
+supersedes the former candidate checkpoint. Current/release metadata and both
+resident reply workers were verified at fdaa77861705a065800954125c4b277a59733ae2.
+Pinned DeepSeek Harness/SCNET, owner engineering structured tools and durable
+sdk_completed output are active. The status bundle is installed only in the
+independent operator profile. Original inboxes, SDK caches, V2 requests and ACKs
+were preserved; the desktop/client was not restarted. Receipt paths are private
+operator metadata and the PR body. Automatic publication recovery remains open.
 
-## One WIP: owner tools and first native DSH plugin (PR #17)
+## One WIP: automatic admission of future owner-shared groups
 
-A native confirmed-owner text generated this change in the isolated runtime
-workspace. Its original SDK session has a completed turn, matching frozen input
-and paired tool results, but the outer bridge did not persist completion or
-publish the source before its bounded invocation expired. Session/work/call
-locks were free. Preserve the original input, completed session and already-sent
-fallback reply; do not regenerate or send another reply under a new ID.
+The owner removed per-group manual registration: they will invite Xingyu to
+additional groups. Native invitation messages observed here have display names
+without a trusted inviter ID. Use the declared rule of newly joined groups with
+both the confirmed owner and this account present; never infer authority from a
+nickname. Freeze the existing active-group baseline and activation cutoff.
 
-Candidate loads engineering.patch.yml only in owner engineering mode. Actual
-runtime request headers register read/write/edit/read_image/web_fetch plus the
-existing bash/working_directory. Independent SCNET verification exercised exact
-random-file reading, write/edit/readback, public fetch and loopback refusal.
-The model also issued an extra pwd; strict no-bash prompt adherence is not
-claimed. Production chat request headers omit tool definitions and contain no
-tool calls. Ordinary chat stays tool-free; media does not grant owner authority.
+Candidate reads only native contact membership, creates scoped private records
+and identity-only target seeds, and reloads the resident group worker without
+reconstructing other groups' cached loops. New groups get no scripted intro.
+Native recipient proof still precedes input; unnamed/ambiguous native targets
+remain unaddressable. The original admitted group and private owner scope stay
+bound to their original identities, caches and request IDs.
 
-web_search has no configured provider and remains disabled. The attempted
-tool-fs-search insertion never registered in sdk-minimal and was removed;
-filesystem search still uses the existing engineering shell. Do not describe
-these unavailable tools as installed. Read-image is registered, not separately
-exercised by this tool probe.
-
-Original publication was reconciled without rerunning the model/tools or sending
-another message. The work marker is now clear and the original call is completed;
-the PR's recovery receipt is authoritative. Runtime-generated owner work is not
-automatically merged, deployed or activated. Production stays at the delivered
-baseline.
-
-The owner requested several DSH plugins. `harness/DSH-PLUGINS.md` defines WeChat,
-memory, tasks and evaluation boundaries; only `dsh-rsi-wechat-status` is implemented
-as a native bundle. Its tarball was installed in an isolated SDK profile and the
-configured SCNET model actually called `rsi_wechat_status`, returning a successful
-native tool/result. Both production workers were fresh/idle on the current code,
-with no pending/attention items; original records, configs and PIDs were unchanged.
-The frozen unresolved-work fixture separately reports needs_review even with idle
-chat. The package was not mounted in production replies and does not send or retry.
-Keep the increment in the existing PR and verify CI for the combined actual head.
-
-The completion-durability increment now saves the validated original SDK response
-as sdk_completed before SDK shutdown or publication, with file/directory fsync.
-Frozen baseline/candidate cases reproduced the previous running-only journal.
-An isolated real SDK turn followed by SIGKILL inside publication retained the
-response/input digest; same-request re-entry refused model/publication execution
-and preserved the checkpoint. Status reports needs_review / sdk_completed. The
-private acceptance receipt is beside the prior plugin receipt; production native
-records, configs and worker PIDs were unchanged. This is a candidate in PR #17,
-not automatic publication recovery or a production rollout.
+The actual activation baseline was frozen privately with one existing group.
+Linux fixtures cover native-owner versus nickname spoofing, scoped admission,
+idempotence, fresh native-search routing and existing pending reply preservation.
+A running-worker reload case and complete gates must be checked at the final
+head. A positive new-group end-to-end observation requires a real owner-invited
+new group; no synthetic live group or test send is authorized.
 
 ## Unique next step
 
-Review the actual PR #17 head/CI and its delivery boundary first. The next task
-boundary is recovery of publication from the frozen original sdk_completed
-response, reconciling actual Git/remote effects before any retry. Preserve the
-original input and generated output; do not rerun tools or merely increase a
-timeout. No automatic merge, client restart or test send.
+Finish the automatic-admission candidate and normal review/CI, publish the fixed
+source with reversible activation and the frozen private policy, then observe
+the first real new group. Do not reopen PR #17 as a WIP. Subsequent independent
+work may resume publication recovery while fresh group evidence is pending.
 
-Penguin's fixed-model Benchmark/Formal Baseline remains unestablished. Raw chats,
-native IDs, private traces, pictures and credentials stay outside Git.
+The PR #16 native cover reply remains delivered; fresh ordinary-photo automatic
+reply, folded albums, whole-video understanding and cross-boot desktop recovery
+remain outside proven acceptance. Penguin's DSH evaluation adapter, frozen
+Benchmark, fixed-model Formal Baseline and independent evaluation remain open.
+Secrets, raw chats, native identities and private images stay outside Git.

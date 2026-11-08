@@ -34,6 +34,25 @@ Keep the work reviewable in this repository, with the actual change and evidence
 Distinguish accepted work, running work, a candidate/PR, deployed code and native
 acceptance. A model saying it will work is not execution.
 
+## Automatic group admission
+
+The owner removed manual registration for future groups. The resident worker
+checks native group membership and automatically admits groups newly joined
+after the private activation baseline when both the owner and this account are
+present. Existing admitted groups retain their original bindings and requests;
+other old groups stay outside scope. System invitation text observed in this
+client contains display names rather than a trusted inviter ID, so shared native
+membership is the declared admission rule, not a claim that an inviter was proved.
+
+Per-group configuration is created automatically and reloaded without restarting
+the service or reconstructing other groups' pending replies. New groups do not
+receive a scripted introduction. Only their scoped inbound messages trigger
+participation. Admission may seed native identity, never invented header pixels
+or coordinates; existing official navigation must independently prove the exact
+recipient before input. Unnamed/ambiguous native targets remain unaddressable
+until the client supplies a uniquely resolvable name; do not guess a recipient.
+
+
 ## Images and the backend
 
 Accept actual image inputs and connect them to their native peer/source/sender.

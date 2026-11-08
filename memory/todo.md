@@ -3,16 +3,15 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-1. **Owner engineering and DSH plugin foundation: PR #17 is the sole WIP.**
-   The runtime-produced structured-tool candidate is recovered and remains in
-   draft review. The native read-only WeChat status bundle and four-module plan
-   join that PR; inspect its actual head/CI and receipt before any rollout.
-   Candidate now durably retains SDK output before shutdown/publication; real
-   SDK + publisher SIGKILL and original-request no-reexecution checks passed.
-   After review, reconcile original Git/remote publication effects for recovery;
-   sdk_completed is not a published change or permission to rerun tools.
-   PR #16's cover delivery is closed; a fresh ordinary-photo automatic reply
-   remains unobserved. Preserve original requests rather than replaying them.
+1. **Automatic future-group admission: one WIP.**
+   The owner's latest instruction removes manual per-group registration. Admit
+   newly joined groups with confirmed native owner/self membership, retaining
+   the activation baseline, original scopes and existing pending replies.
+   Finish the candidate's complete gate, review/CI, reversible deployment and
+   private policy activation; real positive acceptance needs a newly invited
+   group. Do not fabricate a live group, intro or test message.
+   PR #17 is delivered, not a WIP. Publication recovery from sdk_completed with
+   actual Git/remote effect reconciliation is the next independent candidate.
 2. **Harness readiness diagnostics: independent reproduced candidate.**
    Private copied owner configurations report prepared with missing Python or
    missing SDK. Use that frozen install/check path when image acceptance awaits

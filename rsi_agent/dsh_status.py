@@ -114,6 +114,18 @@ def snapshot(owner_config, groups_config, release, current):
         value['group_registry'] = 'read'
     except (OSError, ValueError, KeyError, TypeError):
         value['group_registry'] = 'unavailable'
+    admission_path = Path(groups_config).with_name('admission-status.json')
+    if admission_path.exists():
+        try:
+            admission = read_object(admission_path)
+            value['group_admission'] = {
+                'state': admission['state'] if admission.get('state') in ('enabled', 'unavailable') else 'unknown',
+                'fresh': 0 <= now - admission['checked_at'] <= 90,
+                **{key: admission.get(key, 0) if type(admission.get(key, 0)) is int
+                   and 0 <= admission.get(key, 0) <= 100 else None
+                   for key in ('waiting_owner', 'unaddressable')}}
+        except (OSError, ValueError, KeyError, TypeError):
+            value['group_admission'] = {'state': 'unavailable'}
     return value
 
 

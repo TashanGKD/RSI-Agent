@@ -19,6 +19,9 @@ class GroupLoop(ReplyLoop):
         self.db.execute('CREATE TABLE IF NOT EXISTS participation(k TEXT PRIMARY KEY,v TEXT NOT NULL)')
         if 'follows_self' not in {r[1] for r in self.db.execute('PRAGMA table_info(inbox)')}:
             self.db.execute('ALTER TABLE inbox ADD COLUMN follows_self INTEGER NOT NULL DEFAULT 0')
+        if group['scope'].get('introduction') is False and self.value('introduction') is None:
+            with self.db:
+                self.save('introduction', 'not_requested')
 
     def value(self, key, default=None):
         row = self.db.execute('SELECT v FROM participation WHERE k=?', (key,)).fetchone()
@@ -38,7 +41,7 @@ class GroupLoop(ReplyLoop):
     def cycle(self):
         if self.value('introduction') == 'attention' or self.db.execute("SELECT 1 FROM inbox WHERE state='attention'").fetchone():
             return {'state': 'attention', 'counts': self.counts()}
-        if self.value('introduction') != 'sent':
+        if self.value('introduction') not in ('sent', 'not_requested'):
             # Stable original request even after a lost response or worker restart.
             state = self.deliver('introduction', INTRODUCTION)
             with self.db:
@@ -172,15 +175,49 @@ class GroupLoop(ReplyLoop):
         return {'state': 'pending' if decision['speak'] else 'quiet', 'counts': self.counts()}
 
 
-def run(path, mode):
+def sync_groups(workers, configs):
+    """Reload membership scopes without recreating other groups' cached loops."""
     import fcntl
+    wanted = {config['state']: config for config in configs}
+    for state in list(workers):
+        config, loop, fd = workers[state]
+        if wanted.get(state) != config:
+            loop.close()
+            os.close(fd)
+            del workers[state]
+    for state, config in wanted.items():
+        if state in workers:
+            continue
+        fd, loop = None, None
+        try:
+            directory = Path(state)
+            if (directory.is_symlink() or not directory.is_dir() or directory.stat().st_mode & 0o077
+                    or directory.stat().st_uid != os.getuid()):
+                raise ValueError('Private group state directory required.')
+            fd = os.open(directory / 'worker.lock', os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            from .backend import load_model
+            model, io = load_model(config['model']), GroupTransport(config)
+            group = io()
+            if not group['enabled']:
+                raise ValueError('Group disabled.')
+            loop = GroupLoop(directory / 'inbox.sqlite', group, model, io)
+            workers[state] = (config, loop, fd)
+        except (OSError, ValueError, KeyError, TypeError, ModelError, subprocess.SubprocessError):
+            if loop is not None:
+                loop.close()
+            if fd is not None:
+                os.close(fd)
+
+
+def run(path, mode):
     os.umask(0o077)
     if not path:
         raise ValueError('Explicit private invited-group registry required.')
     configs = group_configs(path)
     if not configs:
         raise ValueError('At least one explicitly enabled invited group required.')
-    loops, locks = [], []
+    workers = {}
     stopped = False
 
     def stop(*_):
@@ -188,29 +225,29 @@ def run(path, mode):
         stopped = True
 
     try:
-        for config in configs:
-            from .backend import load_model
-            model, io = load_model(config['model']), GroupTransport(config)
-            group = io()
-            if not group['enabled']:
-                raise ValueError('Invited group is disabled.')
-            if mode == 'check':
-                continue
-            state = Path(config['state'])
-            if state.is_symlink() or not state.is_dir() or state.stat().st_mode & 0o077 or state.stat().st_uid != os.getuid():
-                raise ValueError('Private group state directory required.')
-            fd = os.open(state / 'worker.lock', os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
-            locks.append(fd)
-            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            loops.append((config, GroupLoop(state / 'inbox.sqlite', group, model, io)))
         if mode == 'check':
+            from .backend import load_model
+            for config in configs:
+                load_model(config['model'])
+                if not GroupTransport(config)()['enabled']:
+                    raise ValueError('Invited group is disabled.')
             return {'state': 'prepared', 'enabled_groups': len(configs), 'network_probe': False}
         signal.signal(signal.SIGTERM, stop)
         signal.signal(signal.SIGINT, stop)
+        next_admission = 0
         while not stopped:
-            for config, loop in loops:
-                if config not in group_configs(path) or not loop.io()['enabled']:
-                    stopped = True
+            if time.monotonic() >= next_admission:
+                from .group_admission import refresh, put
+                try:
+                    refresh(path)
+                except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError):
+                    put(Path(path).with_name('admission-status.json'),
+                        {'state': 'unavailable', 'checked_at': time.time()})
+                next_admission = time.monotonic() + 15
+            sync_groups(workers, group_configs(path))
+            result = {'state': 'idle', 'counts': {}}
+            for config, loop, _ in list(workers.values()):
+                if stopped:
                     break
                 try:
                     result = loop.cycle()
@@ -232,7 +269,6 @@ def run(path, mode):
                 time.sleep(0.5)
         return {'state': 'stopped'}
     finally:
-        for _, loop in loops:
+        for _, loop, fd in workers.values():
             loop.close()
-        for fd in locks:
             os.close(fd)
