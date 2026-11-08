@@ -7,6 +7,8 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+from unittest.mock import Mock
+import types
 
 from rsi_agent.config import WORKBENCH
 
@@ -82,6 +84,23 @@ class InboundImageTests(unittest.TestCase):
             images.locate_visible(dark, [0, 0, 500, 400], [], context)
         self.assertEqual(error.exception.code, 'UNSUPPORTED_IMAGE_LAYOUT')
 
+    def test_preparation_keeps_margin_around_actual_incoming_card_column(self):
+        from PIL import Image, ImageDraw
+        from operations import images
+        picture = Image.new('RGB', (623, 667), (250, 250, 250))
+        ImageDraw.Draw(picture).rectangle((71, 300, 271, 400), fill='white')
+        binding = {'header_box': [1, 35, 622, 82], 'editor': [280, 554]}
+        driver = types.SimpleNamespace(_select=Mock(), binding=Mock(return_value=binding),
+            screenshot=Mock(return_value={}), app_windows=Mock(return_value=[]))
+        context = images.build_context('group@chatroom', '42', [self.source()], inbound=True)
+        job = {'peer': 'group@chatroom', 'payload': {'source_id': '42', 'source_mode': 'inbound'}}
+        with patch('operations.image_verified.prepare', return_value=None), \
+                patch('operations.images.load_context', return_value=context), \
+                patch('operations.recipes.main_window', return_value={'width': 623, 'height': 667}), \
+                patch('operations.recipes.screen', return_value=picture), patch('operations.recipes.rows', return_value=[]):
+            preview = images.prepare(driver, job)
+        self.assertTrue(71 < preview['imagePoint'][0] < 271 and 300 < preview['imagePoint'][1] < 400)
+
     def test_original_queue_exports_once_then_returns_the_same_verified_asset(self):
         from PIL import Image
         from operations.public_api import PublicAPI
@@ -124,6 +143,7 @@ class InboundImageTests(unittest.TestCase):
                 second = image(root, 'account', 'group@chatroom', '42', {'member'})
                 job = api.s.list_jobs()[0]
                 self.assertEqual(job['state'], 'succeeded')
+                self.assertEqual(job['payload']['representation'], 'visible')
                 driver.review = True
                 reviewed = image(root, 'account', 'group@chatroom', '43', {'member'})
                 self.assertEqual(reviewed['state'], 'media_attention')
@@ -136,3 +156,22 @@ class InboundImageTests(unittest.TestCase):
             self.assertEqual(first, second)
             self.assertEqual(driver.executions, 1)
             self.assertNotEqual(job.get('execution_mode'), 'verified_fast')
+
+    def test_existing_original_read_failure_is_not_replaced_by_visible_request(self):
+        from operations.public_api import PublicAPI
+        from rsi_agent.media_io import image,CLIENT
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);policy={'account':'account','clients':{}}
+            api=PublicAPI(root/'operations-state',policy);self.addCleanup(api.close)
+            (root/'operations-state/config.json').write_text(json.dumps(policy))
+            (root/'operations-state/config.json').chmod(0o600)
+            rid=CLIENT+'-'+hashlib.sha256(('account\0group@chatroom\0'+'42').encode()).hexdigest()
+            old=api.s.submit({'client':CLIENT,'request_id':rid,'peer':'group@chatroom','action':'save_attachment',
+                             'payload':{'source_id':'42','source_mode':'inbound'}})
+            api.s.set_state(old['id'],'failed',{'code':'UNSUPPORTED_IMAGE_LAYOUT','noSend':True})
+            before=api.s.get(CLIENT,rid)
+            native={'senderId':'member','imageMetadata':{'md5':'a'*32}}
+            with patch('image_client.source',return_value=({},native)),patch('linux_tool.Tool'):
+                result=image(root,'account','group@chatroom','42',{'member'})
+            self.assertEqual(result,{'state':'media_attention','code':'UNSUPPORTED_IMAGE_LAYOUT'})
+            self.assertEqual(api.s.get(CLIENT,rid),before)

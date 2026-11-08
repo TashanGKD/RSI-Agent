@@ -62,6 +62,7 @@ class ImageExecutionTests(unittest.TestCase):
   from operations.contract import digest
   image=scene();windows=[{'id':'main','title':'Weixin'}];c=context();p={'imageRecipe':True,'context':digest(c),'imageContext':c,'imageWindows':windows,'imagePane':[0,0,500,400],'imagePaneSHA256':hashlib.sha256(image.tobytes()).hexdigest(),'imagePoint':[120,150]}
   data=sample();c['nativeMD5']=hashlib.md5(data).hexdigest();p['context']=digest(c)
+  p['uiBinding']={'peer':PEER,'header_sha256':'selected-current-binding'}
   j={'id':'a'*32,'client':'test','request_id':'read','peer':PEER,'action':'save_attachment','payload':{'source_id':SID},'preview':p}
   driver=types.SimpleNamespace(root=Path(td),previews=Path(td),lease='owned',check_lease=Mock(),tool=Mock(),app_windows=Mock(return_value=windows))
   result={'peer':PEER,'serverId':SID,'senderId':'alice','messageMd5Matched':True,'contentReady':True,'content_base64':__import__('base64').b64encode(data).decode()}
@@ -76,6 +77,8 @@ class ImageExecutionTests(unittest.TestCase):
  def test_programmatic_export_returns_bytes_and_whitelisted_proof(self):
   with tempfile.TemporaryDirectory() as td:
    (data,p),adapter=self.run_export(td);self.assertEqual(data,sample());self.assertTrue(p['exportPerformedThisRequest']);self.assertFalse(p['cacheReused']);self.assertFalse(p['businessAIReadClaimed']);self.assertEqual(p['messagesSent'],0);adapter.dispatch.assert_called_once()
+   bound=adapter.dispatch.call_args.kwargs['ui'];self.assertEqual(bound.config({'username':PEER})['header_sha256'],'selected-current-binding')
+   with self.assertRaises(ValueError):bound.config({'username':'other@chatroom'})
  def test_wrong_source_export_receipt_is_rejected(self):
   with tempfile.TemporaryDirectory() as td:
    with self.assertRaises(images.ImageReadError):self.run_export(td,lambda d,j,c,im,r:r.update(peer='other@chatroom'))

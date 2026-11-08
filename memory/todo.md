@@ -3,11 +3,13 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-1. **Incoming image background detection: one WIP.**
-   PR #14 is delivered. A new native image instead failed the right-edge neutral
-   background check before export. Publish the bounded boundary-sampling repair,
-   activate fixed source without replaying that failed read or its already-sent
-   unavailable-image reply, and await fresh native single-image acceptance.
+1. **Real image recognition: one WIP.**
+   PR #15 is delivered. Finish native single-image/official-visible export and
+   Channels-cover intake through the actual model and same-conversation reply.
+   Candidate exported the real ordinary JPEG and recognized its workflow text;
+   the actual shared cover also passed SDK vision. Publish/activate reviewed
+   source, then recover only the owner's skipped cover with its original ID/ACK.
+   Preserve the ordinary image's original failed read and already-sent reply.
 2. **Harness readiness diagnostics: independent reproduced candidate.**
    Private copied owner configurations report prepared with missing Python or
    missing SDK. Use that frozen install/check path when image acceptance awaits

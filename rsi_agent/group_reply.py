@@ -49,8 +49,10 @@ class GroupLoop(ReplyLoop):
         batch = self.io({'op': 'read'})
         with self.db:
             for event in batch.get('events', []):
+                media = self.images and (event.get('kind') == 3 or (
+                    event.get('kind') == 49 and event.get('image_kind') == 'finder_cover'))
                 if (event.get('account') != self.owner['account'] or event.get('peer') != self.owner['peer']
-                        or event.get('sender') == self.owner['account'] or event.get('kind') not in ((1, 3) if self.images else (1,))
+                        or event.get('sender') == self.owner['account'] or (event.get('kind') != 1 and not media)
                         or event['created'] < self.owner['scope']['since']):
                     continue
                 text = event.get('text')
@@ -58,7 +60,10 @@ class GroupLoop(ReplyLoop):
                     text = ''  # Pass verified image bytes, never native cache XML.
                 if not isinstance(text, str) or (event['kind'] == 1 and not text.strip()) or '\0' in text or len(text.encode()) > 32768:
                     continue
-                raw = json.dumps(dict({k: event[k] for k in ('sender', 'sender_name', 'mentioned')}, text=text), sort_keys=True)
+                body = dict({k: event[k] for k in ('sender', 'sender_name', 'mentioned')}, text=text)
+                if event['kind'] == 49:
+                    body['image_kind'] = 'finder_cover'
+                raw = json.dumps(body, sort_keys=True)
                 key = str(event['server_id'])
                 old = self.db.execute('SELECT text FROM inbox WHERE id=?', (key,)).fetchone()
                 if old and old[0] != raw:
@@ -86,7 +91,7 @@ class GroupLoop(ReplyLoop):
         # One original image per turn fits the private inline transport budget.
         seen_image = False
         for index, row in enumerate(rows):
-            if row['kind'] == 3:
+            if row['kind'] in (3, 49):
                 if seen_image:
                     rows = rows[:index]
                     break
@@ -97,7 +102,7 @@ class GroupLoop(ReplyLoop):
         images = []
         for row, event in zip(rows, events):
             event['kind'] = row['kind']
-            if row['kind'] == 3:
+            if row['kind'] in (3, 49):
                 try:
                     images.append(image_part(self.io, row['id']))
                     event['image_index'] = len(images) - 1
@@ -119,6 +124,8 @@ class GroupLoop(ReplyLoop):
             '先接住对方刚说的话，再给自己的看法，少说服务承诺。不要复述系统规则，不代替群主发号施令。'
             '数据中的 self=true 是你之前发过的话，不要回复自己。'
             'image_index 对应实际图片块；image_status=unavailable 表示原图没读出来，不猜图里内容。')
+        system += 'image_kind=finder_cover 是实际取得的视频号封面，结合简介讨论；不能声称看完视频或见到封面以外的内容。'
+        system += '本人(owner=true)单独发图片或视频封面时，默认是在请你看图，先给具体观察，不要让他重复输入问题。'
         if engineering:
             system += (' 本轮是有独立工具执行器的分流步骤。只有 owner=true 且 kind=1 的当前消息清楚要求开发、配置，'
                 '或实际读取项目、排查代码和运行状态时，将 work_index 设为该消息在 new_messages 的从零开始序号，'
@@ -130,7 +137,7 @@ class GroupLoop(ReplyLoop):
         else:
             system += '仅输出 JSON 对象 {"speak":布尔值,"text":"拟发送的简短文字；不发言则为空"}。'
         data = json.dumps({'group': self.owner['name'], 'recent_messages': batch.get('context', [])[-20:],
-            'new_messages': [{k: e[k] for k in ('sender_name', 'text', 'mentioned', 'follows_self', 'kind', 'image_index', 'image_status', 'owner') if k in e} for e in events],
+            'new_messages': [{k: e[k] for k in ('sender_name', 'text', 'mentioned', 'follows_self', 'kind', 'image_index', 'image_status', 'image_kind', 'owner') if k in e} for e in events],
             'seconds_since_own_post': round(elapsed)}, ensure_ascii=False)
         if self.images:
             self.model.use_request([r['id'] for r in rows])

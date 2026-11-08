@@ -3,6 +3,37 @@ from pathlib import Path
 import image_client
 
 class ClientImageTests(unittest.TestCase):
+    def test_converted_official_file_requires_exact_native_filename(self):
+        import io
+        from PIL import Image
+        b=io.BytesIO();Image.new('RGB',(40,30),'red').save(b,format='JPEG');data=b.getvalue()
+        native={'time':120,'sourceLocalId':7,'imageMetadata':{'md5':'a'*32}}
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td);p=root/'image';p.write_bytes(data)
+            with self.assertRaises(ValueError):image_client.verify_export(p,'a'*32,root)
+            for name in ['Weixin Image_19700101080200_8_1.jpg','Weixin Image_19700101080201_7_1.jpg','unverified.jpg']:
+                with self.assertRaises(ValueError):image_client.verify_visible_export(p,native,root,name)
+            actual,proof=image_client.verify_visible_export(p,native,root,'Weixin Image_19700101080200_7_1.jpg')
+            self.assertEqual(actual,data);self.assertEqual(proof['representation'],'official-visible-variant')
+            self.assertTrue(proof['nativeSourceIdentityVerified'])
+
+    def test_reparented_viewer_uses_absolute_display_coordinates(self):
+        rows=image_client.parse_windows('  0x400075 "Photos and Videos": ("wechat" "wechat") 827x501+0+0 +280+371\n')
+        self.assertEqual((rows[0]['x'],rows[0]['y']),(280,371))
+
+    def test_internal_selected_ui_is_used_without_reloading_old_global_binding(self):
+        from unittest.mock import Mock,patch
+        from contextlib import contextmanager
+        from PIL import Image
+        target={'username':'group@chatroom','displayName':'Fixture group'}
+        selected=Mock();selected.config.return_value={'header_box':[0,0,100,30],'editor':[50,90]}
+        selected.screenshot.return_value=Image.new('RGB',(120,120),'white')
+        @contextmanager
+        def held(_):yield lambda:None
+        with patch('image_client.source',return_value=(target,{})),patch('image_client.locked',held), \
+                patch('sender.UI',side_effect=ValueError('old global binding must not be loaded')):
+            result=image_client.dispatch(Mock(),{'action':'image_prepare'},ui=selected)
+        self.assertEqual(result['state'],'image_context_ready');selected.preflight.assert_called_once()
     def test_xml_entity_and_non_image_or_ambiguous_hash_rejected(self):
         for raw,kind in [('<!DOCTYPE x [<!ENTITY a SYSTEM "file:///etc/passwd">]><msg/>',3),('<msg><img md5="'+'a'*32+'"/></msg>',1),('<msg><img md5="'+'a'*32+'"/><img md5="'+'b'*32+'"/></msg>',3)]:
             with self.assertRaises(ValueError):image_client.source_info(raw,kind)

@@ -40,13 +40,35 @@ def verify_export(path,expected,root):
     with Image.open(io.BytesIO(data)) as im:im.load()
     return data,{**info,'bytes':len(data),'md5':expected,'sha256':hashlib.sha256(data).hexdigest()}
 
+def verify_filename(name,metadata):
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    stamp=datetime.fromtimestamp(metadata['time'],ZoneInfo('Asia/Shanghai')).strftime('%Y%m%d%H%M%S')
+    if not isinstance(name,str) or not re.fullmatch(r'Weixin Image_'+stamp+'_'+str(metadata['sourceLocalId'])+r'_[0-9]+\.[A-Za-z0-9]+',name):
+        raise ValueError('official filename differs from exact native time and local ID')
+
+def verify_visible_export(path,metadata,root,filename):
+    verify_filename(filename,metadata)
+    from attachments import read_bound
+    from operations.assets import validate_image
+    from PIL import Image
+    data=read_bound(root,path);validate_image(data)
+    with Image.open(io.BytesIO(data)) as im:info={'width':im.width,'height':im.height,'format':im.format}
+    md5=hashlib.md5(data).hexdigest()
+    return data,{**info,'bytes':len(data),'md5':md5,'sha256':hashlib.sha256(data).hexdigest(),
+        'nativeSourceIdentityVerified':True,'officialDefaultFilename':filename,
+        'sourceIdentityMethod':'official-save-as-native-time-and-local-id',
+        'representation':'original' if md5==metadata['imageMetadata']['md5'] else 'official-visible-variant'}
+
 def parse_windows(text):
-    pattern=r'(0x[0-9a-fA-F]+) "([^"]*)": \("wechat" "wechat"\)\s+(\d+)x(\d+)\+(-?\d+)\+(-?\d+)'
-    return [{'id':a,'title':b,'x':int(e),'y':int(f),'width':int(c),'height':int(d)} for a,b,c,d,e,f in re.findall(pattern,text)]
+    pattern=r'^\s*(0x[0-9a-fA-F]+) "([^\r\n]*)": \("wechat" "wechat"\)\s+(\d+)x(\d+)\+(-?\d+)\+(-?\d+)(?:\s+([+-]\d+)([+-]\d+))?\s*$'
+    return [{'id':a,'title':b,'x':int(ax or x),'y':int(ay or y),'width':int(w),'height':int(h)} for a,b,w,h,x,y,ax,ay in re.findall(pattern,text,re.M)]
 
 # Exact existing official toolbar renderings; these pixels contain controls only,
 # never image content or a QR payload. Unknown/active/hovered layouts defer.
 SAVE_TOOLBARS={
+    # Current reparented official viewer, QR and inactive download controls.
+    '0bec430b25cd1b95d356c9516c77a375d416f486cb5a5c03c2e7d47f710adfc2':('with-qr',520),
     '17859a966e88f7191d19397c9476a0d2e21ba0c047e5e2cee16d812f1b4bf956':('without-qr',540),
     # Same inactive Save controls; original forum next-image arrow is enabled.
     '22754d0fea83ce24040b5cd8566cdfeb0e99779b3548e20bfdfadac832ae89d7':('without-qr',540),
@@ -158,6 +180,13 @@ class Controls:
         gi.require_version('Gtk','3.0');from gi.repository import Gtk,Gdk
         self.clip=Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD);self.clip.set_text(text,-1)
         self.key(0x61,True);self.key(0x76,True);self.wait(900)
+    def filename(self,dialog):
+        import gi
+        gi.require_version('Gtk','3.0');from gi.repository import Gtk,Gdk
+        self.clip=Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD);self.clip.set_text('awaiting-native-filename',-1)
+        self.require_focus(dialog);self.click(dialog['x']+int(dialog['width']*.45),dialog['y']+dialog['height']-56)
+        self.require_focus(dialog);self.key(0x61,True);self.key(0x63,True);self.wait(300)
+        self.require_focus(dialog);return self.clip.wait_for_text()
 
 @contextmanager
 def locked(root):
@@ -189,14 +218,14 @@ def source(tool,r):
     target=tool.resolve(r['peer']);peer=target['username'];server=sid(r['server_id']);table='Msg_'+hashlib.md5(peer.encode()).hexdigest()
     with tool.open('message/message_0.db') as (c,receipt):
         if receipt.get('consistency')!='committed':raise ValueError('image source snapshot is not committed')
-        rows=c.execute('select local_type,message_content,create_time,real_sender_id from '+table+' where server_id=?',(signed(server),)).fetchall()
+        rows=c.execute('select local_id,local_type,message_content,create_time,real_sender_id from '+table+' where server_id=?',(signed(server),)).fetchall()
         if len(rows)!=1:raise ValueError('image message is missing or ambiguous')
         x=rows[0]
         sender=c.execute('select user_name from Name2Id where rowid=?',(x['real_sender_id'],)).fetchone()
         raw=decode(x['message_content'])
         if peer.endswith('@chatroom') and sender and raw.startswith(sender[0]+':\n'):raw=raw[len(sender[0])+2:]
         meta=source_info(raw,int(x['local_type'])&0xffffffff)
-        return target,{'peer':peer,'serverId':str(server),'senderId':sender[0] if sender else None,'time':x['create_time'],'timeBeijing':beijing(x['create_time']),'imageMetadata':meta,'sourceReceipt':receipt}
+        return target,{'peer':peer,'serverId':str(server),'senderId':sender[0] if sender else None,'sourceLocalId':x['local_id'],'time':x['create_time'],'timeBeijing':beijing(x['create_time']),'imageMetadata':meta,'sourceReceipt':receipt}
 
 def viewport(cfg):return [cfg['header_box'][0],cfg['header_box'][3]+1,cfg['header_box'][2],cfg['editor'][1]-34]
 
@@ -207,10 +236,10 @@ def restore_main_focus(control):
     main=control.one('Weixin',True)
     if main:control.focus(main)
 
-def dispatch(tool,r):
+def dispatch(tool,r,*,ui=None):
     from linux_tool import ROOT
     from sender import UI
-    target,metadata=source(tool,r);ui=UI(ROOT)
+    target,metadata=source(tool,r);ui=ui if ui is not None else UI(ROOT)
     with locked(ROOT) as require_guard:
         ui.preflight(r,target);cfg=ui.config(target);box=viewport(cfg);im=ui.screenshot();context=im.crop(tuple(box))
         if r['action']=='image_prepare':
@@ -232,14 +261,17 @@ def dispatch(tool,r):
             control.focus(viewer)
             opened=open_viewer_save(control,viewer,ui.screenshot,require_guard)
             dialog=opened['dialog'];dialog_identity=opened['dialogIdentity']
+            filename=None
+            if r.get('representation')=='visible':
+                require_guard();control.focus(dialog);filename=control.filename(dialog);verify_filename(filename,metadata)
             with tempfile.TemporaryDirectory(prefix='image-',dir=export_root) as td:
                 folder=Path(td);out=folder/'image'
                 control.focus(dialog);control.click(dialog['x']+int(dialog['width']*.45),dialog['y']+dialog['height']-56)
                 control.require_focus(dialog);control.paste(str(out));control.require_focus(dialog);control.key(0xff0d);control.wait(800)
                 files=[p for p in folder.iterdir() if p.name.startswith('image') and not p.name.endswith('.tmp')]
                 if len(files)!=1:raise ValueError('official client did not export a unique image')
-                data,info=verify_export(files[0],metadata['imageMetadata']['md5'],folder);files[0].chmod(0o600)
-                result={'state':'image_ready',**metadata,**info,'origin':'official-client-save-as','messageMd5Matched':True,'contentReady':True,'wholeScreenScreenshot':False,'messageImageFileObtained':True,'rawCameraOriginalClaimed':False,'content_base64':base64.b64encode(data).decode(),'temporaryExportCleaned':True,'messagesSent':0}
+                data,info=verify_visible_export(files[0],metadata,folder,filename) if filename else verify_export(files[0],metadata['imageMetadata']['md5'],folder);files[0].chmod(0o600)
+                result={'state':'image_ready',**metadata,**info,'origin':'official-client-save-as','messageMd5Matched':info['md5']==metadata['imageMetadata']['md5'],'contentReady':True,'wholeScreenScreenshot':False,'messageImageFileObtained':True,'rawCameraOriginalClaimed':False,'content_base64':base64.b64encode(data).decode(),'temporaryExportCleaned':True,'messagesSent':0}
             return result
         finally:
             try:
