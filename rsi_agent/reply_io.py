@@ -56,8 +56,19 @@ def source(root, owner, request):
     with native('message/message_0.db') as (db, receipt):
         if receipt.get('consistency') != 'committed' or receipt.get('gap'):
             raise ValueError('Committed native source required.')
+
+        def context(row, event):
+            if event['kind'] != 49:
+                return {}
+            from .link_reader import shared_link
+            raw = decode(row['message_content'])
+            if raw.startswith(event['sender'] + ':\n'):
+                raw = raw[len(event['sender']) + 2:]
+            link = shared_link(raw)
+            return {'link': link} if link else {}
+
         inbox = SourceInbox(path, lambda: db, table, owner['account'], peer, decode,
-                            str(scope['since']), only_incoming=True)
+                            str(scope['since']), only_incoming=True, event_context=context)
         try:
             mark = json.dumps(scope, sort_keys=True)
             old = inbox.c.execute("SELECT v FROM meta WHERE k='owner_scope'").fetchone()

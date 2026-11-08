@@ -118,6 +118,11 @@ def read_group(root, value, request, members):
                         quote = {'self': sender == value['account'], 'text': text[:2000],
                                  'sender_name': members[sender] or '群成员'}
                 extra['quoted_reply'] = {'text': current['text'], 'quote': quote}
+            else:
+                from .link_reader import shared_link
+                link = shared_link(raw)
+                if link:
+                    extra['link'] = link
         return extra
 
     if request['op'] == 'ack':

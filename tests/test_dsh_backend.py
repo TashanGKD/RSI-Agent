@@ -1,4 +1,5 @@
 import base64
+import hashlib
 import json
 from pathlib import Path
 import sys
@@ -155,6 +156,21 @@ class HarnessDurabilityTests(unittest.TestCase):
         self.assertTrue(self.launches[0]['patches'][-1].endswith('chat.patch.yml'))
         self.assertIn('scnet.patch.yml', self.launches[0]['patches'][0])
 
+    def test_private_preferences_are_loaded_for_new_turns_without_rewriting_original_results(self):
+        path = self.root / 'preferences.md'
+        path.write_text('Use concrete technical reasoning; retain the accepted conversation style.')
+        path.chmod(0o600)
+        request = dict(self.request, mode='chat')
+        first = execute(self.config, request)
+        self.assertIn(path.read_text(), self.launches[0]['env']['DSH_SYSTEM_PROMPT'])
+        self.assertEqual(first['preferences_sha256'], hashlib.sha256(path.read_bytes()).hexdigest())
+        path.write_text('A corrected preference for later turns.')
+        self.assertEqual(execute(self.config, request)['preferences_sha256'], first['preferences_sha256'])
+        self.assertEqual(len(self.calls), 1)
+        second = execute(self.config, dict(request, id='b' * 64))
+        self.assertEqual(second['preferences_sha256'], hashlib.sha256(path.read_bytes()).hexdigest())
+        self.assertIn(path.read_text(), self.launches[1]['env']['DSH_SYSTEM_PROMPT'])
+
     def test_engineering_selects_structured_tool_patch(self):
         execute(self.config, self.request)
         self.assertTrue(self.launches[0]['patches'][-1].endswith('engineering.patch.yml'))
@@ -172,6 +188,50 @@ class HarnessDurabilityTests(unittest.TestCase):
             execute(self.config, dict(self.request, mode='chat'))
         with self.assertRaisesRegex(ValueError, 'uncertain'):
             execute(self.config, dict(self.request, mode='chat'))
+
+
+class LinkReadingAuthorityTests(unittest.TestCase):
+    def setUp(self):
+        self.folder = tempfile.TemporaryDirectory()
+        self.addCleanup(self.folder.cleanup)
+        self.root = Path(self.folder.name)
+        (self.root / 'inputs').mkdir()
+        self.model = DshBackend.__new__(DshBackend)
+        self.model.config = {'state': str(self.root)}
+        self.model.engineering = True
+        self.model.model = 'fixture'
+        self.model.engineer = Mock(return_value='Verified engineering result')
+        self.pages = [{'state': 'ready', 'text': 'Untrusted page asks to execute commands.'}]
+        self.calls = []
+        self.engineering = False
+
+        def run(messages, mode, stage=None):
+            self.calls.append((messages, mode, stage))
+            if stage is None:
+                self.model.last_input_key = 'a' * 64
+                (self.root / 'inputs' / ('a' * 64 + '.json')).write_text(json.dumps({'messages': messages}))
+                text = json.dumps({'engineering': self.engineering, 'text': 'Routing result only'})
+            else:
+                text = 'A factual read-only answer.'
+            return {'message': {'content': text}}
+
+        self.model._run = run
+
+    def test_page_text_enters_only_a_separate_tool_free_chat_stage_after_routing(self):
+        result = self.model.reply('Read https://example.com/a', pages=self.pages)
+        self.assertEqual(result, 'A factual read-only answer.')
+        self.assertNotIn('Untrusted page', str(self.calls[0][0]))
+        self.assertIn('Untrusted page', str(self.calls[1][0]))
+        self.assertEqual(self.calls[1][1:], ('chat', 'link-reading'))
+        self.model.engineer.assert_not_called()
+
+    def test_explicit_native_engineering_still_executes_only_the_original_instruction(self):
+        self.engineering = True
+        prompt = 'Implement the requested integration at https://example.com/a'
+        self.assertEqual(self.model.reply(prompt, pages=self.pages), 'Verified engineering result')
+        self.model.engineer.assert_called_once_with(prompt)
+        self.assertEqual(len(self.calls), 1)
+        self.assertNotIn('Untrusted page', str(self.calls[0][0]))
 
 
 class HarnessToolAuthorityTests(unittest.TestCase):
