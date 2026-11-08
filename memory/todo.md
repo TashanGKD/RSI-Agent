@@ -3,12 +3,12 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-1. **Recovery: retrieve the original receipt without live-send prerequisites.**
-   Keep the original SDK's single get, existing private queue/policy checks and
-   unchanged IDs/states. Missing queues must not be created; writes stay gated.
-   Verify the frozen synthetic fixture, normal CI and actual current source after
-   code-only promotion. PR #3 is already released; its X11 checks remain correct
-   for mutations. Resolve completion from the live PR receipt and host metadata.
+1. **SCNET model interface: explicit user request, one WIP.**
+   Configure the pinned DeepSeek model with a private key file, shared client and
+   `model check/reply` CLI. Verify real text and nonexecuting tool calls from the
+   deployed path after normal CI. Keep automatic replies disabled and original
+   WeChat state unchanged. Receipt recovery and PR #4 are already delivered;
+   resolve later model delivery from its PR receipt and actual host metadata.
 2. **Service persistence: awaiting production window.** Bundle/bootstrap and
    isolated transient→persistent→rollback transport paths are verified. Two rounds
    are complete; do not spend another round repeating those checks. Actual X,

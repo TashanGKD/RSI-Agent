@@ -28,6 +28,25 @@ python -m rsi_agent notebook --workspace ./var/demo --demo
 
 已有目录不允许被 `--demo` 覆盖；后续只需省略 `--demo`。模型执行默认关闭，保留原记事本数据和权限实现。
 
+## 模型接口
+
+RSI Agent 可通过 OpenAI 兼容的 Chat Completions 接口调用 SCNET DeepSeek。
+以 [配置示例](examples/scnet.json) 创建私有 `config.json`，把 API Key 单独写入同目录的
+`api-key.txt`；目录权限为 0700，两份文件为 0600，均由实际调用用户拥有。不要把密钥写入 Git 或命令参数。
+
+合睿已配置的入口（在 root 终端运行）：
+
+```sh
+cd /opt/rsi-agent/current
+python3 -B -m rsi_agent --config /var/lib/rsi-agent/providers/scnet/config.json model check
+printf '你好，请介绍你能协助的工作。' | python3 -B -m rsi_agent --config /var/lib/rsi-agent/providers/scnet/config.json model reply
+```
+
+`check` 实际验证文字回复与一个不会执行的工具调用，`reply` 从标准输入读取问题并返回 JSON。
+其他模块可复用 `rsi_agent.model.ModelClient.complete(messages, tools=..., tool_choice=...)`；
+配置中的 Base URL 已含 `/v1`，入口只追加 `/chat/completions`。请求使用直接 HTTPS 连接，不跟随重定向。
+此入口不启动微信自动回复或执行模型返回的工具；现有微信与记事本的执行授权各自保留。
+
 ## Linux 微信接入
 
 先在私有配置中填写自己的准确账号、profile 和运行目录。`examples/linux.json` 适配合睿当前 `:92` 显示与 Xauthority 路径，但没有填账号或密钥，写操作默认关闭。

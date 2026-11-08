@@ -8,9 +8,9 @@ every 45 minutes in the existing Codex chat.
 
 ## Verified baseline
 
-- Latest checked main and installed code: `e3ddea74b49627d4584618abcb826adf5ee9ecf3`.
-- PR #3 is merged and its code-only release is complete. Current points to
-  `/opt/rsi-agent/releases/e3ddea74b496`; the prior immutable release is retained.
+- Latest checked main and installed code: `85f54bc464ee118071ec2e82d8aa582de5bce6e0`.
+- PR #4 is merged and its code-only release is complete. Current points to
+  `/opt/rsi-agent/releases/85f54bc464ee`; the prior immutable release is retained.
   Its merged PR body contains the delivery receipt and rollback evidence.
 - One File Transfer text was accepted at 2026-11-08 00:06:05 +08:00. Native sender,
   peer and exact body matched; one terminal attempt and same-ID receipt replay
@@ -19,19 +19,22 @@ every 45 minutes in the existing Codex chat.
 
 ## Active improvement
 
-Restore original-receipt lookup when the desktop, decryption keys or write enable
-are unavailable. The original SDK can get stored succeeded/unknown receipts under
-those conditions, but the unified CLI blocks on full operations prerequisites.
-Hypothesis: single get needs the existing private queue and policy, not live-send
-dependencies. Keep SDK validation and original IDs; never create a missing queue
-or start an executor. The frozen synthetic fixture reproduced the baseline block
-and verified candidate recovery, unchanged queue files and protected mutations.
-See [comparison](../harness/evidence/2026-11-08-receipt-recovery.json).
+Configure only RSI Agent's model interface, as explicitly clarified by the user.
+Use SCNET `https://api.scnet.cn/api/llm/v1` with the live catalog's pinned
+`DeepSeek-V4.1-Flash-1017`. Horyzon's root-owned private provider configuration
+and separate key are installed; both text and nonexecuting tool-call probes
+returned HTTP 200. No credentials or provider reasoning are copied into Git.
 
-This is the only change under consideration. If its PR is merged and delivered,
-there is no remaining receipt-recovery WIP. Check its head, CI and delivery receipt;
-the installed revision is authoritative in `/var/lib/rsi-agent/release.json` and
-`/opt/rsi-agent/current`, rather than the checked baseline above.
+Hypothesis: a small shared Chat Completions client and explicit `model check/reply`
+CLI can make this provider callable without the retired WeChat worker, Codex
+authentication or automatic sending. Verify the actual installed path after
+normal review/CI and code-only promotion. This is the only WIP. Its PR delivery
+receipt and `/opt/rsi-agent/current` plus `/var/lib/rsi-agent/release.json` resolve
+the later deployment state; this checkpoint does not predeclare release.
+
+Original-receipt recovery is complete, including interrupted-query recovery;
+do not retain it as WIP. See [PR #4's live delivery receipt](https://github.com/Yu-Yang-Li/RSI-Agent/pull/4)
+and [comparison](../harness/evidence/2026-11-08-receipt-recovery.json).
 
 PR #3 has delivered X11 dependency diagnosis and contains the eighth-round
 benefit audit: two bounded CLI paths were repaired and published in the last four
@@ -65,16 +68,17 @@ unverified. The single restart authorization has been used; no additional send
 or repeated restart is implied by the 45-minute maintenance cadence.
 
 The user clarified that their message was sent directly to the logged-in account.
-A bounded read confirmed an incoming private text at the native layer; matching
-the sender to the user is still awaiting clarification. No automatic incoming-
-message/AI-reply service is deployed, and no new standing-send scope was granted.
+A bounded read confirmed an incoming private text at the native layer; the user
+confirmed that sender, and the exact binding remains in a private host file.
+Automatic replies remain disabled. Configuring a model interface does not grant
+a new standing-send scope or enable the retired worker.
 
 ## Next checkpoint
 
-Until delivered, close receipt recovery through normal CI and code-only promotion,
+Close the SCNET model interface through normal CI and code-only promotion,
 preserving an immutable prior release, private metadata and pointer rollback.
-Run the frozen synthetic receipt fixture from the actual current source, along
-with unchanged processes, private configuration and real original request records. Keep completion in that PR's
-delivery receipt. After delivery, choose only a demonstrated independent defect;
+Run `model check` from the actual current source using the private provider
+configuration; keep WeChat processes, configuration and original requests unchanged.
+Record completion in the same PR's delivery receipt. After delivery, choose only a demonstrated independent defect;
 unchanged or externally gated state is no-op. Real-client cancellation needs its
 own unsent-draft scope; service activation needs its X/WeChat/noVNC window.
