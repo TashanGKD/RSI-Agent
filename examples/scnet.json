@@ -1,0 +1,5 @@
+{
+  "base_url": "https://api.scnet.cn/api/llm/v1",
+  "model": "DeepSeek-V4.1-Flash-1017",
+  "api_key_file": "api-key.txt"
+}

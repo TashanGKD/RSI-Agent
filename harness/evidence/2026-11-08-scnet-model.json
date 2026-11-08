@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "baseline_revision": "85f54bc464ee118071ec2e82d8aa582de5bce6e0",
+  "user_scope": "Configure only the RSI Agent model interface on Horyzon; no DSH runtime or automatic WeChat replies.",
+  "hypothesis": "One shared Chat Completions client and explicit CLI can use SCNET without Codex authentication or WeChat prerequisites.",
+  "baseline": {
+    "command": "python3 -B -m rsi_agent model --help",
+    "exit": 2,
+    "reason": "model is not an available command"
+  },
+  "provider": {
+    "base_url": "https://api.scnet.cn/api/llm/v1",
+    "model": "DeepSeek-V4.1-Flash-1017",
+    "catalog_http_status": 200,
+    "text_probe": {
+      "http_status": 200,
+      "content": "RSI_SCNET_OK",
+      "finish_reason": "stop"
+    },
+    "tool_probe": {
+      "http_status": 200,
+      "function": "rsi_probe",
+      "arguments": {
+        "value": "ready"
+      },
+      "finish_reason": "tool_calls",
+      "executed": false
+    }
+  },
+  "interface": "python3 -B -m rsi_agent --config /var/lib/rsi-agent/providers/scnet/config.json model check",
+  "module": "rsi_agent/model.py",
+  "candidate_source_sha256": {
+    "rsi_agent/model.py": "af3a053b18ce62bae380ce8e08a602c10f30fc5ef1431ed165f1c18302cfdccb",
+    "rsi_agent/__main__.py": "bc3b62b8628323035968d756751e5cb46df6371b32275684665d16fa99caab52",
+    "tests/test_model.py": "4f28a815ced04cc42ac2e7b863dd6bd950457fe1eb93d60201859ac9e1a0db72"
+  },
+  "credential_storage": {
+    "directory": "root-owned 0700",
+    "configuration": "root-owned 0600",
+    "separate_key_file": "root-owned 0600",
+    "committed": false
+  },
+  "reproduce_fixture": "python -B -m unittest discover -s tests -p test_model.py -v",
+  "fixture_scope": [
+    "Unicode and history",
+    "single versioned endpoint",
+    "text and nonexecuting tool-call shape",
+    "provider errors do not echo credentials",
+    "invalid responses and oversized prompts",
+    "CLI independent of WeChat configuration",
+    "Linux private-file ownership and mode"
+  ],
+  "boundaries": [
+    "Synthetic provider probes only; no private chat content",
+    "No tool execution, message send, client restart or service activation",
+    "No automatic reply binding or standing-send scope",
+    "No Penguin Formal Baseline or RSI score"
+  ],
+  "delivery": "Provider authentication has been verified on the host. Candidate/merge/code release/current-path checks are recorded separately in the live PR delivery receipt."
+}
