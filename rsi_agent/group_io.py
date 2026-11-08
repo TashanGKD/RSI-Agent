@@ -70,7 +70,7 @@ def read_group(root, value, request, members):
 
     def context(row, event):
         previous = db.execute('SELECT real_sender_id,local_type FROM ' + table +
-            ' WHERE (create_time,COALESCE(sort_seq,0),local_id)<(?,?,?)'
+            ' WHERE (local_type & 4294967295)=1 AND (create_time,COALESCE(sort_seq,0),local_id)<(?,?,?)'
             ' ORDER BY create_time DESC,COALESCE(sort_seq,0) DESC,local_id DESC LIMIT 1',
             (row['create_time'], row['sort_seq'] or 0, row['local_id'])).fetchone()
         return {'sender_name': members.get(event['sender']) or '群成员',
