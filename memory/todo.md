@@ -3,12 +3,12 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-1. **SCNET model interface: explicit user request, one WIP.**
-   Configure the pinned DeepSeek model with a private key file, shared client and
-   `model check/reply` CLI. Verify real text and nonexecuting tool calls from the
-   deployed path after normal CI. Keep automatic replies disabled and original
-   WeChat state unchanged. Receipt recovery and PR #4 are already delivered;
-   resolve later model delivery from its PR receipt and actual host metadata.
+1. **Diagnosis with unsearchable runtime/profile directories: one WIP.**
+   Baseline doctor exits 2 before reporting unrelated layers. Preserve a full
+   diagnostic report with affected checks false, while read/write remain blocked.
+   Freeze the real unprivileged Linux fixture, compare baseline/candidate, then
+   close normal CI and current-path code-only release. SCNET PR #5 and receipt
+   recovery PR #4 are delivered; do not reopen either as pending work.
 2. **Service persistence: awaiting production window.** Bundle/bootstrap and
    isolated transient→persistent→rollback transport paths are verified. Two rounds
    are complete; do not spend another round repeating those checks. Actual X,

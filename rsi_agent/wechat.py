@@ -14,8 +14,11 @@ READ_ACTIONS = {'resolve', 'messages', 'voice', 'attachments', 'attachment'}
 
 def private_file(path):
     p = Path(path)
-    return (p.is_file() and not p.is_symlink() and not p.stat().st_mode & 0o077
-            and hasattr(os, 'getuid') and p.stat().st_uid == os.getuid())
+    try:
+        return (p.is_file() and not p.is_symlink() and not p.stat().st_mode & 0o077
+                and hasattr(os, 'getuid') and p.stat().st_uid == os.getuid())
+    except PermissionError:
+        return False
 
 
 def gtk_available():
@@ -32,9 +35,14 @@ def doctor(config):
     wx = config['wechat']
     root = Path(wx['runtime_root'])
     linux = sys.platform == 'linux'
+    profile_ready = False
+    try:
+        profile_ready = bool(wx['profile']) and (Path(wx['profile']) / 'db_storage').is_dir()
+    except PermissionError:
+        pass
     read = {
         'linux': linux, 'account_configured': bool(wx['account']),
-        'profile_configured': bool(wx['profile']) and (Path(wx['profile']) / 'db_storage').is_dir(),
+        'profile_configured': profile_ready,
         'private_keys_present': private_file(root / 'db-keys.json'),
         'crypto_installed': importlib.util.find_spec('Crypto') is not None,
     }
