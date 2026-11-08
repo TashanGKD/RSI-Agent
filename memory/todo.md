@@ -3,12 +3,12 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-1. **Image input and verified-owner execution through DeepSeek Harness: one WIP.**
-   The follow-up recovery and public persona are delivered (PRs #11/#12).
-   Review/CI and publish the current SDK/backend candidate, preserve original
-   caches/requests during separately recorded activation, and obtain a fresh
-   single-image native receipt. Folded albums currently fail source localization;
-   do not count the supplied-PNG SDK pilot as native WeChat image acceptance.
+1. **Close the DeepSeek Harness group activation: one WIP.**
+   PR #13 code is published; its activation exposed ordinary prose instead of
+   the decision JSON. Frame the existing result and freeze the selected native
+   batch, then recover those same unsent events without changing their IDs or
+   regenerating the reply. After activation, fresh single-image native acceptance
+   remains the next external input; folded albums are unsupported.
 2. **Service persistence: awaiting production window.** Bundle/bootstrap and
    isolated transient→persistent→rollback transport paths are verified. Two rounds
    are complete; do not spend another round repeating those checks. Actual X,

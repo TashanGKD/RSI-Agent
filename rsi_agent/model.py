@@ -39,8 +39,10 @@ class ModelClient:
         self.base_url, self.model, self._key = config['base_url'].rstrip('/'), config['model'], key
         self.opener = opener or urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
 
-    def complete(self, messages, *, tools=None, tool_choice=None):
+    def complete(self, messages, *, tools=None, tool_choice=None, json_output=False):
         payload = {'model': self.model, 'messages': messages, 'max_tokens': 1024, 'stream': False}
+        if json_output:
+            payload['response_format'] = {'type': 'json_object'}
         if tools is not None:
             payload['tools'] = tools
         if tool_choice is not None:

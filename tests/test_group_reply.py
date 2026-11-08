@@ -115,6 +115,22 @@ class GroupTests(unittest.TestCase):
         self.model.complete.side_effect = None
         self.assertEqual(loop.cycle()['state'], 'pending')
 
+    def test_bad_format_keeps_original_batch_when_another_message_arrives(self):
+        loop = self.loop()
+        self.model.complete.return_value = {'message': {'content': 'An ordinary unframed reply'}}
+        with self.assertRaises(ValueError):
+            loop.cycle()
+        self.batch = {'events': [self.event(2, text='A later native message')], 'context': []}
+        self.model.complete.return_value = {'message': {'content': '{"speak":true,"text":"original reply"}'}}
+        self.assertEqual(loop.cycle()['state'], 'pending')
+        messages = json.loads(self.model.complete.call_args.args[0][1]['content'])['new_messages']
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(messages[0]['text'], self.event()['text'])
+        self.assertEqual(loop.db.execute('SELECT state FROM inbox WHERE id="2"').fetchone()[0], 'new')
+        self.assertIsNone(loop.value('model_batch'))
+        self.assertEqual(loop.cycle()['state'], 'sent')
+        self.assertEqual(list(self.effects), ['1'])
+
     def test_unknown_stops_future_decisions_and_original_send(self):
         loop = self.loop()
         loop.cycle()
