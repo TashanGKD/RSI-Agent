@@ -1,0 +1,44 @@
+{
+  "scope": "two user-requested isolated trigger experiments",
+  "baseline": "production local handoff is a 30-minute desktop consumer; ordinary DSH replies are resident",
+  "local_codex": {
+    "nonce_matches_actual_file": true,
+    "single_generation": true,
+    "changed_input_rejected": true,
+    "remote_event": true,
+    "wechat_transport": false,
+    "desktop_thread_wakeup": false,
+    "event_to_turn_seconds": 0.515,
+    "total_seconds": 28.937,
+    "command_exits": [
+      0
+    ],
+    "duplicate_cached": true,
+    "run_source_sha256": "bea8b6b6ce6d27f02d4321b45f9d100740df9a411c74317549feda2475d54db1",
+    "current_source_sha256": "eadb94a8c18aa93ad9be9ceaf5beb240c8c054f81063027adc75284f745a1926",
+    "after_run_change": "removed unused socket import only",
+    "state": "isolated_remote_event_completed"
+  },
+  "dot": {
+    "state": "prepared_awaiting_signed_in_plugin_connection",
+    "protocol": "2025-03-26",
+    "offline_contract": "passed",
+    "real_subscriptions": 0,
+    "real_dot_completion": false,
+    "public_endpoint_verified": false,
+    "wechat_transport": false
+  },
+  "production": {
+    "current_changed": false,
+    "resident_restarted": false,
+    "native_queue_claimed": false,
+    "wechat_sends": 0,
+    "client_restarted": false
+  },
+  "not_established": [
+    "immediate existing desktop thread or Dot wakeup",
+    "fresh native WeChat-to-Codex-to-V2 completion",
+    "persistent local worker installation",
+    "Penguin fixed-model RSI gain"
+  ]
+}

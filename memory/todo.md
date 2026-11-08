@@ -3,13 +3,14 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-1. **Owner-private named memory: current source increment.** Close explicit save,
-   same-name correction, lookup and forgetting in the native-bound private inbox.
-   Cache mutation and reply atomically; rotate subsequent chat epoch/history on
-   actual changes while preserving old SDK inputs/receipts. Ordinary groups and
-   card/image content do not write/read these notes. Finish review/CI/delivery if
-   not already in the live receipt; positive native acceptance needs fresh input.
-   PR #25 dependency diagnosis is delivered and is not another WIP.
+1. **Two explicitly requested event-trigger trials: current WIP.** The isolated
+   remote event -> local App Server -> original completion path is verified;
+   desktop-thread/Dot awakening and real WeChat source are separate. Finish the
+   prepared nonce-only MCP Events endpoint and one real Dot subscription/result.
+   The plugin browser is signed out; a login question is pending. Preserve one
+   original fixture, no production queue injection or duplicate consumer.
+   PR #27 private named memory and #25 diagnosis are delivered; native memory
+   command acceptance awaits fresh owner input, not a repeated implementation.
 2. **Completed task publication recovery: delivered.** A private
    post-shutdown journal binds the frozen result to its original Git effects.
    Branch-update/push SIGKILL replay resumes one original result without another

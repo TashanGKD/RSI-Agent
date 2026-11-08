@@ -11,7 +11,7 @@ PR #22 local Codex handoff and #21 links/preferences remain delivered. Scheduled
 wake is verified; no fresh native /codex request has been claimed. Do not repeat
 the nonce or failed Dot probes. No open old PR is inferred from candidate text.
 
-## Current increment: explicit owner-private named memory
+## Current increment: two separately accepted event-trigger experiments
 
 PR #25 offline readiness and #24 publication recovery are merged, published and
 resident-active according to their live receipts. Do not reopen their candidates.
@@ -19,21 +19,33 @@ The real local Codex queue was empty. GIF carrier evidence is retained in Issue
 #26: the current Pixbuf path loses animation. Do not repeat that probe or claim
 native GIF delivery; its original-reply asset/native-carrier work is independent.
 
-The new candidate closes an explicit private lifecycle: named save, same-name
-correction, lookup and forgetting, surviving worker restart. Native owner/kind-1
-admission precedes mutation; commands and original reply cache share a private
-SQLite transaction. Subsequent chat epochs/history boundaries exclude superseded
-memory, while original SDK inputs/receipts remain frozen. Ordinary group models
-reset private context and never open the owner's notes. No raw Codex profile or
-chat is mirrored into shared context. See harness/OWNER-MEMORY.md.
+PR #27's named private memory is merged, published and resident-active in the
+live receipt. Its native save/correct/forget acceptance still requires fresh
+owner input; do not reopen the delivered implementation.
+
+The owner now explicitly requested separate trials of MCP Events -> Dot and a
+remote event -> local Codex App Server. In a private fixture, a remote HTTP event
+through a temporary SSH reverse forward started a local ephemeral read-only
+App Server turn, actually read the challenge file and returned the exact result.
+An identical duplicate used the frozen completion; changed input was rejected.
+This is independent of the desktop heartbeat, but it neither awakened this
+existing desktop conversation nor consumed/sent a native WeChat request.
+
+The Dot fixture implements the official event/subscription/callback/receipt
+contract in experiments/triggers. Offline contract checks pass. The plugin
+connector failed transport and the browser plugin page is signed out; a real
+Dot subscription and result are still absent. The owner has been asked to sign
+in while endpoint preparation continues. No synthetic production input is made.
+Read the same PR's latest receipt for isolated endpoint hosting/CI state.
 
 ## Unique next step
 
-Finish exact-head review/CI and reversible delivery if its live PR receipt does
-not already record them. Validate the installed private lifecycle using isolated
-inputs, not a production test message. A real new owner command is still needed
-for native acceptance. First activation rollback must detect real note changes
-before returning to an older SDK chat scope; never rewind private state.
+Complete the isolated Dot HTTPS connection after review/CI, then obtain one real
+Dot subscription and send its one operator-authorized fixture. Accept only the
+original probe's completion tool receipt as processing evidence; webhook 2xx is
+only transport evidence. Do not replace the production handoff worker or repeat
+the completed local event/old socket/nonce experiments to manufacture progress.
+Keep capability URLs, signing secrets, raw events and journals private.
 
 The old group's original needs_attention/reply/ACK/navigation remains preserved.
 Its one-off navigation cleanup is unapproved and the concrete question is already

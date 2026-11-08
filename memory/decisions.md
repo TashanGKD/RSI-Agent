@@ -165,3 +165,15 @@ change the subsequent chat epoch/history boundary, retaining old SDK inputs and
 receipts. The original generation key/input remains immutable. First-feature
 rollback must not restore an older chat scope after real notes changed. Named
 lookup is the first path, not automatic profiling or a complete memory plugin.
+
+## D017 — Event-trigger experiments do not silently replace native admission
+
+The owner explicitly requested separate Dot and local-Codex trigger trials.
+A private remote HTTP event can start an independent local App Server through
+an SSH reverse forward, without a target-host Codex installation. This proves
+neither control of the existing desktop conversation nor a production consumer.
+The Dot experiment uses an isolated nonce/arithmetic event, a verified signed
+callback and original completion receipt; no WeChat data or host command tool
+is exposed. A real account plugin subscription is required before emission.
+Keep heartbeat admission/claims/V2 unchanged until that distinct integration is
+implemented and accepted; never run both consumers on one original request.
