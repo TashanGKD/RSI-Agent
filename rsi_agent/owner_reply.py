@@ -187,7 +187,8 @@ def run(path, mode):
             except (OSError, ValueError, subprocess.SubprocessError):
                 result = {'state': 'transport_attention', 'counts': loop.counts()}
             temporary = state / 'status.tmp'
-            temporary.write_text(json.dumps(dict(result, checked_at=time.time())) + '\n')
+            temporary.write_text(json.dumps(dict(result, checked_at=time.time(),
+                model_backend=getattr(model, 'backend', 'direct-scnet'), model=model.model)) + '\n')
             temporary.chmod(0o600)
             os.replace(temporary, state / 'status.json')
             if result != previous:

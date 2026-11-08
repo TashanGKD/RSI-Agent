@@ -202,7 +202,8 @@ def run(path, mode):
                     result = {'state': 'attention', 'counts': loop.counts()}
                 state = Path(config['state'])
                 temporary = state / 'status.tmp'
-                temporary.write_text(json.dumps(dict(result, checked_at=time.time())) + '\n')
+                temporary.write_text(json.dumps(dict(result, checked_at=time.time(),
+                    model_backend=getattr(loop.model, 'backend', 'direct-scnet'), model=loop.model.model)) + '\n')
                 temporary.chmod(0o600)
                 os.replace(temporary, state / 'status.json')
             if mode == 'once':
