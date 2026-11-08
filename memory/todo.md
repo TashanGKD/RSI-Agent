@@ -3,39 +3,42 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-1. **Completed task publication recovery: current source increment.** A private
+1. **Harness readiness diagnostics: current source increment.** Frozen private
+   copied owner/group configurations returned prepared with missing Python/SDK.
+   The candidate checks the configured interpreter, pinned imports and bundled
+   runtime offline. Four broken CLI paths now block with concrete repair reasons;
+   real healthy owner/group controls remain prepared with inbox/V2/SDK/ACK intact.
+   Finish exact-head review/CI and reversible delivery if not already recorded.
+   This is prerequisite diagnosis, not model-network or native-delivery proof.
+2. **Completed task publication recovery: delivered.** A private
    post-shutdown journal binds the frozen result to its original Git effects.
    Branch-update/push SIGKILL replay resumes one original result without another
-   SDK run, commit or completed gate. Finish review/CI and reversible release if
-   not already delivered; native fresh owner-task acceptance requires real input.
+   SDK run, commit or completed gate. Code/activation is closed in PR #24's live
+   receipt; native fresh owner-task acceptance requires real input.
    Legacy uncertain completions without the journal remain review. PR #23 popup
    recognition is delivered. The old group V2/reply/ACK/navigation remains held;
    the prepared one-off unsent navigation recovery still needs its pending
    explicit answer. Do not re-ask, clear or replay it during routine maintenance.
-2. **Local Codex handoff: delivered; native acceptance awaits fresh input.**
+3. **Local Codex handoff: delivered; native acceptance awaits fresh input.**
    Scheduled wake fixture completed in the actual desktop heartbeat and receipt
    is in PR #22/operator metadata. Do not repeat it or the failed Dot probes.
    Observe/claim one new owner /codex request when present, freeze local input and
    completed output, preserve the original V2. No synthetic message or second
    generation after an uncertain running turn. PR #21 links/preferences are
    delivered too; only fresh link/card native acceptance remains observation.
-3. **Persistent task-event/agent-autoloop binding.** First retain delivery of the
+4. **Persistent task-event/agent-autoloop binding.** First retain delivery of the
    bounded publisher above; do not rebuild its completed-output persistence or
    reopen already manually recovered historical work. Stable task-engine CLI
    and separate Node 24 are installed, with no active WeChat event binding. Reuse
    the same original Session/input/result and publication effects; do not create
    a second model consumer, fake task/PR or claim the manual recovery autonomous.
-4. **Dafeiyu native WeChat output.** The library/native search/actual GIF are
+5. **Dafeiyu native WeChat output.** The library/native search/actual GIF are
    prepared. Add the original-request asset/recipient/V2 transport path, keeping
    moderate reactions in the already-authorized owner/groups. Web Markdown is
    not a send receipt; no periodic probe or other-recipient test is authorized.
-5. **Scoped long-term memory.** Build retrieval/correction and verified identity
+6. **Scoped long-term memory.** Build retrieval/correction and verified identity
    separation from the Markdown memory reference. Curated communication context
    is implemented separately; no raw Codex memory mirror or nickname authority.
-6. **Harness readiness diagnostics: independent reproduced candidate.**
-   Private copied owner configurations report prepared with missing Python or
-   missing SDK. Use that frozen install/check path when image acceptance awaits
-   external input; do not combine it with the active plugin increment.
 7. **Service persistence: awaiting production window.** Bundle/bootstrap and
    isolated transient→persistent→rollback transport paths are verified. Two rounds
    are complete; do not spend another round repeating those checks. Actual X,

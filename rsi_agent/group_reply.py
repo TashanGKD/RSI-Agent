@@ -252,7 +252,7 @@ def run(path, mode):
         if mode == 'check':
             from .backend import load_model
             for config in configs:
-                load_model(config['model'])
+                load_model(config['model'], verify_runtime=True)
                 if not GroupTransport(config)()['enabled']:
                     raise ValueError('Invited group is disabled.')
             return {'state': 'prepared', 'enabled_groups': len(configs), 'network_probe': False}

@@ -176,7 +176,7 @@ def run(path, mode):
     if set(config) != {'installation', 'binding', 'model', 'state', 'enabled', 'binding_token'} or type(config['enabled']) is not bool:
         raise ValueError('Invalid owner reply configuration.')
     from .backend import load_model
-    model, transport = load_model(config['model']), Transport(config)
+    model, transport = load_model(config['model'], verify_runtime=mode == 'check'), Transport(config)
     owner = transport()
     if mode == 'check':
         return {'state': 'prepared', 'model': model.model, 'owner_confirmed': True,

@@ -13,6 +13,15 @@ enabled reply configuration's `model` at it. `chat.patch.yml` removes execution
 tools. Each native account/peer gets its own persisted SDK session; original
 inputs and completed results are cached before native sending.
 
+`replies check` and `groups check` verify the configured Harness Python, import
+the SDK in that interpreter with isolated Python paths, compare both wheel pins
+against `requirements-harness.txt`, and locate the bundled executable/sidecars.
+Missing Python, SDK or runtime returns exit 2 / `blocked` with a distinct
+`HARNESS_*_UNAVAILABLE` reason and repair guidance. These checks do not instantiate
+a Session, run the bundled binary, contact the provider or send a message.
+`prepared` remains an offline prerequisite result, not network or delivery proof.
+Direct SCNET configuration checks retain their existing offline behavior.
+
 The original call journal records `sdk_completed` with the validated SDK response
 before SDK shutdown and verification/publication. File and parent-directory fsync
 make that checkpoint durable. `completed` is written only after the remaining
