@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import json
+import subprocess
 from pathlib import Path
 import sys
 import tempfile
@@ -11,6 +12,8 @@ from unittest.mock import Mock
 
 from rsi_agent.dsh_worker import blocks, execute
 from rsi_agent.backend import DshBackend
+from rsi_agent import engineering
+from rsi_agent.model import ModelError, PublicationPending
 
 
 class ImageBlocksTests(unittest.TestCase):
@@ -69,6 +72,8 @@ class HarnessDurabilityTests(unittest.TestCase):
         self.calls, self.launches, self.resumed = [], [], []
         self.response = 'verified result'
         self.close_error = None
+        self.on_run = lambda: None
+        self.real_prepare, self.real_publish = engineering.prepare, engineering.publish
         outer = self
 
         class Harness:
@@ -84,6 +89,7 @@ class HarnessDurabilityTests(unittest.TestCase):
 
             def run(self, content, session_id):
                 outer.calls.append((content, session_id))
+                outer.on_run()
                 return types.SimpleNamespace(finish_reason='completed', final_response=outer.response)
 
             def resume_session(self, session_id):
@@ -138,6 +144,70 @@ class HarnessDurabilityTests(unittest.TestCase):
         self.assertEqual(completed['state'], 'sdk_completed')
         self.assertEqual(completed['response'], self.response)
 
+    def test_original_completed_output_resumes_real_git_after_lost_push_ack(self):
+        work = Path(self.config['engineering_workspace'])
+        remote = self.root / 'remote.git'
+        subprocess.run(['git', 'init', '--bare', str(remote)], check=True, capture_output=True)
+        subprocess.run(['git', 'init', str(work)], check=True, capture_output=True)
+        for args in [('config', 'user.name', 'Fixture'), ('config', 'user.email', 'fixture@example.invalid'),
+                     ('remote', 'add', 'origin', str(remote)), ('checkout', '-b', engineering.BRANCH)]:
+            engineering.git(work, *args)
+        (work / 'scripts').mkdir()
+        (work / 'scripts/check.py').write_text('print("fixture validation")\n')
+        (work / 'README.md').write_text('before\n')
+        engineering.git(work, 'add', '.')
+        engineering.git(work, 'commit', '-m', 'fixture baseline')
+        engineering.git(work, 'push', 'origin', 'HEAD:main')
+        self.on_run = lambda: (work / 'README.md').write_text('original SDK source\n')
+        real_git = engineering.git
+
+        def lost_ack(workspace, *args, **kwargs):
+            result = real_git(workspace, *args, **kwargs)
+            if args[0] == 'push':
+                raise TimeoutError('lost ack after actual push')
+            return result
+
+        with patch.object(engineering, 'REMOTE', str(remote)), \
+                patch.object(engineering, 'prepare', self.real_prepare), \
+                patch.object(engineering, 'publish', self.real_publish):
+            with patch.object(engineering, 'git', side_effect=lost_ack):
+                with self.assertRaises(TimeoutError):
+                    execute(self.config, self.request)
+            path = self.state / 'calls' / (self.request['id'] + '.json')
+            frozen = json.loads(path.read_text())
+            self.assertEqual(frozen['state'], 'sdk_completed')
+            original_commit = real_git(remote, 'rev-parse', engineering.BRANCH)
+
+            def only_reconcile(workspace, *args, **kwargs):
+                if args[0] in ('push', 'update-ref', 'commit-tree'):
+                    raise AssertionError('Git effect must not repeat')
+                return real_git(workspace, *args, **kwargs)
+
+            with patch('rsi_agent.dsh_worker.ModelClient', side_effect=AssertionError('no new model')), \
+                    patch.object(engineering, 'prepare', side_effect=AssertionError('no reset/reprepare')), \
+                    patch.object(engineering, 'git', side_effect=only_reconcile):
+                completed = execute(self.config, self.request)
+                self.assertEqual(execute(self.config, self.request), json.loads(path.read_text()))
+            self.assertEqual(len(self.calls), 1)
+            self.assertEqual(completed['change']['commit'], original_commit)
+            self.assertEqual(completed['input_sha256'], frozen['input_sha256'])
+            self.assertTrue(completed['response'].startswith(self.response + '\n'))
+            self.assertEqual(completed['response'].count(completed['change']['review_url']), 1)
+            self.assertFalse((work.parent / 'engineering-current.json').exists())
+            self.assertEqual(real_git(work, 'status', '--porcelain'), '')
+
+    def test_completed_receipt_clears_only_its_own_leftover_marker(self):
+        execute(self.config, self.request)
+        marker = Path(self.config['engineering_workspace']).parent / 'engineering-current.json'
+        marker.write_text(json.dumps({'request': self.request['id'], 'base': 'fixture'}))
+        marker.chmod(0o600)
+        execute(self.config, self.request)
+        self.assertFalse(marker.exists())
+        marker.write_text(json.dumps({'request': 'b' * 64, 'base': 'other work'}))
+        marker.chmod(0o600)
+        execute(self.config, self.request)
+        self.assertTrue(marker.exists())
+
     def test_interrupted_original_and_changed_input_do_not_run_again(self):
         execute(self.config, self.request)
         path = self.state / 'calls' / (self.request['id'] + '.json')
@@ -188,6 +258,33 @@ class HarnessDurabilityTests(unittest.TestCase):
             execute(self.config, dict(self.request, mode='chat'))
         with self.assertRaisesRegex(ValueError, 'uncertain'):
             execute(self.config, dict(self.request, mode='chat'))
+
+
+@unittest.skipUnless(sys.platform == 'linux', 'requires private publication receipts')
+class PublicationRoutingTests(unittest.TestCase):
+    def test_only_bound_recoverable_publication_defers_the_native_reply(self):
+        with tempfile.TemporaryDirectory() as folder:
+            calls = Path(folder) / 'calls'
+            calls.mkdir(mode=0o700)
+            key, digest, response = 'a' * 64, 'b' * 64, 'Original completed task result'
+            original = calls / (key + '.json')
+            original.write_text(json.dumps({'state': 'sdk_completed', 'input_sha256': digest, 'response': response}))
+            original.chmod(0o600)
+            publication = calls / (key + '.publication.json')
+            binding = {'request': key, 'input_sha256': digest,
+                       'response_sha256': hashlib.sha256(response.encode()).hexdigest()}
+            publication.write_text(json.dumps({'phase': 'validated', 'binding': binding}))
+            publication.chmod(0o600)
+            model = DshBackend.__new__(DshBackend)
+            model.config, model.engineering = {'state': folder}, True
+            model.scope, model.request, model.last_input_key = ['account', 'owner'], ['1'], key
+            model._run = Mock(side_effect=ModelError('publisher interrupted'))
+            with self.assertRaises(PublicationPending):
+                model.engineer('Original task')
+            publication.write_text(json.dumps({'phase': 'review', 'binding': binding}))
+            self.assertIn('还不能算完成', model.engineer('Original task'))
+            publication.unlink()
+            self.assertIn('还不能算完成', model.engineer('Original task'))
 
 
 class LinkReadingAuthorityTests(unittest.TestCase):

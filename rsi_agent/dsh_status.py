@@ -45,7 +45,7 @@ def worker(path, channel, service, current, now):
         timestamp = status['checked_at']
         result['fresh'] = (type(timestamp) in (int, float) and 0 <= now - timestamp <= 90)
         allowed = {'idle', 'sent', 'pending', 'attention', 'media_pending',
-                   'model_unavailable', 'transport_attention', 'quiet', 'stopped', 'waiting_codex'}
+                   'model_unavailable', 'transport_attention', 'quiet', 'stopped', 'waiting_codex', 'work_pending'}
         result['observation'] = status['state'] if status.get('state') in allowed else 'unknown'
         result['enabled'] = config.get('enabled') is True
         backend = status.get('model_backend')

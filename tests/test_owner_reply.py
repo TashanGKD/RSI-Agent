@@ -12,6 +12,7 @@ from unittest.mock import Mock, patch
 
 from rsi_agent.config import WORKBENCH, load
 from rsi_agent.owner_reply import ReplyLoop
+from rsi_agent.model import PublicationPending
 from rsi_agent.reply_io import CLIENT, binding_token, handle, request_id
 
 
@@ -93,6 +94,18 @@ class ReplyLoopTests(unittest.TestCase):
         self.assertEqual(loop.cycle()['state'], 'attention')
         self.assertEqual(len(self.calls), before)
         self.assertEqual(self.model.reply.call_count, 1)
+
+    def test_pending_publication_keeps_original_inbox_without_sending_a_fallback(self):
+        self.model.reply.side_effect = [PublicationPending('frozen publisher'), 'Verified original task result']
+        loop = self.loop()
+        with self.assertRaises(PublicationPending):
+            loop.cycle()
+        self.assertEqual(loop.counts(), {'new': 1})
+        self.assertIsNone(loop.db.execute('SELECT reply FROM inbox').fetchone()[0])
+        self.assertFalse(any(c['op'] == 'submit' for c in self.calls))
+        self.assertEqual(loop.cycle()['state'], 'sent')
+        self.assertEqual(list(self.effects), ['1'])
+        self.assertEqual(loop.cycle()['state'], 'idle')
 
     def test_bootstrap_and_one_message_scope_exclude_future_or_old_messages(self):
         self.owner['scope']['mode'] = 'one-message'

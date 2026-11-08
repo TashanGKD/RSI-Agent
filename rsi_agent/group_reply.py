@@ -8,7 +8,7 @@ import time
 
 from .group_context import FACTS, GroupTransport, group_configs
 from .group_io import INTRODUCTION
-from .model import ModelError
+from .model import ModelError, PublicationPending
 from .owner_reply import ReplyLoop
 from .media import image_part, MediaPending, MediaUnavailable
 from .link_reader import linked_pages
@@ -275,6 +275,8 @@ def run(path, mode):
                     break
                 try:
                     result = loop.cycle()
+                except PublicationPending:
+                    result = {'state': 'work_pending', 'counts': loop.counts()}
                 except ModelError:
                     result = {'state': 'model_unavailable', 'counts': loop.counts()}
                 except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError):

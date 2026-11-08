@@ -13,6 +13,7 @@ from rsi_agent.group_context import FACTS, owner_context
 from rsi_agent.group_io import mentioned, read_group
 from rsi_agent.group_reply import GroupLoop
 from rsi_agent.config import WORKBENCH
+from rsi_agent.model import PublicationPending
 
 
 @unittest.skipUnless(sys.platform == 'linux', 'requires private Linux state')
@@ -82,6 +83,26 @@ class GroupTests(unittest.TestCase):
         self.assertEqual(self.loop().cycle()['state'], 'quiet')
         self.assertFalse(self.effects)
         self.assertFalse(any(c['op'] == 'submit' for c in self.calls))
+
+    def test_publication_wait_preserves_original_owner_batch_when_another_message_arrives(self):
+        self.model.backend = 'deepseek-harness'
+        self.model.engineering = True
+        self.group['owner_peer'] = 'owner'
+        self.batch['events'] = [self.event(sender='owner', text='Fix the actual project')]
+        self.model.complete.return_value = {'message': {'content': '{"speak":true,"text":"","work_index":0}'}}
+        self.model.engineer.side_effect = [PublicationPending('frozen publisher'), 'Verified original task result']
+        loop = self.loop()
+        with self.assertRaises(PublicationPending):
+            loop.cycle()
+        self.assertEqual(json.loads(loop.value('model_batch')), ['1'])
+        self.assertFalse(self.effects)
+        self.batch['events'].append(self.event(2, text='A later unrelated message'))
+        self.batch['ack_ids'].append('2')
+        self.assertEqual(loop.cycle()['state'], 'pending')
+        self.assertIsNone(loop.value('model_batch'))
+        self.assertEqual(loop.db.execute("SELECT state FROM inbox WHERE id='2'").fetchone()[0], 'new')
+        self.assertEqual(loop.cycle()['state'], 'sent')
+        self.assertEqual(list(self.effects), ['1'])
 
     def test_automatically_admitted_group_waits_for_input_without_an_introduction(self):
         self.group['scope']['introduction'] = False

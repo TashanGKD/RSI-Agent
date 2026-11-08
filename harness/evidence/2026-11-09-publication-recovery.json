@@ -1,0 +1,41 @@
+{
+  "case": "resume_frozen_sdk_output_after_publisher_interruption",
+  "baseline_commit": "ac9d17c6ad2855023702944345bc5bd8b7246c52",
+  "hypothesis": "staged-only edits and committed-but-unpushed effects are lost by dirty-file-only publication; a post-shutdown bound journal permits publisher-only recovery",
+  "interfaces": [
+    "rsi_agent.engineering.publish(workspace, checkpoint, binding)",
+    "rsi_agent.dsh_worker.execute(config, original_request)",
+    "rsi_agent.backend.DshBackend.engineer",
+    "rsi_agent.owner_reply.ReplyLoop.cycle",
+    "rsi_agent.group_reply.GroupLoop.cycle"
+  ],
+  "private_evaluator_sha256": "f595cf99fc019282de7205093773ff4c4ab6acf35dbf0a6faa6e5018a60af03c",
+  "baseline": {
+    "staged_only_returned_no_change": true,
+    "committed_unpushed_returned_no_change": true,
+    "both_remote_owner_refs_missing": true,
+    "receipt_sha256": "f037e6cbb7fd318ec3ab37f974356c47b28fe7e244de2f61464c40e354b55316"
+  },
+  "candidate": {
+    "receipt_sha256": "192fd23559471eed39797df50e9f3fad557da2ff3a212a9fbbc20d6a259c3050",
+    "frozen_native_output_sha256": "ff4d85c71dabe642c3616df8d5aa6b8f95069dc5cdfc24b9b2e30172c8186605",
+    "owned_sigkill_boundaries": ["after_branch_update", "after_remote_push"],
+    "each_boundary": {
+      "original_result_completed": true,
+      "model_or_tool_executions_on_resume": 0,
+      "reachable_commits": 1,
+      "validation_runs": 1,
+      "remote_commit_matches": true,
+      "native_sends": 0
+    },
+    "original_fixture_unchanged": true,
+    "private_targeted_log_sha256": "d6bfd868a77ec0c6e97732d4a4ce2e09c6fff9f95a89a7283b1cc46db21dc58f"
+  },
+  "limits": [
+    "frozen SDK output copied into normalized source fixtures and local bare remotes",
+    "positive publisher eligibility supplied by the controlled post-shutdown fixture, not retrofitted into production legacy calls",
+    "historical real owner work was already manually recovered and is not republished",
+    "legacy no-journal or uncertain SDK shutdown still requires review",
+    "no fresh native owner task, public test PR, WeChat send or RSI gain is established"
+  ]
+}
