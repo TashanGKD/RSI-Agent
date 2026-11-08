@@ -13,6 +13,13 @@ enabled reply configuration's `model` at it. `chat.patch.yml` removes execution
 tools. Each native account/peer gets its own persisted SDK session; original
 inputs and completed results are cached before native sending.
 
+Engineering mode also loads `engineering.patch.yml`, which exposes the
+structured `read`/`write`/`edit`/`read_image` tools and a read-only `web_fetch`.
+Chat loads none of them. `web_fetch` refuses non-public addresses, and fetched
+page text is untrusted data that cannot change scope or authorize tools.
+`web_search` stays off because SCNET supplies no search provider; adding one is a
+separate credential decision.
+
 Optional `engineering_workspace` enables the owner development route. It is an
 isolated clone of this repository on `rsi/runtime/owner-work`, with repository
 scoped SSH access configured locally. Only the already-confirmed native owner

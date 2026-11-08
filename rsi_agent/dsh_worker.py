@@ -125,8 +125,9 @@ def execute(value, request):
         from deepseek_harness import DeepSeekHarness
         provider = ModelClient(value['provider_config'])
         patches = [str(ROOT / 'harness/deepseek/scnet.patch.yml')]
-        if request['mode'] == 'chat':
-            patches.append(str(ROOT / 'harness/deepseek/chat.patch.yml'))
+        # Chat stays tool-free; owner engineering gets the structured tools.
+        patches.append(str(ROOT / 'harness/deepseek' /
+            ('chat.patch.yml' if request['mode'] == 'chat' else 'engineering.patch.yml')))
         role = (ROOT / 'harness/deepseek/ROLE.md').read_text(encoding='utf8')
         with DeepSeekHarness(provider='scnet', model=provider.model, max_tokens=4096,
                 cwd=workspace, dsh_home=str(state / 'home'), profile='sdk-minimal',

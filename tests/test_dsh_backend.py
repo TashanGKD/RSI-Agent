@@ -125,6 +125,11 @@ class HarnessDurabilityTests(unittest.TestCase):
         self.assertTrue(self.launches[0]['patches'][-1].endswith('chat.patch.yml'))
         self.assertIn('scnet.patch.yml', self.launches[0]['patches'][0])
 
+    def test_engineering_selects_structured_tool_patch(self):
+        execute(self.config, self.request)
+        self.assertTrue(self.launches[0]['patches'][-1].endswith('engineering.patch.yml'))
+        self.assertNotIn('chat.patch.yml', ' '.join(self.launches[0]['patches']))
+
     def test_next_input_explicitly_resumes_same_chat(self):
         execute(self.config, dict(self.request, mode='chat'))
         execute(self.config, dict(self.request, mode='chat', id='b' * 64))
@@ -137,3 +142,27 @@ class HarnessDurabilityTests(unittest.TestCase):
             execute(self.config, dict(self.request, mode='chat'))
         with self.assertRaisesRegex(ValueError, 'uncertain'):
             execute(self.config, dict(self.request, mode='chat'))
+
+
+class HarnessToolAuthorityTests(unittest.TestCase):
+    """Engineering has structured tools; chat must keep none of them."""
+
+    def test_engineering_patch_enables_file_and_fetch_tools_only(self):
+        patch = (Path(__file__).resolve().parents[1] / 'harness/deepseek/engineering.patch.yml').read_text()
+        self.assertIn("- id: tool-fs", patch)
+        for flag in ('read: true', 'readImage: true', 'write: true', 'edit: true'):
+            self.assertIn(flag, patch)
+        self.assertIn("name: '@deepseek-ai/dsh-web'", patch)
+        self.assertIn("name: '@deepseek-ai/dsh-web-fetch-http'", patch)
+        self.assertIn("name: '@deepseek-ai/dsh-tool-web'", patch)
+        self.assertIn('fetch: true', patch)
+        # Scan/search is served by web_search; no provider is configured here.
+        self.assertIn('search: false', patch)
+        self.assertNotIn('disabled: true', patch)
+
+    def test_chat_patch_removes_every_execution_tool(self):
+        patch = (Path(__file__).resolve().parents[1] / 'harness/deepseek/chat.patch.yml').read_text()
+        self.assertNotIn('insert:', patch)
+        for entry in ('persistent-bash', 'persistent-pwsh', 'tool-fs', 'tool-working-directory'):
+            self.assertIn('- id: ' + entry, patch)
+        self.assertEqual(patch.count('disabled: true'), 4)
