@@ -2,56 +2,46 @@
 
 ## Delivered baseline
 
-PR #16's delivery receipt superseded its candidate checkpoint. Current, release
-metadata and both resident reply workers are now at main fdaa77861705, with
-pinned DeepSeek Harness and SCNET. The actual Channels cover entered the production
-model and received one independently audited native group reply. Ordinary-photo
-official-visible export and isolated recognition passed; a fresh ordinary-photo
-automatic-reply turn remains unobserved. Do not replay old image requests.
+PR #17 was explicitly approved, merged and deployed. Its live delivery receipt
+supersedes the former candidate checkpoint. Current/release metadata and both
+resident reply workers were verified at fdaa77861705a065800954125c4b277a59733ae2.
+Pinned DeepSeek Harness/SCNET, owner engineering structured tools and durable
+sdk_completed output are active. The status bundle is installed only in the
+independent operator profile. Original inboxes, SDK caches, V2 requests and ACKs
+were preserved; the desktop/client was not restarted. Receipt paths are private
+operator metadata and the PR body. Automatic publication recovery remains open.
 
-## PR #17 merged and deployed (fdaa778)
+## One WIP: automatic admission of future owner-shared groups
 
-PR #17 merged into main as fdaa778 (parents 22bb0c6 and 4bf8810) and was
-deployed as `/opt/rsi-agent/releases/fdaa77861705`: `current`, `release.json`
-and `DEPLOYMENT.json` all name fdaa77861705a065800954125c4b277a59733ae2, with
-22bb0c6b21de as prior release. Both resident reply workers (974922 owner, 974921
-groups) started at 23:25 on that release and report fresh/idle, current code,
-empty queues; engineering state is clear; the DSH worker runs on
-deepseek-harness 0.2.1rc2. `scripts/check.py --linux` passes at this head
-(10/41/59-test suites plus the unified-notebook check). Remote CI status is not
-readable from this host (no `gh`, no token, the private repo API returns 404),
-so merge/deploy is verified from Git, host release metadata and systemd rather
-than from a CI receipt.
+The owner removed per-group manual registration: they will invite Xingyu to
+additional groups. Native invitation messages observed here have display names
+without a trusted inviter ID. Use the declared rule of newly joined groups with
+both the confirmed owner and this account present; never infer authority from a
+nickname. Freeze the existing active-group baseline and activation cutoff.
 
-The release ships `plugins/dsh-rsi-wechat-status`, but production chat still
-mounts only `harness/deepseek/chat.patch.yml` and `engineering.patch.yml`; the
-bundle is installed in the isolated `rsi-ops` SDK profile, not mounted in owner
-or group replies. `DEPLOYMENT.json` records `publication_recovery_implemented:
-false`.
+Candidate reads only native contact membership, creates scoped private records
+and identity-only target seeds, and reloads the resident group worker without
+reconstructing other groups' cached loops. New groups get no scripted intro.
+Native recipient proof still precedes input; unnamed/ambiguous native targets
+remain unaddressable. The original admitted group and private owner scope stay
+bound to their original identities, caches and request IDs.
 
-The owner engineering mode still loads read/write/edit/read_image/web_fetch plus
-bash/working_directory; ordinary chat stays tool-free and media grants no owner
-authority. web_search has no provider and stays disabled; the failed
-tool-fs-search insertion was removed. Read-image is registered, not separately
-exercised by the tool probe.
-
-## Audit signal worth knowing
-
-Run as the runtime user against `installation.json`, `audit` reports only
-`SERVICES_NOT_PERSISTENT`, matching the install-time receipt. The same audit run
-as root with the pilot venv instead reports
-`INSTALLATION_PREREQUISITES_INCOMPLETE`: `db-keys.json`, `native-ui.json` and
-`operations-state/config.json` are 0600 wechat-gui files that the uid check
-rejects, and PyGObject/Pillow exist only in system python. That combination is
-an invocation artifact, not a production regression.
+The actual activation baseline was frozen privately with one existing group.
+Linux fixtures cover native-owner versus nickname spoofing, scoped admission,
+idempotence, fresh native-search routing and existing pending reply preservation.
+A running-worker reload case and complete gates must be checked at the final
+head. A positive new-group end-to-end observation requires a real owner-invited
+new group; no synthetic live group or test send is authorized.
 
 ## Unique next step
 
-Treat publication recovery as the next task boundary: recover publication from
-the frozen original sdk_completed response, reconciling actual Git/remote effects
-before any retry. Preserve the original input, completed session and generated
-output; do not rerun tools, resend, or merely raise a timeout. No automatic merge,
-client restart or test send.
+Finish the automatic-admission candidate and normal review/CI, publish the fixed
+source with reversible activation and the frozen private policy, then observe
+the first real new group. Do not reopen PR #17 as a WIP. Subsequent independent
+work may resume publication recovery while fresh group evidence is pending.
 
-Penguin's fixed-model Benchmark/Formal Baseline remains unestablished. Raw chats,
-native IDs, private traces, pictures and credentials stay outside Git.
+The PR #16 native cover reply remains delivered; fresh ordinary-photo automatic
+reply, folded albums, whole-video understanding and cross-boot desktop recovery
+remain outside proven acceptance. Penguin's DSH evaluation adapter, frozen
+Benchmark, fixed-model Formal Baseline and independent evaluation remain open.
+Secrets, raw chats, native identities and private images stay outside Git.
