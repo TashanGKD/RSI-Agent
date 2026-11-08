@@ -1,4 +1,6 @@
 import contextlib
+import base64
+import hashlib
 import importlib.util
 import json
 import sqlite3
@@ -107,6 +109,30 @@ class ReplyLoopTests(unittest.TestCase):
         self.batch['events'][0]['text'] = 'changed body'
         with self.assertRaisesRegex(ValueError, 'Original native message changed'):
             loop.cycle()
+
+    def test_verified_image_bytes_cross_model_boundary_without_native_cache_xml(self):
+        self.model.backend = 'deepseek-harness'
+        self.batch['events'] = [event(kind=3, text='<img aeskey="private-cache-token"/>')]
+        raw = b'verified original image fixture'
+        original_io = self.io
+
+        def io(request):
+            if request['op'] == 'image':
+                return {'state': 'image_ready', 'source_verified': True, 'mime': 'image/png',
+                        'data': base64.b64encode(raw).decode(), 'sha256': hashlib.sha256(raw).hexdigest()}
+            return original_io(request)
+
+        loop = ReplyLoop(self.path, self.owner, self.model, io)
+        self.addCleanup(loop.close)
+        self.lose_result = True
+        with self.assertRaises(OSError):
+            loop.cycle()
+        self.assertEqual(loop.cycle()['state'], 'sent')
+        self.model.reply.assert_called_once()
+        call = self.model.reply.call_args
+        self.assertNotIn('private-cache-token', str(call))
+        self.assertEqual(base64.b64decode(call.kwargs['images'][0]['image_url']['url'].split(',')[1]), raw)
+        self.assertEqual(len(self.effects), 1)
 
 
 @unittest.skipUnless(sys.platform == 'linux', 'requires Linux private state and executor lock')

@@ -9,7 +9,8 @@ import sys
 import time
 
 from .config import ROOT
-from .model import ModelClient, ModelError
+from .model import ModelError
+from .media import image_part, MediaPending, MediaUnavailable
 from .wechat import private_file
 
 
@@ -28,7 +29,8 @@ class Transport:
             request = dict(request, _binding=self.config['binding_token'])
         result = subprocess.run(command, cwd=ROOT, input=json.dumps(request) if request else None,
             capture_output=True, text=True, timeout=180)
-        if result.returncode or len(result.stdout.encode()) > 1500000:
+        limit = 15000000 if request and request.get('op') == 'image' else 1500000
+        if result.returncode or len(result.stdout.encode()) > limit:
             raise ValueError('Owner reply transport is unavailable; preserve the original request.')
         value = json.loads(result.stdout)
         if value.get('state') in ('blocked', 'error'):
@@ -54,6 +56,8 @@ class ReplyLoop:
         self.db.executescript('CREATE TABLE IF NOT EXISTS meta(binding TEXT NOT NULL);'
             'CREATE TABLE IF NOT EXISTS inbox(id TEXT PRIMARY KEY,created INTEGER NOT NULL,'
             'text TEXT NOT NULL,reply TEXT,state TEXT NOT NULL DEFAULT "new");')
+        if 'kind' not in {r[1] for r in self.db.execute('PRAGMA table_info(inbox)')}:
+            self.db.execute('ALTER TABLE inbox ADD COLUMN kind INTEGER NOT NULL DEFAULT 1')
         identity = json.dumps([owner['account'], owner['peer'], owner['scope']], sort_keys=True)
         old = self.db.execute('SELECT binding FROM meta').fetchone()
         if old and old[0] != identity:
@@ -63,6 +67,9 @@ class ReplyLoop:
                 self.db.execute('INSERT INTO meta VALUES(?)', (identity,))
         self.owner, self.model, self.io = owner, model, transport
         self.context = context
+        self.images = getattr(model, 'backend', None) == 'deepseek-harness'
+        if self.images:
+            model.bind(owner['account'], owner['peer'])
 
     def close(self):
         self.db.close()
@@ -79,18 +86,20 @@ class ReplyLoop:
             for event in batch.get('events', []):
                 bootstrap = str(event['server_id']) == scope.get('bootstrap_server_id')
                 if (event.get('account') != self.owner['account'] or event.get('peer') != self.owner['peer']
-                        or event.get('sender') != self.owner['peer'] or event.get('kind') != 1
+                        or event.get('sender') != self.owner['peer'] or event.get('kind') not in ((1, 3) if self.images else (1,))
                         or (not bootstrap and (scope['mode'] == 'one-message' or event['created'] < scope['since']))):
                     continue
                 text = event.get('text')
-                if not isinstance(text, str) or not text.strip() or '\0' in text or len(text.encode()) > 32768:
+                if event['kind'] == 3:
+                    text = ''  # Native media XML can contain cache credentials.
+                if not isinstance(text, str) or (event['kind'] == 1 and not text.strip()) or '\0' in text or len(text.encode()) > 32768:
                     continue
                 key = str(event['server_id'])
                 old = self.db.execute('SELECT text FROM inbox WHERE id=?', (key,)).fetchone()
                 if old and old['text'] != text:
                     raise ValueError('Original native message changed; reply is blocked.')
-                self.db.execute('INSERT OR IGNORE INTO inbox(id,created,text) VALUES(?,?,?)',
-                                (key, event['created'], text))
+                self.db.execute('INSERT OR IGNORE INTO inbox(id,created,text,kind) VALUES(?,?,?,?)',
+                                (key, event['created'], text, event['kind']))
         # Consumer commit precedes source ACK; a lost ACK is harmless on replay.
         if batch.get('batch_id'):
             self.io({key: batch[key] for key in ('batch_id', 'batch_hash', 'ack_ids')} | {'op': 'ack'})
@@ -99,12 +108,24 @@ class ReplyLoop:
             return {'state': 'idle', 'counts': self.counts()}
         reply = row['reply']
         if reply is None:
+            images = []
+            image_error = None
+            if self.images:
+                self.model.use_request([row['id']])
+            if row['kind'] == 3:
+                try:
+                    images = [image_part(self.io, row['id'])]
+                except MediaPending:
+                    return {'state': 'media_pending', 'counts': self.counts()}
+                except MediaUnavailable:
+                    image_error = '这张图还没读出来，不能按我已经看见来回答。单独再发一张原图，我再看看。'
             history = []
             for old in reversed(self.db.execute("SELECT text,reply FROM inbox WHERE state='sent' ORDER BY created DESC,id DESC LIMIT 3").fetchall()):
                 history.extend([{'role': 'user', 'content': old['text']}, {'role': 'assistant', 'content': old['reply']}])
             if self.context:
                 history = self.context(row['text']) + history
-            reply = self.model.reply(row['text'], history)
+            reply = image_error or (self.model.reply(row['text'] or '看看这张图，接着对话回答。', history, images=images)
+                if images else self.model.reply(row['text'], history))
             if not isinstance(reply, str) or not reply.strip() or '\0' in reply or len(reply.encode()) > 16384:
                 raise ValueError('Model reply does not satisfy the text-only sender contract.')
             with self.db:
@@ -127,7 +148,8 @@ def run(path, mode):
     config = json.loads(Path(path).read_text())
     if set(config) != {'installation', 'binding', 'model', 'state', 'enabled', 'binding_token'} or type(config['enabled']) is not bool:
         raise ValueError('Invalid owner reply configuration.')
-    model, transport = ModelClient(config['model']), Transport(config)
+    from .backend import load_model
+    model, transport = load_model(config['model']), Transport(config)
     owner = transport()
     if mode == 'check':
         return {'state': 'prepared', 'model': model.model, 'owner_confirmed': True,
@@ -165,7 +187,8 @@ def run(path, mode):
             except (OSError, ValueError, subprocess.SubprocessError):
                 result = {'state': 'transport_attention', 'counts': loop.counts()}
             temporary = state / 'status.tmp'
-            temporary.write_text(json.dumps(dict(result, checked_at=time.time())) + '\n')
+            temporary.write_text(json.dumps(dict(result, checked_at=time.time(),
+                model_backend=getattr(model, 'backend', 'direct-scnet'), model=model.model)) + '\n')
             temporary.chmod(0o600)
             os.replace(temporary, state / 'status.json')
             if result != previous:
