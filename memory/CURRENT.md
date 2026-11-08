@@ -1,69 +1,61 @@
 # Current checkpoint
 
-## Verified delivery
+## Delivered baseline
 
-Main and current were checked at `3134fd9b1f52b0c9931cf7c079cb5225335a50f9`.
-[PR #7](https://github.com/Yu-Yang-Li/RSI-Agent/pull/7) is merged, published and
-activated; its live delivery receipt supersedes earlier candidate checkpoints.
-The owner-private worker runs independently under systemd on a fixed release.
-Its bootstrap and subsequent natural incoming text have native accepted,
-exact-text, one-click receipts. The latest read-only check counted four sent
-owner replies and an idle worker. Original IDs, cached text and source ACKs
-remain private and must be preserved. Do not reopen that completed bridge.
+Latest main/current checked: `2a6d61d5d569470cc08894bb3edd65f16724ac19`.
+PR #7 delivered owner-private replies; PR #8 delivered admitted group intake,
+context, moderate decisions and a native accepted introduction; PR #9 delivered
+natural conversational tone. Their live delivery receipts supersede the old
+candidate states. Both server workers are active and independent of Codex.
+Owner PID 259347 and group PID 259346 are pinned to that release; verify live
+again before acting. The admitted group still contains account and owner.
 
-## One active task: invited group participation
+## One active failure: follow-up incorrectly ignored
 
-The user explicitly wants the account to participate as a member in groups they
-invite it into. Their selected policy is moderate initiative, prioritizing
-mentions and questions. The unique initial native group contains both this
-account and the confirmed owner (30 members). Its exact identity and binding
-remain in private host files. Other existing groups are not enabled implicitly.
+A natural incoming group text immediately after the account's introduction was
+received, ACKed and marked quiet. The user explicitly pointed out that someone
+was replying and expected the account to answer. The earlier receipt's quiet
+observation established intake, not correct conversational behavior.
 
-Reproduced user failure: the owner model only received private history and
-incorrectly denied its WeChat connection/group visibility. Hypothesis: explicit
-native group intake, bounded true context and a moderated text-only decision
-bridge close this path while preserving the original V2 sender and owner scope.
-The candidate adds a separate private group registry, durable batching, quiet
-decisions, native mentions, cached output, stable IDs and one fixed introduction.
-Owner queries about an enabled group receive its actual recent text. Group model
-calls contain no owner-private history or other group's data, and execute no tools.
+Hypothesis: classifying general chatter as usually quiet, while supplying only
+mentions/questions as direct priority, misses replies to the account's own turn.
+Native previous-message identity can distinguish this case without requiring an
+@ or punctuation. Candidate: carry follows_self from the same committed native
+metadata order, persist it in the private group inbox, prioritize the message
+through spacing, and tell the model to answer actual conversational follow-ups.
+Finished acknowledgements and other people's conversations may still be quiet.
+Original message text, source ACKs and request identities remain unchanged.
 
-Candidate checks: 20 targeted group/owner tests and the full Linux gate passed;
-real configured SCNET decisions spoke for a synthetic direct mention/question
-and stayed quiet for an acknowledgement, with zero production sends. The actual
-group yielded 20 committed recent text messages. Operator enrollment verified
-the unique native identity/window, calibrated one group popout and proved an
-empty editor; existing owner/filehelper registrations were retained.
+The frozen fixture fails baseline in three places (missing relation, withheld
+priority and lost model retry); candidate passes all 22 group/owner checks. The
+real SCNET isolated analogue speaks for an introduction follow-up, remains quiet
+for a closing acknowledgement and an unrelated exchange; no production send.
+The native fixture covers same-second ordering and multiple current members.
 
-The group private binding/config are prepared **disabled**. No group service or
-send has been activated yet. Normal review/actual-head CI, merged release,
-owner-worker upgrade, group activation and original native introduction receipt
-remain separate acceptance steps. The live PR receipt will supersede this
-pre-delivery checkpoint. Do not mistake a current-pointer switch for worker code
-activation: inspect both actual cwd/PID and private status.
+## Authorized recovery and next step
 
-## Operational boundaries
+The user specifically asked why this already-received follow-up was unanswered.
+After review/CI and fixed release, stop only the quiescent group worker. Retain
+private backup and original SDK records; verify that the identified quiet event
+belongs to the confirmed owner, follows the account's actual introduction, has
+no cached send text and no original V2 request. Enrich only its adjacency flag
+and reconsider this exact original event once. Let the updated server worker
+perform model/cache/original V2 sending; do not inject a fixed reply, replace an
+ID, replay other quiet history or repeat the introduction. Verify its native
+exact-text/one-click/cleanup receipt separately. Keep owner worker pinned and
+uninterrupted because its source is unchanged. Latest PR receipt will supersede
+this candidate checkpoint.
 
-Owner replies cover the confirmed incoming private-text scope and original
-bootstrap. The later group authorization covers admitted invited-group text and
-one introduction, not arbitrary existing groups, old-history replies, periodic
-test sends, server commands or model tools. Unknown/review/cleanup-pending means
-inspect the original request only; never generate another send or change its ID.
-Quiescent reply-service upgrades must retain original caches/ACKs/requests and
-rollback metadata. No additional X/WeChat/noVNC restart is authorized.
+## Boundaries
 
-The official client is untraced and logged in. Desktop services remain transient;
-the last structural audit only reported SERVICES_NOT_PERSISTENT. Cross-boot
-recovery and long stability are not established. Permission diagnosis, original
-receipt recovery and isolated archive/install/upgrade/rollback are completed in
-PRs #2–#6. Do not reopen them without new evidence.
+Only confirmed owner-private incoming text and the admitted invited-group scope
+are enabled. No blanket activation of existing groups, periodic probes, other
+contact private replies, arbitrary old-history replay, model tools, commands or
+client restarts. Unknown/review/unproved cleanup preserves the original request
+and blocks later sends. No raw chats, identity IDs, keys or screenshots in Git.
 
-Penguin fixed-model Benchmark, Formal Baseline and independent evaluation remain
-unestablished. Regression checks and this engineering delivery are not RSI gains.
-
-## Unique next step
-
-Close this feature's normal review/CI and reversible release, safely upgrade the
-idle owner worker, activate only the admitted group and verify its stable native
-introduction receipt. Preserve prior immutable code, private backups and desktop
-processes. Then observe actual natural group replies; no periodic probes.
+Desktop services remain transient; cross-boot recovery and long stability are
+unverified. Existing permission/receipt/install rehearsals are completed, not
+new WIP. Penguin fixed-model Benchmark, Formal Baseline and independent
+assessment remain unestablished; engineering repairs are not RSI score gains.
+45-minute automation is currently PAUSED; server workers remain independent.

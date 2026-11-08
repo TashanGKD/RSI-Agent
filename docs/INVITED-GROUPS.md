@@ -27,6 +27,11 @@ Subsequent participation considers newly received, nonself group text after
 activation, plus at most 20 recent text messages. Decisions can remain silent.
 Native mentions and explicit RSI references bypass the one-minute spacing for
 ordinary proactive comments; they still pass the model's relevance decision.
+Replies immediately following the account's own text also have priority, even
+without a mention or question mark. Native create_time/sort_seq/local_id order
+supplies this relation, and the consumer persists it across ACK/model outages.
+The model still distinguishes an actual conversational reply from a finished
+acknowledgement or another conversation.
 Several incoming texts produce at most one cached reply per decision. Historical
 messages provide context, not a backlog of replies. Images/voice are not decoded.
 

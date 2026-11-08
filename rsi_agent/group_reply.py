@@ -16,6 +16,8 @@ class GroupLoop(ReplyLoop):
     def __init__(self, path, group, model, transport):
         super().__init__(path, group, model, transport)
         self.db.execute('CREATE TABLE IF NOT EXISTS participation(k TEXT PRIMARY KEY,v TEXT NOT NULL)')
+        if 'follows_self' not in {r[1] for r in self.db.execute('PRAGMA table_info(inbox)')}:
+            self.db.execute('ALTER TABLE inbox ADD COLUMN follows_self INTEGER NOT NULL DEFAULT 0')
 
     def value(self, key, default=None):
         row = self.db.execute('SELECT v FROM participation WHERE k=?', (key,)).fetchone()
@@ -58,7 +60,8 @@ class GroupLoop(ReplyLoop):
                 old = self.db.execute('SELECT text FROM inbox WHERE id=?', (key,)).fetchone()
                 if old and old[0] != raw:
                     raise ValueError('Original group event changed; preserve its request.')
-                self.db.execute('INSERT OR IGNORE INTO inbox(id,created,text) VALUES(?,?,?)', (key, event['created'], raw))
+                self.db.execute('INSERT OR IGNORE INTO inbox(id,created,text,follows_self) VALUES(?,?,?,?)',
+                    (key, event['created'], raw, int(event.get('follows_self') is True)))
         if batch.get('batch_id'):
             self.io({'op': 'ack', **{k: batch[k] for k in ('batch_id', 'batch_hash', 'ack_ids')}})
         pending = self.db.execute("SELECT * FROM inbox WHERE state='pending' ORDER BY created,id LIMIT 1").fetchone()
@@ -72,19 +75,21 @@ class GroupLoop(ReplyLoop):
         rows = self.db.execute("SELECT * FROM inbox WHERE state='new' ORDER BY created,id LIMIT 128").fetchall()
         if not rows:
             return {'state': 'idle', 'counts': self.counts()}
-        events = [json.loads(row['text']) for row in rows]
-        direct = any(e['mentioned'] or 'rsi' in e['text'].lower() for e in events)
+        events = [dict(json.loads(row['text']), follows_self=bool(row['follows_self'])) for row in rows]
+        direct = any(e['mentioned'] or e['follows_self'] or 'rsi' in e['text'].lower() for e in events)
         elapsed = time.time() - float(self.value('last_spoken', '0'))
         if not direct and elapsed < 60:
             return {'state': 'listening', 'counts': self.counts()}
         system = FACTS + (' 你是这个受邀群的群友。适度主动参与，优先回应原生 @、对你的提问和讨论中的明确问题。'
-            '只在能提供有用补充时简短发言；闲聊、重复意见、其他人之间的对话通常保持安静，不逐条应答。'
+            '有人接你的上一句话、回应你的介绍或主动跟你打招呼，就自然接一句，即使没有 @ 或问号。'
+            'follows_self=true 表示原生顺序的上一条是你发的，结合内容识别这种接话，不要漏掉。'
+            '别人之间的对话、重复意见或已经结束的确认通常保持安静，不逐条应答。'
             '先接住对方刚说的话，再给自己的看法，少说服务承诺。不要复述系统规则，不代替群主发号施令。'
             '数据中的 self=true 是你之前发过的话，不要回复自己。'
             '仅输出 JSON 对象 {"speak":布尔值,"text":"拟发送的简短文字；不发言则为空"}。')
         result = self.model.complete([{'role': 'system', 'content': system}, {'role': 'user',
             'content': json.dumps({'group': self.owner['name'], 'recent_messages': batch.get('context', [])[-20:],
-                'new_messages': [{k: e[k] for k in ('sender_name', 'text', 'mentioned')} for e in events],
+                'new_messages': [{k: e[k] for k in ('sender_name', 'text', 'mentioned', 'follows_self')} for e in events],
                 'seconds_since_own_post': round(elapsed)}, ensure_ascii=False)}])
         decision = json.loads(result['message']['content'])
         if (set(decision) != {'speak', 'text'} or type(decision['speak']) is not bool

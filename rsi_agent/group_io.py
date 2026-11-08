@@ -69,8 +69,14 @@ def read_group(root, value, request, members):
     path = root / ('group-source-' + hashlib.sha256(peer.encode()).hexdigest()[:20] + '.sqlite')
 
     def context(row, event):
+        previous = db.execute('SELECT real_sender_id,local_type FROM ' + table +
+            ' WHERE (create_time,COALESCE(sort_seq,0),local_id)<(?,?,?)'
+            ' ORDER BY create_time DESC,COALESCE(sort_seq,0) DESC,local_id DESC LIMIT 1',
+            (row['create_time'], row['sort_seq'] or 0, row['local_id'])).fetchone()
         return {'sender_name': members.get(event['sender']) or '群成员',
-                'mentioned': mentioned(decode(row['source']), value['account']) if 'source' in row.keys() else False}
+                'mentioned': mentioned(decode(row['source']), value['account']) if 'source' in row.keys() else False,
+                'follows_self': bool(previous and names.get(previous['real_sender_id']) == value['account']
+                    and int(previous['local_type']) & 0xffffffff == 1)}
 
     if request['op'] == 'ack':
         inbox = SourceInbox(path, None, table, value['account'], peer, decode, str(scope['since']),
@@ -84,7 +90,7 @@ def read_group(root, value, request, members):
             raise ValueError('Committed group messages required.')
         names = {r[0]: r[1] for r in db.execute('SELECT rowid,user_name FROM Name2Id')}
         rows = db.execute('SELECT real_sender_id,message_content,source,create_time FROM ' + table +
-            ' WHERE (local_type & 4294967295)=1 ORDER BY create_time DESC,local_id DESC LIMIT 20').fetchall()
+            ' WHERE (local_type & 4294967295)=1 ORDER BY create_time DESC,COALESCE(sort_seq,0) DESC,local_id DESC LIMIT 20').fetchall()
         history = []
         for row in reversed(rows):
             sender = names.get(row['real_sender_id'])
