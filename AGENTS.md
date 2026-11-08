@@ -16,6 +16,10 @@ logs outside Git. Only sanitized facts belong in project memory. Preserve the
 original request when a send result is uncertain; never change its ID to retry.
 The one authorized File Transfer test has already been sent. Recurring checks
 use read-only probes; additional live sends require a new specific instruction.
+The user subsequently authorized restoring the latest confirmed-owner private
+text reply and ongoing replies in that same private conversation. This permits
+the explicitly scoped owner reply service, not periodic test messages, other
+contacts/groups, model tool execution or additional client restarts.
 
 One user-approved ordinary client restart and cached login have been verified.
 That one-shot restart and the earlier one-shot send are not a recurring

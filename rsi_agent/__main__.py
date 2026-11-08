@@ -21,6 +21,8 @@ def main(argv=None):
     commands.add_parser('sources', help='Show the pinned source repositories and commits.')
     model = commands.add_parser('model', help='Use a privately configured model; no WeChat input or send.')
     model.add_argument('mode', choices=['check', 'reply'])
+    replies = commands.add_parser('replies', help='Explicitly scoped owner-only reply bridge.')
+    replies.add_argument('mode', choices=['check', 'once', 'run'])
     services = commands.add_parser('services', help='Stage service definitions for review; no live activation.')
     service_commands = services.add_subparsers(dest='mode', required=True)
     service_stage = service_commands.add_parser('stage')
@@ -49,6 +51,10 @@ def main(argv=None):
         result = client.check() if args.mode == 'check' else {
             'state': 'ok', 'model': client.model, 'text': client.reply(sys.stdin.read(32769))}
         print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.command == 'replies':
+        from .owner_reply import run
+        print(json.dumps(run(args.config, args.mode), ensure_ascii=False))
         return 0
     if args.command == 'services':
         print(json.dumps(stage(args.release, args.output), ensure_ascii=False, indent=2))
