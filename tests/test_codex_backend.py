@@ -136,8 +136,9 @@ class DesktopRelayTests(unittest.TestCase):
                     result = jobs.get(request['id'])
                     self.assertEqual((result['state'], result['thread_id']), ('desktop_queued', THREAD))
                 self.assertEqual(command.call_count, 2)
-                for call in command.call_args_list:
+                for call, label in zip(command.call_args_list, ('微信输入', '微信任务')):
                     self.assertEqual(call.args[0][2:4], ['--thread', THREAD])
+                    self.assertTrue(call.args[0][-1].startswith('【' + label + ' · 微信私聊 · '))
 
     def test_chat_images_are_original_bound_local_files_and_tampering_is_rejected(self):
         with tempfile.TemporaryDirectory() as td:
