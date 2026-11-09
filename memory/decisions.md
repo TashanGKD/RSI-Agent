@@ -207,3 +207,16 @@ disabled only in child configuration, leaving global Codex settings intact.
 Native owner/kind checks remain the sole engineering admission. Code publication,
 local logon-task start, resident model switch and genuine native acceptance are
 separate facts; local uptime/login is now an explicit dependency.
+
+## D020 — Visible tasks transfer execution, not a second copy of work
+
+The owner requested triggered tasks in this same conversation. The original
+supported CLI queue fixture has actually appeared as a user item here; this is
+loaded-thread delivery, not native WeChat or a fully-unloaded wake-up claim.
+Only already native-owner/kind-admitted engineering transfers once to the fixed
+thread. Ordinary chat stays background. Bind the frozen original, queue receipt,
+digest, target and final execution turn; uncertain submission is review, never
+requeue. A copied visible header/link alone is not authority. Verify the private
+original before tools, freeze one completion, and let the existing original V2
+sender deliver it. Pending desktop tasks keep their completion API across rollout;
+do not replay completed background work or replace its request IDs.

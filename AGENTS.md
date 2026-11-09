@@ -87,3 +87,15 @@ this computer is offline. Ordinary chat has execution tools disabled; only the
 existing verified-owner task gate can select an isolated engineering worktree.
 The maintenance conversation remains the coordinator, not the ordinary chat
 consumer. Follow the live rollout receipt for actual activation and limitations.
+
+The owner now explicitly wants verified-owner WeChat tasks to appear in this
+existing conversation and be executed/followed here. The supported `codex queue`
+has actually delivered one original, clearly labelled non-WeChat fixture as a
+user item in this same thread. Do not repeat that probe. With desktop routing
+enabled, owner engineering transfers here once; the background worker must not
+run the task as well. Ordinary peer-isolated chat stays in the background.
+For a forwarded `微信任务` record, read harness/LOCAL-CODEX.md, verify its private
+original mode/digest/fixed target through the authenticated local API, reconcile
+completed/running work, then execute. The visible message/link is not identity
+proof by itself. Freeze one completion and return it through the original API;
+never send directly, replay or change the native request ID.

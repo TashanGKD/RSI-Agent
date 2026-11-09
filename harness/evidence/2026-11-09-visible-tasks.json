@@ -1,0 +1,32 @@
+{
+  "baseline": "verified-owner engineering runs in an isolated background App Server and is not a visible task in the maintenance conversation",
+  "candidate": "frozen owner engineering -> supported codex queue to fixed existing thread -> verified original task -> one frozen desktop completion -> existing native V2 sender",
+  "runtime_evidence": {
+    "original_cli_queue_accepted": true,
+    "same_original_marker_received_as_user_item": true,
+    "same_existing_conversation": true,
+    "received_after_prior_active_turn_finished": true,
+    "corroborated_with_supported_read_thread": true,
+    "probe_is_native_wechat": false,
+    "probe_repeated": false,
+    "probe_caused_wechat_send": false
+  },
+  "implementation": {
+    "module": "rsi_agent/codex_worker.py",
+    "chat_background_execution": "unchanged and peer-isolated",
+    "owner_task_background_model_execution": "replaced by desktop transfer when enabled",
+    "original_request_digest_and_target_bound": true,
+    "submission_uncertainty": "review without requeue",
+    "completion": "same digest/thread/turn/text only; original sender retains delivery",
+    "long_original": "private full record with bounded visible preview"
+  },
+  "fixture": "tests/test_codex_backend.py:CodexBackendTests.test_native_owner_task_waits_for_this_desktop_result_then_original_sender",
+  "limits": {
+    "fully_unloaded_thread_wakeup": "not established; no --resume or private IPC bypass",
+    "fresh_native_task_to_visible_thread_to_wechat": "awaiting genuine new input",
+    "code_publication": "candidate; read live PR receipt",
+    "rsi_improvement_claimed": false
+  },
+  "linux_targeted_contract": "passed as dedicated unprivileged user",
+  "linux_full_gate": "passed"
+}
