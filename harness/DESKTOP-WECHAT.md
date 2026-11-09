@@ -69,7 +69,13 @@ Honor body.schema in the private completion:
 Completion.text is a serialized JSON string for schema decisions and plain text
 otherwise. Actual message text must fit 6000 UTF-8 bytes for groups or 16384 for
 private chat. The API checks fields/types and actual text limits, not JSON
-overhead. The visible final answer can be natural language, without bridge JSON.
+overhead.
+
+A chat turn shares the desktop queue with the next WeChat input. Go straight to
+the original packet, bound attachments and completion. After the completion API
+confirms acceptance, finish with a one-line desktop status. The native bridge
+owns delivery and maintenance checks its V2 receipt. Leave uncertain completions
+to the original recovery procedure below.
 
 ## Engineering
 
