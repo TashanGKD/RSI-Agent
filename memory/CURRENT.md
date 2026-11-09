@@ -69,26 +69,49 @@ worker source/PID is unchanged. One safe rollout rollback was caused only by
 admission.last_checked naturally advancing; that timestamp was reconciled without
 rewinding private state or re-executing the transition.
 
-## Current task: image failure must release its own viewer
+## Image viewer failure: delivered and original queue recovered in PR #32
 
 Both groups are currently blocked behind a native image export. Read-only
 inspection proves its single extra official viewer and a rejected Save/QR toolbar;
 the finally block refuses a guessed Close coordinate and leaves that viewer open.
-The candidate instead uses guarded Escape only on the original viewer with the
+The delivered fix instead uses guarded Escape only on the original viewer with the
 same native host/process/birth. Source and export validation remain unchanged.
 Frozen baseline fails to close; candidate closes without a toolbar click and
 preserves changed/foreign viewers. This is cleanup, not support for the rejected
 toolbar or acceptance of image bytes. The original preview/confirmation/execution
 and queued sends remain private and must not be replayed.
 
+The fixed release and both resident units are activated. The exact original
+viewer was dismissed once under its executor/display guards, navigation settled,
+and its failed export was retained with no re-export or accepted bytes. The prior
+queued reply in one group then succeeded with native status 2, one send click and
+restored draft/navigation. The other group reached Codex and an original reply,
+but that reply failed before input at SEARCH_SELECTION_UNPROVEN. Keep its failed
+record/cache; do not replay it to manufacture send acceptance.
+
+## Current task: selected conversation opening uses the actual sidebar
+
+Fresh native failure and current read-only control inspection show the selected
+green sidebar ends before the original scan columns, which fall in the message
+pane. The candidate corrects only the calibrated sidebar right boundary. Frozen
+control geometry reproduces the same no-opening error on main; the candidate
+opens the selected row while preserving stable-selection/native final-recipient
+checks. No text, screenshots, names or private pictures enter the fixture.
+
+The owner now explicitly requests attention/replies in every joined group. The
+committed native membership inventory currently contains exactly two groups;
+both are already enabled and use Codex. Keep discussion moderate and prioritize
+mentions/questions/follow-ups. Link responses must add information: read the
+provided source, avoid repeated acknowledgments/blanket caveats and do not shift
+the same retrieval work back to the sender. A source/reader failure still must
+be stated accurately; this feedback is not proof the article reader is fixed.
+
 ## Unique next step
 
-Review/gate the image cleanup candidate, then publish fixed source reversibly.
-Under the original executor/display ownership, reconcile the sole original viewer
-and its navigation without exporting again. Only proven cleanup may settle that
-original failed/noSend. Preserve queued request IDs and frozen replies; resume
-resident delivery once and verify actual native results for both groups. Keep
-local desktop completion API, SDK results and every uncertain original intact.
+Review/gate and reversibly deliver the sidebar opening fix. Preserve the second
+group's failed original and every existing result. Actual new native send remains
+separate from a fixture/control-opening proof; no old cached reply or probe may
+substitute for fresh input. Keep the current Codex completion API and scopes.
 
 ## Other retained boundaries
 
