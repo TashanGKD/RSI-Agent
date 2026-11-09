@@ -266,3 +266,5 @@ and the standalone desktop worker in `receiver/`, with the shared CLI under
 `rsi_agent/`. The trigger uses `components/wechat-linux/` for native WeChat
 operations. Keep the rest of the secretary workbench, the Mac collector, and
 the two separate trigger experiments in `archive/` with their source provenance.
+The retired workbench listener, its private queue and exclusive helpers, and
+the obsolete deployment reference copies live in Git history.
