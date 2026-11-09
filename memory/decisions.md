@@ -243,3 +243,13 @@ The shared UI uses the current packet's peer material for its reply; transport
 continues binding the original recipient. A created thread, a completed migration
 record display, enabled routing and genuine new native visible/send acceptance
 are different facts. Serialize work rather than creating a second executor.
+
+## D023 — DeepSeek advises on ambient group reply admission
+
+The owner requested `medium` judgment before a reply. Use the installed provider's
+Responses API for bounded current plain text of the same group, with storage and
+tools off. Native mentions, the owner's messages, replies to the agent and rich
+input retain their original path. Freeze the native batch first. Only a valid
+quiet decision closes it before Codex. An allow, timeout or interrupted gate
+continues through the original Codex decision once. Preserve any already-frozen
+desktop and V2 work. Review the live receipt for activation and real quiet cases.

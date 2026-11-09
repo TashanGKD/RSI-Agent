@@ -86,6 +86,37 @@ class GroupTests(unittest.TestCase):
         self.assertFalse(self.effects)
         self.assertFalse(any(c['op'] == 'submit' for c in self.calls))
 
+    def test_trigger_gate_silences_ambient_chat_before_codex(self):
+        self.batch['events'] = [self.event(text='收到，谢谢。', mentioned=False)]
+        loop = self.loop()
+        loop.reply_gate = Mock(return_value=False)
+        self.assertEqual(loop.cycle()['state'], 'quiet')
+        loop.reply_gate.assert_called_once_with(['收到，谢谢。'])
+        self.assertEqual(loop.cycle()['state'], 'idle')
+        self.assertEqual(loop.counts(), {'quiet': 1})
+        self.model.complete.assert_not_called()
+        self.assertFalse(any(c['op'] == 'submit' for c in self.calls))
+
+    def test_trigger_gate_bypasses_native_mention(self):
+        loop = self.loop()
+        loop.reply_gate = Mock(return_value=False)
+        self.assertEqual(loop.cycle()['state'], 'pending')
+        loop.reply_gate.assert_not_called()
+        self.model.complete.assert_called_once()
+
+    def test_unavailable_trigger_gate_preserves_the_original_codex_batch(self):
+        self.batch['events'] = [self.event(text='这个流程有个实际问题', mentioned=False)]
+        result = self.model.complete.return_value
+        self.model.complete.side_effect = [PublicationPending('original pending'), result]
+        loop = self.loop()
+        loop.reply_gate = Mock(return_value=None)
+        with self.assertRaises(PublicationPending):
+            loop.cycle()
+        self.assertEqual(loop.cycle()['state'], 'pending')
+        loop.reply_gate.assert_called_once()
+        self.assertEqual(loop.cycle()['state'], 'sent')
+        self.assertEqual(list(self.effects), ['1'])
+
     def test_publication_wait_preserves_original_owner_batch_when_another_message_arrives(self):
         self.model.backend = 'deepseek-harness'
         self.model.engineering = True

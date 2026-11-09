@@ -18,6 +18,7 @@ from .link_reader import linked_pages
 class GroupLoop(ReplyLoop):
     def __init__(self, path, group, model, transport):
         super().__init__(path, group, model, transport)
+        self.reply_gate = None
         self.db.execute('CREATE TABLE IF NOT EXISTS participation(k TEXT PRIMARY KEY,v TEXT NOT NULL)')
         if 'follows_self' not in {r[1] for r in self.db.execute('PRAGMA table_info(inbox)')}:
             self.db.execute('ALTER TABLE inbox ADD COLUMN follows_self INTEGER NOT NULL DEFAULT 0')
@@ -173,8 +174,20 @@ class GroupLoop(ReplyLoop):
         if self.images:
             self.model.use_request([r['id'] for r in rows])
         if not active:
+            identities = [row['id'] for row in rows]
             with self.db:
-                self.save('model_batch', json.dumps([r['id'] for r in rows]))
+                self.save('model_batch', json.dumps(identities))
+            if self.reply_gate is not None and not direct and all(
+                    event['kind'] == 1 and event['sender'] != self.owner.get('owner_peer') for event in events):
+                decision = self.reply_gate([event['text'] for event in events])
+                with self.db:
+                    self.save('last_reply_gate', json.dumps({'ids': identities,
+                        'decision': 'quiet' if decision is False else 'admit' if decision is True else 'deferred'}))
+                    if decision is False:
+                        self.db.executemany("UPDATE inbox SET state='quiet' WHERE id=?", [(key,) for key in identities])
+                        self.db.execute("DELETE FROM participation WHERE k='model_batch'")
+                if decision is False:
+                    return {'state': 'quiet', 'counts': self.counts()}
         result = self.model.complete([{'role': 'system', 'content': system}, {'role': 'user',
             'content': [{'type': 'text', 'text': data}, *images] if images else data}], json_output=True)
         decision = json.loads(result['message']['content'])
@@ -210,7 +223,7 @@ class GroupLoop(ReplyLoop):
         return {'state': 'pending' if decision['speak'] else 'quiet', 'counts': self.counts()}
 
 
-def sync_groups(workers, configs):
+def sync_groups(workers, configs, reply_gate=None):
     """Reload membership scopes without recreating other groups' cached loops."""
     import fcntl
     wanted = {config['state']: config for config in configs}
@@ -237,6 +250,7 @@ def sync_groups(workers, configs):
             if not group['enabled']:
                 raise ValueError('Group disabled.')
             loop = GroupLoop(directory / 'inbox.sqlite', group, model, io)
+            loop.reply_gate = reply_gate
             workers[state] = (config, loop, fd)
         except (OSError, ValueError, KeyError, TypeError, ModelError, subprocess.SubprocessError):
             if loop is not None:
@@ -254,6 +268,16 @@ def run(path, mode):
         raise ValueError('At least one explicitly enabled invited group required.')
     workers = {}
     stopped = False
+    reply_gate = None
+    gate_config = os.environ.get('RSI_GROUP_REPLY_GATE_CONFIG')
+    if gate_config:
+        from .group_gate import GroupReplyGate
+        try:
+            reply_gate = GroupReplyGate(gate_config)
+        except (OSError, ValueError):
+            if mode == 'check':
+                raise
+    gate_model = reply_gate.model if reply_gate is not None else None
 
     def stop(*_):
         nonlocal stopped
@@ -266,7 +290,8 @@ def run(path, mode):
                 load_model(config['model'], verify_runtime=True)
                 if not GroupTransport(config)()['enabled']:
                     raise ValueError('Invited group is disabled.')
-            return {'state': 'prepared', 'enabled_groups': len(configs), 'network_probe': False}
+            return {'state': 'prepared', 'enabled_groups': len(configs), 'network_probe': False,
+                    'reply_gate_model': gate_model}
         signal.signal(signal.SIGTERM, stop)
         signal.signal(signal.SIGINT, stop)
         next_admission = 0
@@ -279,7 +304,7 @@ def run(path, mode):
                     put(Path(path).with_name('admission-status.json'),
                         {'state': 'unavailable', 'checked_at': time.time()})
                 next_admission = time.monotonic() + 15
-            sync_groups(workers, group_configs(path))
+            sync_groups(workers, group_configs(path), reply_gate)
             result = {'state': 'idle', 'counts': {}}
             for config, loop, _ in list(workers.values()):
                 if stopped:
@@ -295,7 +320,8 @@ def run(path, mode):
                 state = Path(config['state'])
                 temporary = state / 'status.tmp'
                 temporary.write_text(json.dumps(dict(result, checked_at=time.time(),
-                    model_backend=getattr(loop.model, 'backend', 'direct-scnet'), model=loop.model.model)) + '\n')
+                    model_backend=getattr(loop.model, 'backend', 'direct-scnet'), model=loop.model.model,
+                    reply_gate_model=gate_model)) + '\n')
                 temporary.chmod(0o600)
                 os.replace(temporary, state / 'status.json')
             if mode == 'once':
