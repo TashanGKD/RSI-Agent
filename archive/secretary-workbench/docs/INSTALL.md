@@ -24,7 +24,7 @@ V2使用独立root/config；空白示意见examples/wechat-operations.example.js
 
 ## 协作/运行
 
-host/tools下薄客户端无参数只帮助，真实assign/report必须显式execute和私有brief；旧固定宿主目录/允许工作根需要在新实例的明确配置中核对。生产systemd/LaunchAgent/权限/目标绑定未捆绑；maintenance-reference只是经过脱敏的旧代码文本，不作为可执行安装器。没有后台或timer自动开启步骤。
+host/tools下薄客户端无参数只帮助，真实assign/report必须显式execute和私有brief；旧固定宿主目录/允许工作根需要在新实例的明确配置中核对。生产systemd/LaunchAgent/权限/目标绑定未捆绑。旧部署副本和 ClawBot 现场探针可在 Git 历史中查阅。没有后台或timer自动开启步骤。
 
 可选AUP协作源码在 `host/aup-sender/`。配置 `SECRETARY_SENDER_WORKSPACE`、`SECRETARY_SENDER_THREAD_ID`、`SECRETARY_CODEX_HOME`、`SECRETARY_CODEX_BIN` 指向自己的已有工作区、持续对话和受支持的官方宿主。还须有该实例自身的原生历史投影与安全socket；本包不提供认证/历史、不创建第二个模型服务。Mac回报若要用独立文件网关，需另配 `SECRETARY_MAC_GATEWAY_TOOLS`。现行MCP源码已补入host/aup-sender/sender_work_tools.py，与原SDK和队列复用；独立文件网关薄client已选入，Mac端授权服务、SSH配置和实例资料需另配。
 
