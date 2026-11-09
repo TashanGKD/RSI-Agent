@@ -5,7 +5,7 @@
 ## 输入、输出与入口
 
 - 输入：原作者已定稿的准确对象、文字/原件、来源条件、稳定requestId、时效与实际需执行的动作。不自行改稿、猜近似目标或新造业务授权。
-- 原工具：[SDK](../../host/tools/wechat_operations.py)、[唯一API](../../wechat/docs/OPERATIONS-API.md)、[Skill](../../skills/wechat-write/SKILL.md)。跨host任务可复用[原发送岗薄client](../../host/tools/wechat_sender.py)和[原对话交接](../../skills/codex-thread-handoff/SKILL.md)，不是另一套发送队列。
+- 原工具：[SDK](../../host/tools/wechat_operations.py)、[唯一API](../../../../components/wechat-linux/docs/OPERATIONS-API.md)、[Skill](../../skills/wechat-write/SKILL.md)。跨host任务可复用[原发送岗薄client](../../host/tools/wechat_sender.py)和[原对话交接](../../skills/codex-thread-handoff/SKILL.md)，不是另一套发送队列。
 - 输出：实际原生交付或准确unknown/失败/未提交状态、文件/正文身份、必要自有收尾及一次对原作者有用的结果。
 
 ## 依赖与接续

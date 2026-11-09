@@ -9,7 +9,7 @@ import time
 import unittest
 from unittest.mock import Mock, patch
 
-from rsi_agent.config import WORKBENCH
+from rsi_agent.config import WECHAT_LINUX
 from trigger.group_io import read_group
 from trigger.group_reply import GroupLoop
 
@@ -35,8 +35,8 @@ class QuotedTextTests(unittest.TestCase):
                 (1, 1, 1, 1, 120, 1, 'self:\nMemory is retrieved for the current topic.', ''),
                 (2, 2, 1, 2, 130, 2, 'An intervening member message', ''),
                 (3, 3, (57 << 32) | 49, 2, 140, 3, self.card(), '')])
-        sys.path.insert(0, str(WORKBENCH / 'wechat'))
-        self.addCleanup(sys.path.remove, str(WORKBENCH / 'wechat'))
+        sys.path.insert(0, str(WECHAT_LINUX))
+        self.addCleanup(sys.path.remove, str(WECHAT_LINUX))
         import linux_tool
 
         @contextlib.contextmanager

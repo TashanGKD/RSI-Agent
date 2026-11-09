@@ -10,7 +10,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from trigger.link_reader import content, fetch, linked_pages, shared_link, urls
-from rsi_agent.config import WORKBENCH
+from rsi_agent.config import WECHAT_LINUX
 
 
 class LinkReaderTests(unittest.TestCase):
@@ -98,8 +98,8 @@ class NativeOwnerLinkTests(unittest.TestCase):
                     'real_sender_id INTEGER,create_time INTEGER,sort_seq INTEGER,message_content TEXT);')
                 card = '<msg><appmsg><type>5</type><title>Article</title><url>https://mp.weixin.qq.com/s/fixture</url></appmsg></msg>'
                 db.execute('INSERT INTO ' + table + ' VALUES(?,?,?,?,?,?,?)', (1, 11, (5 << 32) | 49, 2, 120, 1, card))
-            sys.path.insert(0, str(WORKBENCH / 'wechat'))
-            self.addCleanup(sys.path.remove, str(WORKBENCH / 'wechat'))
+            sys.path.insert(0, str(WECHAT_LINUX))
+            self.addCleanup(sys.path.remove, str(WECHAT_LINUX))
             import linux_tool
 
             @contextlib.contextmanager

@@ -1,6 +1,6 @@
 import importlib.util,unittest,tempfile,base64,hashlib
 from pathlib import Path
-spec=importlib.util.spec_from_file_location('wcclient',str(__import__('pathlib').Path(__file__).resolve().parents[2]/'host/tools/wechat_linux.py'));client=importlib.util.module_from_spec(spec);spec.loader.exec_module(client)
+spec=importlib.util.spec_from_file_location('wcclient',str(__import__('pathlib').Path(__file__).resolve().parents[3]/'archive/secretary-workbench/host/tools/wechat_linux.py'));client=importlib.util.module_from_spec(spec);spec.loader.exec_module(client)
 class ClientTests(unittest.TestCase):
     def test_duplicate_json_keys_rejected_before_ssh(self):
         with self.assertRaises(ValueError):client.load_request('{"action":"sessions","action":"send_text"}')

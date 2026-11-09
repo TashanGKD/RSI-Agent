@@ -12,14 +12,14 @@ from unittest.mock import patch
 from unittest.mock import Mock
 import types
 
-from rsi_agent.config import WORKBENCH
+from rsi_agent.config import WECHAT_LINUX
 
 
 @unittest.skipUnless(sys.platform == 'linux', 'requires the native WeChat file adapter')
 class InboundPdfTests(unittest.TestCase):
     def test_pdf_reads_the_original_resource_and_rejects_wrong_sender_or_cache(self):
-        sys.path.insert(0, str(WORKBENCH / 'wechat'))
-        self.addCleanup(sys.path.remove, str(WORKBENCH / 'wechat'))
+        sys.path.insert(0, str(WECHAT_LINUX))
+        self.addCleanup(sys.path.remove, str(WECHAT_LINUX))
         from trigger.media import pdf_name, pdf_part
         from trigger.media_io import pdf
 
@@ -75,11 +75,11 @@ class InboundPdfTests(unittest.TestCase):
 class InboundImageTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        sys.path.insert(0, str(WORKBENCH / 'wechat'))
+        sys.path.insert(0, str(WECHAT_LINUX))
 
     @classmethod
     def tearDownClass(cls):
-        sys.path.remove(str(WORKBENCH / 'wechat'))
+        sys.path.remove(str(WECHAT_LINUX))
 
     def source(self):
         return {'peer': 'group@chatroom', 'id': '42', 'kind': 3, 'local': 7,

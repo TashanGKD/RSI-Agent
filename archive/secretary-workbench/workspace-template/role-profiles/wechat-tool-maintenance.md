@@ -6,8 +6,8 @@
 
 ## 入口与输出
 
-- 原接口：[OPERATIONS-API](../../wechat/docs/OPERATIONS-API.md)、[原界面方法](../../wechat/docs/CONTROL-METHOD.md)、[微信Skill](../../skills/wechat-write/SKILL.md)。
-- 源码：[operations](../../wechat/operations/public_api.py)、[原SDK](../../host/tools/wechat_operations.py)、[原读取器](../../host/tools/wechat_linux.py)、[宿主适配](../../host/aup-sender/sender_work_tools.py)。
+- 原接口：[OPERATIONS-API](../../../../components/wechat-linux/docs/OPERATIONS-API.md)、[原界面方法](../../../../components/wechat-linux/docs/CONTROL-METHOD.md)、[微信Skill](../../skills/wechat-write/SKILL.md)。
+- 源码：[operations](../../../../components/wechat-linux/operations/public_api.py)、[原SDK](../../host/tools/wechat_operations.py)、[原读取器](../../host/tools/wechat_linux.py)、[宿主适配](../../host/aup-sender/sender_work_tools.py)。
 - 接续/运行：[组件与实例条件](../../docs/CURRENT-COMPONENTS.md)、[安装配置](../../host/installation_config.py)。不另建发送器、队列或后台。
 - 输出：原故障具体定位/最小修复或准确恢复条件、必要离线/实际证据、运行版本及同原单状态，保旧历史。已交业务与现场收尾分别记录，accepted不因后续清理问题重发。
 

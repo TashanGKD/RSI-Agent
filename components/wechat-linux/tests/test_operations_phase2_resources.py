@@ -81,7 +81,7 @@ class ResourceAndReuseTests(unittest.TestCase):
   except ValueError as e:self.fail('Author text rejected by fixed byte quota: '+str(e))
   self.assertEqual(r['payload']['text'],text)
  def mac(self):
-  s=importlib.util.spec_from_file_location('mac_wrapper',HERE.parents[1]/'host/tools/wechat_operations.py');m=importlib.util.module_from_spec(s);s.loader.exec_module(m);return m
+  s=importlib.util.spec_from_file_location('mac_wrapper',HERE.parents[2]/'archive/secretary-workbench/host/tools/wechat_operations.py');m=importlib.util.module_from_spec(s);s.loader.exec_module(m);return m
  def test_mac_upload_accepts_actual_relative_symlink_and_long_name(self):
   m=self.mac()
   with tempfile.TemporaryDirectory() as td:

@@ -10,14 +10,14 @@ import unittest
 from unittest.mock import Mock, patch
 
 from PIL import Image
-from rsi_agent.config import WORKBENCH
+from rsi_agent.config import WECHAT_LINUX
 
 
 @unittest.skipUnless(sys.platform == 'linux', 'native Linux navigation interface')
 class NativeSearchPopupTests(unittest.TestCase):
     def setUp(self):
-        sys.path.insert(0, str(WORKBENCH / 'wechat'))
-        self.addCleanup(sys.path.remove, str(WORKBENCH / 'wechat'))
+        sys.path.insert(0, str(WECHAT_LINUX))
+        self.addCleanup(sys.path.remove, str(WECHAT_LINUX))
         self.fixture = json.loads((Path(__file__).parent / 'fixtures/native_search_popup.json').read_text())
         self.main, self.popup = copy.deepcopy(self.fixture['main']), copy.deepcopy(self.fixture['popup'])
         self.identity = self.fixture['identity']

@@ -18,7 +18,7 @@ RSI Agent 把微信消息交给本机 Codex 处理，再由原微信发送队列
 | 本人私聊接入与回传 | [owner_reply.py](trigger/owner_reply.py)、[reply_io.py](trigger/reply_io.py) |
 | 群聊接入与回传 | [group_reply.py](trigger/group_reply.py)、[group_io.py](trigger/group_io.py)、[群聊准入](harness/GROUP-ADMISSION.md) |
 | 固定原始请求并投递 | [codex_backend.py](trigger/codex_backend.py) |
-| 图片与 PDF 原件校验 | [media_io.py](trigger/media_io.py)、[微信图像适配](components/secretary-workbench/wechat/operations/images.py) |
+| 图片与 PDF 原件校验 | [media_io.py](trigger/media_io.py)、[微信图像适配](components/wechat-linux/operations/images.py) |
 
 用已配置的私有文件检查触发器。两个 `check` 都不发送微信消息。
 
@@ -61,7 +61,7 @@ Linux 安装配置示例见 [examples/linux.json](examples/linux.json)，默认�
 
 ## 配套目录
 
-- [components/](components/) 存放秘书工作台和 Mac 微信采集器，以及各自的来源与运行范围。
-- [experiments/](experiments/) 存放本机 Codex 事件探针和 Dot MCP 实验。
+- [components/wechat-linux/](components/wechat-linux/) 是触发器依赖的 Linux 微信模块，提供原生消息读取、附件校验和 V2 回传。
+- [archive/](archive/) 保存 Mac 微信采集器、秘书工作台的记事本与配套源码、本机 Codex 和 Dot MCP 实验。
 - [rsi_agent/](rsi_agent/) 提供统一命令、配置、诊断和旧启动入口。[deploy/](deploy/) 放服务模板，[scripts/](scripts/) 和 [tests/](tests/) 放验证脚本和回归测试。
 - [harness/](harness/) 放协议与接入说明。[memory/](memory/) 放项目决策与待办。[docs/](docs/) 放集成和验收记录。

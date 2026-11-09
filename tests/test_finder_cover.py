@@ -8,7 +8,7 @@ from unittest.mock import Mock, patch
 
 from trigger.finder_cover import annotate, descriptor, read
 from trigger.codex_backend import CodexBackend
-from rsi_agent.config import WORKBENCH
+from rsi_agent.config import WECHAT_LINUX
 
 
 def card(url='https://wxapp.tc.qq.com/cover.jpg', count='1'):
@@ -49,8 +49,8 @@ class FinderDescriptorTests(unittest.TestCase):
 @unittest.skipUnless(sys.platform == 'linux', 'uses original private native assets')
 class FinderAssetTests(unittest.TestCase):
     def test_source_bound_cover_is_decoded_cached_and_reused_without_network_or_video(self):
-        sys.path.insert(0, str(WORKBENCH / 'wechat'))
-        self.addCleanup(sys.path.remove, str(WORKBENCH / 'wechat'))
+        sys.path.insert(0, str(WECHAT_LINUX))
+        self.addCleanup(sys.path.remove, str(WECHAT_LINUX))
         from PIL import Image
         from operations.public_api import PublicAPI
         data = io.BytesIO()

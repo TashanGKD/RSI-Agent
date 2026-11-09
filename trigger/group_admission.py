@@ -9,7 +9,7 @@ import subprocess
 import sys
 import time
 
-from rsi_agent.config import ROOT, WORKBENCH, load
+from rsi_agent.config import ROOT, WECHAT_LINUX, load
 from rsi_agent.wechat import environment, private_file
 
 
@@ -39,7 +39,7 @@ def catalog(installation, owner_binding):
     config = load(installation)
     owner = binding(owner_binding, config)
     os.environ.update(environment(config))
-    sys.path.insert(0, str(WORKBENCH / 'wechat'))
+    sys.path.insert(0, str(WECHAT_LINUX))
     from linux_tool import native
     with native('contact/contact.db') as (db, receipt):
         if receipt.get('consistency') != 'committed' or receipt.get('gap'):

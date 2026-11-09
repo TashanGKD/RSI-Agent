@@ -115,7 +115,7 @@ class AgentTests(unittest.TestCase):
             run.assert_not_called()
 
     def test_display_and_xauthority_are_shared_with_original_helpers(self):
-        spec = importlib.util.spec_from_file_location('rsi_runtime_env', ROOT / 'components/secretary-workbench/wechat/rsi_runtime_env.py')
+        spec = importlib.util.spec_from_file_location('rsi_runtime_env', ROOT / 'components/wechat-linux/rsi_runtime_env.py')
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         with patch.dict(os.environ, environment(load())):
@@ -145,6 +145,8 @@ class AgentTests(unittest.TestCase):
         for source in value['sources']:
             self.assertEqual(len(source['commit']), 40)
             self.assertTrue((ROOT / source['directory'] / 'README.md').is_file())
+            for directory in source.get('relocated', {}).values():
+                self.assertTrue((ROOT / directory / 'README.md').is_file())
 
 
 if __name__ == '__main__':

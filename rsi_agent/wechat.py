@@ -7,7 +7,7 @@ import shutil
 import subprocess
 import sys
 
-from .config import WORKBENCH
+from .config import WECHAT_LINUX
 
 READ_ACTIONS = {'resolve', 'messages', 'voice', 'attachments', 'attachment'}
 
@@ -68,7 +68,7 @@ def doctor(config):
 
 def environment(config):
     wx = config['wechat']
-    source = WORKBENCH / 'wechat'
+    source = WECHAT_LINUX
     env = dict(os.environ,
                WECHAT_DISPLAY=wx['display'], WECHAT_XAUTHORITY=wx['xauthority'],
                WECHAT_TOOL_ROOT=wx['runtime_root'], WECHAT_NATIVE_CODE=str(source),
@@ -95,7 +95,7 @@ def call(config, mode, request):
         status = doctor(config)
         if not status['read' if mode == 'read' else 'operations']['ready']:
             raise ValueError('WeChat prerequisites are incomplete; run doctor before reading or writing.')
-    source = WORKBENCH / 'wechat'
+    source = WECHAT_LINUX
     command = [sys.executable, '-B', str(source / 'linux_tool.py'), '--execute']
     if mode == 'operations':
         state = Path(config['wechat']['runtime_root']) / 'operations-state'

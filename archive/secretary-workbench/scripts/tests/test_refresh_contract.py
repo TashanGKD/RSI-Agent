@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
+WECHAT = ROOT.parents[1] / 'components/wechat-linux'
 
 
 class RefreshContract(unittest.TestCase):
@@ -20,7 +21,7 @@ class RefreshContract(unittest.TestCase):
             self.assertTrue((skill / name).is_file(), name)
 
     def test_specific_original_case_not_distributed(self):
-        sys.path.insert(0, str(ROOT / 'wechat'))
+        sys.path.insert(0, str(WECHAT))
         module = importlib.import_module('operations.original_deviation')
         self.assertIsNone(module.CASE)
         with tempfile.TemporaryDirectory() as directory:
@@ -31,7 +32,7 @@ class RefreshContract(unittest.TestCase):
             self.assertEqual(before, list(Path(directory).iterdir()))
 
     def test_current_policy_is_attribution_not_tenant_authority(self):
-        sys.path.insert(0, str(ROOT / 'wechat'))
+        sys.path.insert(0, str(WECHAT))
         from operations.driver import Policy
         policy = Policy({'version': 2, 'account': 'wxid_fixture_operator', 'clients': {}})
         policy.check({'client': 'fixture', 'peer': 'wxid_fixture_person', 'action': 'send_text'})
