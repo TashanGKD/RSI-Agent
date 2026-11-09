@@ -2,6 +2,7 @@
 import argparse,base64,hashlib,json,os,re,sys,time,sqlite3
 from datetime import datetime,timezone,timedelta
 from contextlib import contextmanager
+from collections import Counter
 from pathlib import Path
 from receive_source import sid
 
@@ -121,6 +122,8 @@ class Tool:
             if exists:
                 rows=c.execute('select * from '+table+' where '+condition+' order by create_time,sort_seq,local_id limit ?',[*args,limit+1]).fetchall()
                 names={row[0]:row[1] for row in c.execute('select rowid,user_name from Name2Id')}
+                sticker_ids = Counter(row['server_id'] for row in rows) if (
+                    len(rows) <= limit and receipt.get('consistency') == 'committed' and not receipt.get('gap')) else {}
                 for x in rows:
                     if not x['server_id']:continue
                     s=sid(x['server_id']);kind=int(x['local_type'])&0xffffffff
@@ -128,6 +131,12 @@ class Tool:
                     if kind==49:
                         from app_message import parse_app_message
                         out[s].update(parse_app_message(x['message_content'],local_type=x['local_type'],peer=peer,sender=out[s]['senderId'],decode=decode))
+                    if kind==47 and out[s]['senderId'] and sticker_ids.get(x['server_id'])==1:
+                        from operations.proof import sticker_md5
+                        md5=sticker_md5(x['message_content'],decode,out[s]['senderId'] if peer.endswith('@chatroom') else None)
+                        if md5:
+                            out[s]['sticker']={'md5':md5}
+                            out[s]['nativeStatus']=x['status']
                     if self.metadata and out[s]['senderId']:self.metadata.remember(peer,s,out[s]['senderId'],'message/message_0.db:Name2Id')
         try:
             unread,ur=self.unread(peer,ids,a,b);receipts.append(ur)

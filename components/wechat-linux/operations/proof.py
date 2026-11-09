@@ -6,6 +6,18 @@ from xml.etree import ElementTree as ET
 def xml(raw):
  if not isinstance(raw,str) or len(raw.encode())>100000 or re.search(r'<!\s*(DOCTYPE|ENTITY)',raw,re.I):raise ValueError('unsafe or over-budget XML')
  return ET.fromstring(raw)
+def sticker_md5(encoded,decode,sender=None):
+ """Native type-47 asset identity, without exporting URLs or claiming decoded media."""
+ try:
+  raw=decode(encoded)
+  if sender and isinstance(raw,str) and raw.startswith(sender+':\n'):raw=raw[len(sender)+2:]
+  root=xml(raw)
+ except (ValueError,ET.ParseError):return None
+ items=root.findall('emoji')
+ if root.tag!='msg' or len(items)!=1:return None
+ md5=items[0].get('md5','')
+ return md5.lower() if re.fullmatch('[a-fA-F0-9]{32}',md5) else None
+
 def friend(row):
  return bool(row and row.get('local_type')==1 and row.get('flag',0)&1 and not row.get('delete_flag',0))
 def text_mode(expected,actual):
