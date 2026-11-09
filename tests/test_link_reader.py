@@ -1,4 +1,5 @@
 import contextlib
+from email.message import Message
 import hashlib
 import json
 from pathlib import Path
@@ -14,6 +15,41 @@ from rsi_agent.config import WECHAT_LINUX
 
 
 class LinkReaderTests(unittest.TestCase):
+    def test_wechat_shared_article_preserves_query_and_accepts_large_html(self):
+        url = 'https://mp.weixin.qq.com/s?__biz=fixture==&mid=1&idx=1&sn=abc&scene=1#rd'
+        html = (b'<meta property="og:title" content="Article headline"><main>navigation</main>'
+                b'<script>' + b' ' * 1_000_000 + b'</script><div id="js_content">Actual body</div>')
+        headers = Message()
+        headers['Content-Type'] = 'text/html; charset=utf-8'
+        connection = Mock()
+        connection.getresponse.return_value = Mock(status=200, headers=headers)
+        connection.getresponse.return_value.read.side_effect = lambda size: html[:size]
+        with patch('trigger.link_reader.socket.getaddrinfo', return_value=[(2, 1, 6, '', ('93.184.216.34', 443))]), \
+                patch('trigger.link_reader.http.client.HTTPSConnection', return_value=connection), \
+                patch('trigger.link_reader.ssl.create_default_context'), \
+                patch('trigger.link_reader.socket.create_connection'):
+            result = fetch(url)
+        self.assertEqual(result['state'], 'ready')
+        self.assertEqual(result['title'], 'Article headline')
+        self.assertEqual(result['text'], 'Actual body')
+        self.assertEqual(result['url'], url)
+        self.assertEqual(connection.request.call_args.args, ('GET', '/s?__biz=fixture==&mid=1&idx=1&sn=abc&scene=1'))
+        self.assertIn('Mozilla/5.0', connection.request.call_args.kwargs['headers']['User-Agent'])
+
+    def test_wechat_challenge_is_reported_without_following_redirect(self):
+        url = 'https://mp.weixin.qq.com/s/fixture'
+        connection = Mock()
+        response = connection.getresponse.return_value
+        response.status = 302
+        response.getheader.return_value = 'https://mp.weixin.qq.com/mp/wappoc_appmsgcaptcha?poc_token=fixture'
+        with patch('trigger.link_reader.socket.getaddrinfo', return_value=[(2, 1, 6, '', ('93.184.216.34', 443))]), \
+                patch('trigger.link_reader.http.client.HTTPSConnection', return_value=connection), \
+                patch('trigger.link_reader.ssl.create_default_context'), \
+                patch('trigger.link_reader.socket.create_connection'):
+            result = fetch(url)
+        self.assertEqual(result, {'state': 'unavailable', 'url': url, 'code': 'WECHAT_VERIFICATION_REQUIRED'})
+        connection.request.assert_called_once()
+
     def test_wechat_body_is_extracted_but_verification_and_empty_pages_are_not_articles(self):
         url = 'https://mp.weixin.qq.com/s/fixture'
         html = '<html><head><title>Sample article</title><script>not article</script></head><body>navigation<div id="js_content"><p>Actual body</p><p>More evidence</p></div>footer</body></html>'

@@ -15,11 +15,22 @@ from xml.etree import ElementTree as ET
 from rsi_agent.config import ROOT
 
 
+WECHAT_HOST = 'mp.weixin.qq.com'
+# Public article request headers as used by wechat-article-reader.
+# https://github.com/Rudy-114/wechat-article-reader
+WECHAT_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 '
+                  '(KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+}
+
+
 def address(url):
     parts = urlsplit(url)
-    if (parts.scheme == 'http' and parts.hostname == 'mp.weixin.qq.com'
+    if (parts.scheme == 'http' and parts.hostname == WECHAT_HOST
             and not parts.username and not parts.password and parts.port in (None, 80)):
-        parts = parts._replace(scheme='https', netloc='mp.weixin.qq.com')
+        parts = parts._replace(scheme='https', netloc=WECHAT_HOST)
     if (len(url) > 2048 or parts.scheme != 'https' or not parts.hostname
             or parts.username or parts.password or parts.port not in (None, 443)
             or any(c.isspace() for c in url)):
@@ -59,16 +70,18 @@ def shared_link(raw):
 
 
 class Page(HTMLParser):
-    def __init__(self):
+    def __init__(self, wechat):
         super().__init__(convert_charrefs=True)
         self.stack, self.body, self.main, self.title = [], [], [], []
-        self.wechat = False
+        self.wechat = wechat
+        self.article_title = ''
 
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
-        selected = attrs.get('id') == 'js_content'
-        self.wechat = self.wechat or selected
-        self.stack.append((tag, selected or tag in ('main', 'article')))
+        if self.wechat and tag == 'meta' and attrs.get('property') == 'og:title':
+            self.article_title = attrs.get('content') or ''
+        selected = attrs.get('id') == 'js_content' or (not self.wechat and tag in ('main', 'article'))
+        self.stack.append((tag, selected))
         if len(self.stack) > 256:
             raise ValueError('HTML nesting limit exceeded.')
         if tag in ('p', 'div', 'br', 'li', 'h1', 'h2', 'h3'):
@@ -88,19 +101,21 @@ class Page(HTMLParser):
             self.title.append(data)
         if tags & {'script', 'style', 'noscript', 'head'}:
             return
-        self.body.append(data)
+        if not self.wechat:
+            self.body.append(data)
         if any(item[1] for item in self.stack):
             self.main.append(data)
 
 
 def content(url, raw, charset='utf-8'):
-    page = Page()
+    page = Page(wechat=urlsplit(url).hostname == WECHAT_HOST)
     page.feed(raw.decode(charset, errors='replace'))
     text = re.sub(r'[ \t\r\f\v]+', ' ', ''.join(page.main or page.body)).strip()
     text = re.sub(r'\n\s*\n+', '\n\n', text)
-    if not text or (urlsplit(url).hostname == 'mp.weixin.qq.com' and (not page.wechat or not ''.join(page.main).strip())):
+    if not text:
         return {'state': 'unavailable', 'url': url, 'code': 'ARTICLE_BODY_UNAVAILABLE'}
-    return {'state': 'ready', 'url': url, 'title': ''.join(page.title).strip()[:200],
+    title = page.article_title or ''.join(page.title)
+    return {'state': 'ready', 'url': url, 'title': title.strip()[:200],
             'text': text[:8000], 'truncated': len(text) > 8000,
             'source_sha256': hashlib.sha256(raw).hexdigest()}
 
@@ -110,6 +125,7 @@ def fetch(url):
     try:
         parts = address(url)
         host = parts.hostname.encode('idna').decode()
+        wechat = host == WECHAT_HOST
         resolved = socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)
         if not resolved or any(not ipaddress.ip_address(row[4][0]).is_global for row in resolved):
             raise ValueError('Public destination required.')
@@ -118,16 +134,26 @@ def fetch(url):
         connection.sock = ssl.create_default_context().wrap_socket(
             socket.create_connection((resolved[0][4][0], 443), timeout=10), server_hostname=host)
         target = (parts.path or '/') + ('?' + parts.query if parts.query else '')
-        connection.request('GET', target, headers={'User-Agent': 'RSI-Agent-LinkReader/0.1',
-            'Accept': 'text/html,text/plain', 'Accept-Encoding': 'identity'})
+        headers = {'User-Agent': 'RSI-Agent-LinkReader/0.1', 'Accept': 'text/html,text/plain',
+                   'Accept-Encoding': 'identity'}
+        if wechat:
+            headers.update(WECHAT_HEADERS)
+        connection.request('GET', target, headers=headers)
         response = connection.getresponse()
         if response.status != 200:
-            return {'state': 'unavailable', 'url': url, 'code': 'HTTP_' + str(response.status)}
+            code = 'HTTP_' + str(response.status)
+            if wechat and 300 <= response.status < 400:
+                location = urlsplit(response.getheader('Location', ''))
+                if location.hostname in (None, WECHAT_HOST) and location.path == '/mp/wappoc_appmsgcaptcha':
+                    code = 'WECHAT_VERIFICATION_REQUIRED'
+            return {'state': 'unavailable', 'url': url, 'code': code}
         kind = response.headers.get_content_type()
-        if kind not in ('text/html', 'text/plain'):
+        if kind != 'text/html' and (wechat or kind != 'text/plain'):
             return {'state': 'unavailable', 'url': url, 'code': 'UNSUPPORTED_CONTENT'}
-        raw = response.read(1000001)
-        if len(raw) > 1000000:
+        # WeChat HTML includes several MB of scripts even for a short article.
+        limit = 8_000_000 if wechat else 1_000_000
+        raw = response.read(limit + 1)
+        if len(raw) > limit:
             return {'state': 'unavailable', 'url': url, 'code': 'PAGE_TOO_LARGE'}
         if kind == 'text/plain':
             text = raw.decode('utf-8', errors='replace')
