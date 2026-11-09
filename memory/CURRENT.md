@@ -2,59 +2,60 @@
 
 ## Latest actual delivery
 
-PR #28 is merged, fixed-source published and resident-active in its live receipt.
-Its installed native-only image navigation/restoration fixture passes. The old
-owned search navigation and the failed image read were settled failed/noSend
-under the owner's explicit automatic-execution instruction. No cached old reply,
-image or completed model result was replayed. A genuine fresh /codex owner reply
-succeeded exactly once in the existing desktop conversation. This active-turn
-acceptance is distinct from immediate unattended activation or phone acceptance.
+PR #29's default prefix-free Codex takeover is merged, fixed-source published,
+local hidden logon consumer running and both native resident services activated
+according to its live receipt. Owner and both eligible group workers actually
+report local-codex; future groups inherit the owner config. No target-host Codex
+or DSH fallback is used. Ordinary conversation is independent of maintenance.
+Read actual receipts/current/process cwd rather than reopening candidate text.
 
-The later group text failed cleanly with SEARCH_SELECTION_UNPROVEN, its original
-navigation is settled, global V2 is free, and that group consumer retains attention.
-Its original native record/cache is indexed in private operator metadata. This
-recipient problem remains separate from model selection and is not group recovery.
+The older genuine /codex reply succeeded once. Its original claim, completion,
+ACK/V2 and native send receipt remain; legacy future-prefix admission is disabled.
+Original SDK results and private memory are preserved. No old message/image was
+replayed. One group's clean SEARCH_SELECTION_UNPROVEN request remains failed/
+noSend with navigation settled, global V2 free and its consumer in attention.
+Changing models does not close that separate recipient path.
 
-## Current task: prefix-free Codex takeover
+## Current task: visible owner tasks in this same conversation
 
-The owner explicitly requested all future messages in the existing owner/group
-scopes to use Codex without /codex. The candidate adds an authenticated loopback
-SSH model port and a persistent consumer on this computer, preserving native
-identity, bounded peer context, notes, images/links, original inputs and V2.
-No Codex installation is performed on the native-client host; no DSH fallback
-runs when the local computer/tunnel is offline. The earlier prefix switch will
-stop new admission while retaining all original claims/completions/receipts.
+The owner wants triggered task content to appear here for assignment, execution
+and follow-up. The supported codex queue accepted one clearly labelled local
+interface fixture. The exact original marker subsequently became an actual user
+item in this same existing thread, corroborated by supported read_thread. It
+arrived after the previous active turn completed. This proves loaded-conversation
+input delivery, not native WeChat source or wake-up of a fully unloaded thread.
+The original marker/IDs/receipts are private and must not be requeued.
 
-Chat and verified-owner engineering have separate local consumers. Ordinary chat
-uses ephemeral peer-bounded input with execution/plugin/MCP/browser tools disabled
-through child settings. Owner tasks retain native identity/kind checks and use
-an isolated Git worktree and reviewable draft PR. Existing PRs delay engineering
-only. Completed results freeze before shutdown/HTTP response; uncertain interrupted
-work becomes review rather than a new generation. Original events/threads remain
-private. Current maintenance continues as coordinator, not ordinary message worker.
+The candidate routes existing native-owner/kind-admitted engineering through a
+fixed desktop target, without another background App Server/tool turn. Ordinary
+peer-isolated chat stays in the background. The original digest/task and CLI
+queue receipt persist; uncertain submission becomes review, never a new queue
+message. This conversation verifies the private original and current target,
+performs the task, freezes one result and completes the original local model
+request through the authenticated API. Only the original native V2 sender
+returns it. Wrong source/target and changes to a completed text/turn are rejected.
 
-The real local Codex consumer correctly identified an inline image and returned
-the exact structured group shape without execution items. Global Codex config
-was preserved. Linux prefix-free native-loop/HTTP/IPC/dedup fixtures and the
-complete regression gate passed; final exact-head CI and deployment remain due.
-This isolated image is not a fresh native WeChat end-to-end acceptance.
+The candidate includes frozen HTTP/native-loop/queue fixtures for exact-once
+handoff and completion, including uncertainty/restart. Positive genuine native
+WeChat task -> visible input -> execution -> original send remains unobserved.
+No synthetic production task or test message may substitute for that input.
 
 ## Unique next step
 
-Review/gate and reversibly install this same candidate: fixed local source,
-hidden per-user logon worker and SSH tunnel, then fixed host source and both
-resident model ports. Preserve private state/old code, rehearse pointer rollback,
-validate actual worker/source/backend and original records. Any genuine unhandled
-inbound may supply native acceptance; do not manufacture a probe or replay old
-images/replies. This computer must remain awake and its Codex user signed in.
-Read the live PR receipt for actual merge/publication/task/activation status.
+Review/gate this same candidate and deliver it reversibly: retain old immutable
+source, private state and pending claims; drain only after checking real local
+work; install fixed local source with the proven current thread configured, then
+verify actual source/task/backend and unchanged originals. Normal CI/release and
+fresh native acceptance are separate. Do not re-execute any old completed or
+running background task in the desktop conversation. Keep the new completion
+API available while desktop-queued work remains; do not roll its state back.
 
 ## Other retained boundaries
 
-Dot MCP tool installation/loading is verified; genuine event subscription/complete
-activation remains unproven and is not needed for the local consumer above.
-The standalone local App Server remote-event fixture passed earlier and is not
-repeated. Named owner-private memory is delivered; group/semantic memory, native
-animated sticker output, task autoloop binding, client/X startup persistence,
-folded albums/whole videos and fixed-model Penguin Formal Baseline remain distinct.
-Secrets, raw chats, private pictures and full logs stay outside Git. No RSI gain.
+The local computer must stay awake with its Codex user signed in. Thirty-minute
+maintenance continues to coordinate reliability, not poll ordinary chat. The
+prior Dot event tool is installed but actual Dot subscription/result is absent;
+old socket, nonce and model probes are not repeated. Group recipient recovery,
+semantic/group memory, native animated stickers, task autoloop binding, desktop
+boot persistence, folded albums/whole videos and Penguin fixed-model independent
+Formal Baseline remain distinct. Private chats/pictures/secrets do not enter Git.

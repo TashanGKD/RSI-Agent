@@ -76,6 +76,8 @@ class Jobs:
         with self.connect() as db:
             db.execute('CREATE TABLE IF NOT EXISTS jobs(id TEXT PRIMARY KEY,digest TEXT NOT NULL,body TEXT NOT NULL,'
                 'state TEXT NOT NULL,result TEXT,thread_id TEXT,turn_id TEXT,error TEXT,updated REAL NOT NULL)')
+            if 'desktop_message_id' not in {r[1] for r in db.execute('PRAGMA table_info(jobs)')}:
+                db.execute('ALTER TABLE jobs ADD COLUMN desktop_message_id TEXT')
 
     @contextmanager
     def connect(self):
@@ -103,7 +105,7 @@ class Jobs:
             return dict(db.execute('SELECT * FROM jobs WHERE id=?', (identity,)).fetchone())
 
     def update(self, identity, **fields):
-        assert set(fields) <= {'state', 'result', 'thread_id', 'turn_id', 'error'}
+        assert set(fields) <= {'state', 'result', 'thread_id', 'turn_id', 'error', 'desktop_message_id'}
         fields['updated'] = time.time()
         with self.connect() as db:
             db.execute('UPDATE jobs SET ' + ','.join(k + '=?' for k in fields) + ' WHERE id=?',
@@ -119,7 +121,42 @@ class Jobs:
 
     def review_interrupted(self):
         with self.connect() as db:
-            db.execute("UPDATE jobs SET state='review',error='Worker interrupted; inspect original thread/events, never regenerate',updated=? WHERE state IN ('starting','running')", (time.time(),))
+            db.execute("UPDATE jobs SET state='review',error='Worker interrupted; inspect original thread/events/queue receipt, never regenerate',updated=? WHERE state IN ('starting','running','desktop_submitting')", (time.time(),))
+
+    def desktop_task(self, identity, target):
+        row = self.get(identity)
+        if (not target or row['thread_id'] != target or not row['desktop_message_id']
+                or json.loads(row['body'])['mode'] != 'engineering'):
+            raise ValueError('Original task is not bound to this desktop conversation.')
+        return {'id': identity, 'input_sha256': row['digest'], 'thread_id': target,
+                'desktop_message_id': row['desktop_message_id'], 'state': row['state'],
+                'body': json.loads(row['body']), 'text': row['result'], 'turn_id': row['turn_id']}
+
+    def complete_desktop(self, value, target):
+        if (set(value) != {'id', 'input_sha256', 'thread_id', 'turn_id', 'text'}
+                or not target or value['thread_id'] != target
+                or not isinstance(value['turn_id'], str) or not value['turn_id']
+                or not isinstance(value['text'], str) or not value['text'].strip()
+                or '\0' in value['text'] or len(value['text'].encode()) > 16384):
+            raise ValueError('Frozen original desktop completion required.')
+        with self.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            row = db.execute('SELECT * FROM jobs WHERE id=?', (value['id'],)).fetchone()
+            if (not row or row['digest'] != value['input_sha256'] or row['thread_id'] != target
+                    or not row['desktop_message_id'] or json.loads(row['body'])['mode'] != 'engineering'):
+                raise ValueError('Original desktop task binding changed.')
+            limit = 6000 if json.loads(row['body'])['scope'][1].endswith('@chatroom') else 16384
+            if len(value['text'].encode()) > limit:
+                raise ValueError('Completion exceeds the original native reply contract.')
+            if row['state'] == 'completed':
+                if (row['result'], row['turn_id']) != (value['text'], value['turn_id']):
+                    raise ValueError('Completed desktop output cannot be replaced.')
+            elif row['state'] == 'desktop_queued':
+                db.execute("UPDATE jobs SET state='completed',result=?,turn_id=?,updated=? WHERE id=?",
+                           (value['text'], value['turn_id'], time.time(), value['id']))
+            else:
+                raise ValueError('Uncertain desktop delivery must be reconciled, not replayed.')
+        return {'id': value['id'], 'state': 'completed'}
 
     def counts(self):
         with self.connect() as db:
@@ -233,6 +270,45 @@ def run_codex(config, jobs, row):
                 return
 
 
+def notify_desktop(config, jobs, row):
+    """Transfer the original owner task once; never start another model/tool turn."""
+    request = json.loads(row['body']);target = config['desktop_thread_id']
+    if request['mode'] != 'engineering' or not re.fullmatch('[a-f0-9-]{36}', target):
+        raise ValueError('Verified owner task and fixed desktop thread required.')
+    instruction = request['messages'][-1]
+    if instruction['role'] != 'user' or not isinstance(instruction['content'], str):
+        raise ValueError('Exact original owner instruction required.')
+    folder = jobs.root / request['id'];folder.mkdir(mode=0o700, exist_ok=True)
+    journal = folder / 'desktop-notification.json'
+    if journal.exists():
+        raise ValueError('Original desktop submission exists; inspect without requeueing.')
+    jobs.update(request['id'], state='desktop_submitting', thread_id=target)
+    original = folder / 'original.json'
+    original.write_text(json.dumps({'input_sha256': row['digest'], 'thread_id': target,
+        'body': request}, ensure_ascii=False, indent=2), encoding='utf-8');original.chmod(0o600)
+    text = instruction['content']
+    if len(text) > 8000:
+        text = text[:8000] + '\n…（原文较长，全文保存在任务记录中）'
+    message = ('【微信任务 · RSI-' + request['id'][:12] + '】\n' + text
+        + '\n\n[原消息与回传记录](<' + original.as_posix() + '>)')
+    proof = {'state': 'submitting', 'id': request['id'], 'input_sha256': row['digest'],
+             'thread_id': target, 'message_sha256': hashlib.sha256(message.encode()).hexdigest()}
+    journal.write_text(json.dumps(proof, indent=2), encoding='utf-8');journal.chmod(0o600)
+    with journal.open('r+b') as stream:
+        stream.flush();os.fsync(stream.fileno())
+    result = subprocess.run([config['codex'], 'queue', '--thread', target, '--message', message],
+        capture_output=True, text=True, encoding='utf-8', timeout=30,
+        creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+    match = re.fullmatch(r'Queued message ([a-f0-9-]{36}) for thread ([a-f0-9-]{36})\.\s*', result.stdout)
+    proof.update(exit_code=result.returncode, stdout=result.stdout, stderr=result.stderr)
+    if result.returncode or not match or match[2] != target:
+        journal.write_text(json.dumps(proof, indent=2), encoding='utf-8')
+        raise ValueError('Original desktop queue result is uncertain; do not resubmit.')
+    proof.update(state='queued', desktop_message_id=match[1])
+    journal.write_text(json.dumps(proof, indent=2), encoding='utf-8')
+    jobs.update(request['id'], state='desktop_queued', desktop_message_id=match[1])
+
+
 def server(config, jobs, draining):
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *_):
@@ -249,25 +325,35 @@ def server(config, jobs, draining):
         def do_GET(self):
             if not self.authorized():
                 return self.answer(403, {'state': 'forbidden'})
+            if self.path.startswith('/desktop-requests/'):
+                try:
+                    return self.answer(200, jobs.desktop_task(self.path.removeprefix('/desktop-requests/'),
+                        config.get('desktop_thread_id')))
+                except (ValueError, TypeError):
+                    return self.answer(409, {'state': 'original_task_rejected'})
             if self.path != '/health':
                 return self.answer(404, {'state': 'not_found'})
             return self.answer(200, {'backend': 'local-codex', 'ready': not draining.is_set(),
-                'counts': jobs.counts(), 'pid': os.getpid(), 'source_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest()})
+                'counts': jobs.counts(), 'pid': os.getpid(), 'source_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+                'desktop_thread_id': config.get('desktop_thread_id')})
 
         def do_POST(self):
             if not self.authorized():
                 return self.answer(403, {'state': 'forbidden'})
             if self.path == '/drain':
                 draining.set();return self.answer(200, {'state': 'draining'})
-            if self.path != '/requests':
+            if self.path not in ('/requests', '/desktop-completions'):
                 return self.answer(404, {'state': 'not_found'})
             try:
                 size = int(self.headers.get('Content-Length', '0'))
                 if not 0 < size <= 20000000:
                     raise ValueError('Bounded request required.')
-                value = json.loads(self.rfile.read(size));row = jobs.accept(value)
+                value = json.loads(self.rfile.read(size))
+                if self.path == '/desktop-completions':
+                    return self.answer(200, jobs.complete_desktop(value, config.get('desktop_thread_id')))
+                row = jobs.accept(value)
                 state = row['state']
-                self.answer(202 if state in ('queued', 'starting', 'running') else 200,
+                self.answer(202 if state in ('queued', 'starting', 'running', 'desktop_submitting', 'desktop_queued') else 200,
                     {'state': state, **({'text': row['result']} if state == 'completed' else {})})
             except (ValueError, TypeError, KeyError):
                 self.answer(409, {'state': 'original_input_rejected'})
@@ -305,7 +391,10 @@ def main():
                 if not row:
                     time.sleep(.3);continue
                 try:
-                    run_codex(config, jobs, row)
+                    if mode == 'engineering' and config.get('desktop_thread_id'):
+                        notify_desktop(config, jobs, row)
+                    else:
+                        run_codex(config, jobs, row)
                 except BlockingIOError:
                     jobs.update(row['id'], state='queued');time.sleep(30)
                 except Exception:
@@ -318,7 +407,7 @@ def main():
         with (state / 'ssh.stderr.log').open('a', encoding='utf-8') as stderr:
             try:
                 while True:
-                    if draining.is_set() and not any(jobs.counts().get(k, 0) for k in ('starting', 'running')):
+                    if draining.is_set() and not any(jobs.counts().get(k, 0) for k in ('starting', 'running', 'desktop_submitting')):
                         break
                     if tunnel is None or tunnel.poll() is not None:
                         tunnel = subprocess.Popen(['ssh', '-N', '-T', '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes',

@@ -3,14 +3,15 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-1. **Default local Codex takeover: current WIP.** Route future owner and eligible
-   group generation through the persistent local consumer without a prefix;
-   retain native reception/identity/context/memory/images/links and original V2.
-   Exact-head review/CI, fixed local installation, reversible host release and
-   resident activation come before fresh native acceptance. No DSH fallback or
-   duplicate legacy prefix consumer. The older PR #28 code and native owner
-   handoff are delivered, not another WIP. Its separate clean group recipient
-   failure remains preserved and is not solved merely by changing models.
+1. **Visible owner task handoff: current WIP.** The one original supported CLI
+   queue marker actually became a user item in this same conversation; do not
+   repeat it or call it native WeChat. Route future verified-owner engineering
+   here once, preserving original digest/IDs and a frozen completion returned
+   to the original V2 sender. No parallel background engineering turn. Review,
+   exact-head CI and reversible local/native delivery precede real new-task
+   acceptance. PR #29's prefix-free background Codex takeover is delivered.
+   Ordinary peer-isolated chat remains background; the separate clean group
+   recipient failure is retained for subsequent work, not hidden by this switch.
 2. **Completed task publication recovery: delivered.** A private
    post-shutdown journal binds the frozen result to its original Git effects.
    Branch-update/push SIGKILL replay resumes one original result without another
@@ -25,9 +26,9 @@ as candidates rather than silently expanding the active task.
    is in PR #22/operator metadata. Do not repeat it or the failed Dot probes.
    One real fresh request completed and sent once in this existing conversation;
    this active-turn acceptance is not unattended immediate Dot activation.
-   Observe/claim one new owner /codex request when present, freeze local input and
-   completed output, preserve the original V2. No synthetic message or second
-   generation after an uncertain running turn. PR #21 links/preferences are
+   Legacy new-prefix admission is now disabled after default Codex takeover.
+   Retain its original input/completion/V2; do not claim new legacy work or
+   regenerate after an uncertain running turn. PR #21 links/preferences are
    delivered too; only fresh link/card native acceptance remains observation.
 4. **Persistent task-event/agent-autoloop binding.** First retain delivery of the
    bounded publisher above; do not rebuild its completed-output persistence or

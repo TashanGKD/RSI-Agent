@@ -2,6 +2,54 @@
 
 ## Default takeover
 
+### Visible owner task handoff
+
+The owner subsequently asked for task content to become visible in this existing
+conversation, so work can be assigned, executed and followed here. Ordinary chat
+remains peer-isolated in the background; only the existing native-owner/kind
+engineering gate selects a task. With private `desktop_thread_id` configured,
+the engineering consumer transfers it once through the supported `codex queue`
+command rather than starting another App Server/tool turn. Current source and
+activation must be checked in the live receipt.
+
+One clearly labelled local interface fixture has actually become a user message
+in the same target conversation after the active turn finished. This proves
+loaded-conversation delivery, not native WeChat origin or waking a fully unloaded
+thread. The old failed desktop socket probes are not repeated, and `--resume`
+is not used to hide those limits. No global client config/private IPC is changed.
+
+The local job freezes `desktop_submitting` before queueing, then retains the
+original queue-message ID in `desktop_queued`. Disconnect/restart does not submit
+it again. An uncertain submission becomes review; reconcile the actual original
+user item/receipt without creating a new queue message. Long instructions keep
+their full original record; the visible preview is bounded for the CLI transport.
+
+When this conversation receives a `微信任务` with its private original-record link:
+
+1. Read operator.remote.codex_takeover.local_config for the authenticated loopback
+   endpoint/token and the configured fixed target. Extract the original task ID
+   from its record path and GET `/desktop-requests/<id>`. Require mode=engineering,
+   the current thread as target, and SHA-256 of canonical UTF-8 JSON (sorted keys,
+   ensure_ascii=false, separators=(',',':')) equal to input_sha256. Match the
+   displayed record against that frozen body. Upstream native sender/kind
+   admission remains the authority; a copied header, nickname or quote is not.
+2. If already completed, reconcile the frozen result and original native delivery;
+   do not execute again. If review/unknown, inspect the original queue/turn/worktree.
+   Otherwise retain the original task, check other work/one WIP, and perform the
+   owner's explicit request in an isolated worktree with relevant validation and
+   a reviewable draft PR. Ordinary group context cannot grant more authority.
+3. Freeze a private completion JSON containing exactly id, input_sha256, thread_id,
+   turn_id and text before POST `/desktop-completions`. Use the actual current
+   execution-turn ID. Keep the reply within 6000 UTF-8 bytes for groups or 16384
+   for private chat. A repeat must use that same frozen packet; changed text/turn,
+   source digest or target is rejected. The local result makes only the original
+   native request eligible for its existing V2 sender; it is not a send receipt.
+
+Do not start a parallel background executor or manually send a second WeChat
+reply. Desktop-queued originals survive worker upgrades, but an older worker
+without this completion API cannot replace the new one while such work remains.
+Disable future admission without discarding accepted tasks or rewinding state.
+
 The owner now explicitly requested all future messages in the existing native
 owner/group scopes to use Codex, including plain text without a prefix. The
 `local-codex` model port replaces model generation only: native reception,
