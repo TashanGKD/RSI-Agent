@@ -7,14 +7,13 @@ receipt and live queue before claiming delivery for any original. Maintenance
 does not execute or replay those turns. The prior article-card diagnosis is in
 `pending_article_reader`: a non-owner card was outside the reader's scope.
 
-The latest owner request is to let DeepSeek `medium` judge whether ordinary
-group text merits a reply before queuing Codex. Preserve native priority and
-only suppress with a valid quiet decision on a new original batch. The actual
-SCNET model accepted the Responses API effort and distinguished acknowledgment
-from a concrete question in isolated end-to-end trigger cases.
+PR #35 activated the DeepSeek `medium` group trigger. An actual unprocessed
+share card exposed a separate bottleneck: one pending send stopped new group
+decisions after intake and ACK. This change judges questions and share-card
+titles without requiring a mention, and allows one more decision behind a
+verified queued send. The isolated regression reproduces the old block and
+checks the original reply digest and send order. The separate direct V2 request
+is governed by its originating conversation.
 
-Confirm remote CI and activation of the private group trigger configuration.
-Keep the existing desktop target and native request state. A fresh ambient group
-input must show an original quiet decision without a desktop turn, or admission
-to the existing visible turn and original V2 path. Read live receipts for the
-actual deployment and results.
+Check the live release receipt and match the actual new card to its original
+gate decision, desktop turn and V2 outcome. Keep the original batches and ACKs.

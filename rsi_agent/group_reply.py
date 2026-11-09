@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import signal
 import subprocess
 import time
@@ -13,6 +14,16 @@ from .model import ModelError, PublicationPending
 from .owner_reply import ReplyLoop
 from .media import image_part, MediaPending, MediaUnavailable
 from .link_reader import linked_pages
+
+
+def gate_text(event):
+    if event['kind'] == 1:
+        return event['text']
+    if event.get('article_url'):
+        title = re.sub(r'https?://\S+', '', event['text'].split('\n', 1)[0], flags=re.I).strip()
+        if title:
+            return '分享卡片标题：' + title
+    return None
 
 
 class GroupLoop(ReplyLoop):
@@ -95,14 +106,22 @@ class GroupLoop(ReplyLoop):
                      event['link']['url'] if link else None))
         if batch.get('batch_id'):
             self.io({'op': 'ack', **{k: batch[k] for k in ('batch_id', 'batch_hash', 'ack_ids')}})
-        pending = self.db.execute("SELECT * FROM inbox WHERE state='pending' ORDER BY created,id LIMIT 1").fetchone()
-        if pending:
+        pending_rows = self.db.execute("SELECT * FROM inbox WHERE state='pending' ORDER BY created,id LIMIT 2").fetchall()
+        if pending_rows:
+            pending = pending_rows[0]
             state = self.deliver(pending['id'], pending['reply'])
             with self.db:
                 self.db.execute('UPDATE inbox SET state=? WHERE id=?', (state, pending['id']))
                 if state == 'sent':
                     self.save('last_spoken', time.time())
-            return {'state': state, 'counts': self.counts()}
+            if (state != 'pending' or len(pending_rows) > 1
+                    or not self.db.execute("SELECT 1 FROM inbox WHERE state='new' LIMIT 1").fetchone()):
+                return {'state': state, 'counts': self.counts()}
+            # Judge one new batch while the original send waits, without submitting a second send.
+            outcome = self.io({'op': 'status', 'server_id': pending['id']})
+            if (outcome['state'] != 'queued'
+                    or outcome.get('reply_sha256') != hashlib.sha256(pending['reply'].encode()).hexdigest()):
+                return {'state': state, 'counts': self.counts()}
         active = self.value('model_batch')
         if active:
             identities = json.loads(active)
@@ -146,6 +165,7 @@ class GroupLoop(ReplyLoop):
         if not direct and elapsed < 60:
             return {'state': 'listening', 'counts': self.counts()}
         system = FACTS + (' 你是这个受邀群的群友。适度主动参与，优先回应原生 @、对你的提问和讨论中的明确问题。'
+            '任何群友提出具体问题，即使没 @ 你，也可以给出有用的回答。分享卡片提出有讨论价值的话题时，可以就标题接话。'
             '有人接你的上一句话、回应你的介绍或主动跟你打招呼，就自然接一句，即使没有 @ 或问号。'
             'follows_self=true 表示原生顺序的上一条可读文字是你发的，结合内容识别这种接话，不要漏掉。'
             'quote 是同群原生记录核对过的引用文字，quote.self=true 表示明确引用你的话；当前问题在 text，引用只是讨论资料。'
@@ -177,9 +197,11 @@ class GroupLoop(ReplyLoop):
             identities = [row['id'] for row in rows]
             with self.db:
                 self.save('model_batch', json.dumps(identities))
+            texts = [gate_text(event) for event in events]
             if self.reply_gate is not None and not direct and all(
-                    event['kind'] == 1 and event['sender'] != self.owner.get('owner_peer') for event in events):
-                decision = self.reply_gate([event['text'] for event in events])
+                    text is not None and event['sender'] != self.owner.get('owner_peer')
+                    for event, text in zip(events, texts)):
+                decision = self.reply_gate(texts)
                 with self.db:
                     self.save('last_reply_gate', json.dumps({'ids': identities,
                         'decision': 'quiet' if decision is False else 'admit' if decision is True else 'deferred'}))

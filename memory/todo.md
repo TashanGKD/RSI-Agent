@@ -3,12 +3,10 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-1. **DeepSeek group trigger: current WIP.** Classify eligible new ambient group
-   text before forwarding it to the dedicated Codex conversation. Preserve native
-   priority, original batches and sends. PR #34 has verified fresh private and
-   group completions with original V2 sends. Preserve its unresolved V2 jobs
-   without replay. The historical link-card case was skipped by the owner-only
-   reader scope. Revisit that case only on new evidence or owner scope change.
+1. **Group questions and share cards.** Verify the original new card's admission
+   and desktop outcome with the deployed trigger. Only the card title goes to
+   the gate. Retain the original V2 order and owner-only article reading. Use
+   Issue #26 for the next independent native sticker search and saving path.
 2. **Completed task publication recovery: delivered.** A private
    post-shutdown journal binds the frozen result to its original Git effects.
    Branch-update/push SIGKILL replay resumes one original result without another
