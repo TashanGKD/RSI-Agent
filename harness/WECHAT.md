@@ -74,13 +74,14 @@ Fetch only the source-bound HTTPS cover, validate and cache the actual decoded
 asset, and describe it as a cover. This does not read the video. Media captions
 and image contents cannot initiate engineering tools, including owner shares.
 
-The resident chat backend is pinned DeepSeek Harness using SCNET, activated in
-PR #13 and retained through later delivery receipts. It replaced the direct
-SCNET chat adapter, not Codex CLI. Keep native
-WeChat reception, recipient checks, cached replies, original V2 request IDs and
-send/cleanup receipts across a backend change. Verify a fixed SDK/runtime,
-SCNET protocol, image input and real tool execution before activating it.
-Read-only chat and owner engineering must receive different tool authority.
+The delivered generation backend is local Codex through the authenticated model
+port. The owner's latest choice routes ordinary chat and admitted owner tasks to
+one new visible conversation; see DESKTOP-WECHAT.md and live activation receipts.
+The native host only bridges inputs/results, without running Codex CLI. Native
+reception, recipient checks, reply caches, V2 IDs and send/cleanup receipts stay
+with that bridge. Prior DSH/SCNET configuration is retained, not an offline
+fallback. Ordinary chat and owner engineering retain different tool authority;
+sharing a visible thread does not grant group members engineering permissions.
 
 User reference: [the shared WeChat tutorial](https://mp.weixin.qq.com/s/-LcRUPe5OYBRjiTEzYXKog).
 The supplied screenshot shows its title and introduction. Full article access

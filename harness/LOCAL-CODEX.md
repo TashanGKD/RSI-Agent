@@ -2,9 +2,20 @@
 
 ## Default takeover
 
+### Latest choice: one dedicated conversation for all WeChat input
+
+The owner selected one newly created visible conversation for chat and tasks.
+See [the current protocol](DESKTOP-WECHAT.md). With desktop_all_requests=true,
+both modes transfer to that target once. The former ordinary background turn
+and maintenance-thread engineering route below are superseded for future input;
+completed/running originals remain unchanged. Activation is in live receipts,
+not thread creation. Verified inline images become bound private local files.
+Chat returns its original schema; only a subsequent native-owner engineering
+packet grants execution. The original V2 sender remains the sole sender.
+
 ### Visible owner task handoff
 
-The owner subsequently asked for task content to become visible in this existing
+The earlier owner request asked for task content to become visible in this existing
 conversation, so work can be assigned, executed and followed here. Ordinary chat
 remains peer-isolated in the background; only the existing native-owner/kind
 engineering gate selects a task. With private `desktop_thread_id` configured,
