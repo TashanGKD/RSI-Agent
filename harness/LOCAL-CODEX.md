@@ -1,103 +1,52 @@
-# Local Codex reply and task backend
+# Local Codex receiver
 
-## Default takeover
+The receiver is one of the two core parts of [RSI Agent](../README.md). The
+Linux trigger admits native WeChat input and submits the frozen packet. This
+computer receives it, holds its original state and hands it to the dedicated
+Codex conversation. The original V2 queue delivers eligible replies.
 
-### Latest choice: one dedicated conversation for all WeChat input
+## Current configuration and operation
 
-The owner selected one newly created visible conversation for chat and tasks.
-See [the current protocol](DESKTOP-WECHAT.md). With desktop_all_requests=true,
-both modes transfer to that target once. The former ordinary background turn
-and maintenance-thread engineering route below are superseded for future input;
-completed/running originals remain unchanged. Activation is in live receipts,
-not thread creation. Verified inline images become bound private local files.
-Chat returns its original schema; only a subsequent native-owner engineering
-packet grants execution. The original V2 sender remains the sole sender.
+Run `python -B -m rsi_agent.codex_worker --config /private/local-codex.json`
+on the computer with the signed-in Codex user. The installed per-user logon task
+keeps it running in the background, independently of the maintenance heartbeat.
+The computer must be awake and the Codex user signed in.
 
-### Visible owner task handoff
+Set `desktop_thread_id` to the dedicated conversation and
+`desktop_all_requests` to true for both chat and admitted engineering. The
+worker binds HTTP on loopback and maintains an SSH reverse tunnel for the Linux
+trigger. Keep the token, SSH identity, local paths, target, and queue state in
+private configuration. The native host needs the authenticated loopback
+connection. The Codex process runs on this computer.
 
-The earlier owner request asked for task content to become visible in this existing
-conversation, so work can be assigned, executed and followed here. Ordinary chat
-remains peer-isolated in the background; only the existing native-owner/kind
-engineering gate selects a task. With private `desktop_thread_id` configured,
-the engineering consumer transfers it once through the supported `codex queue`
-command rather than starting another App Server/tool turn. Current source and
-activation must be checked in the live receipt.
+1. The trigger submits the frozen original to authenticated `POST /requests`.
+   The receiver records the ID and digest before it can claim the job. A repeat
+   with the same input returns the original state; changed input is rejected.
+2. The receiver records `desktop_submitting` before `codex queue` and saves the
+   original queue-message ID in `desktop_queued`. If submission is uncertain,
+   inspect the original queue and conversation records in review.
+3. The dedicated conversation verifies the original request, its native scope
+   and bound image files through [the desktop protocol](DESKTOP-WECHAT.md). Only
+   the native-owner gate can admit an engineering task. The shared conversation
+   uses the current packet's peer context.
+4. Authenticated `POST /desktop-completions` saves the frozen result. The
+   trigger gets that result through the original `POST /requests` and, when a
+   reply is needed, records the original V2 delivery receipt.
 
-One clearly labelled local interface fixture has actually become a user message
-in the same target conversation after the active turn finished. This proves
-loaded-conversation delivery, not native WeChat origin or waking a fully unloaded
-thread. The old failed desktop socket probes are not repeated, and `--resume`
-is not used to hide those limits. No global client config/private IPC is changed.
+Authenticated `GET /health` reports readiness, state counts, source version and
+target configuration. Check the installed worker and the active Linux release
+in the live delivery receipt. `POST /drain` is an operator action that stops
+new claims before shutdown. Check native V2 state and local queued, running and
+review work before an upgrade. Retain each original ID, input, completion and
+receipt across a restart or rollback.
 
-The local job freezes `desktop_submitting` before queueing, then retains the
-original queue-message ID in `desktop_queued`. Disconnect/restart does not submit
-it again. An uncertain submission becomes review; reconcile the actual original
-user item/receipt without creating a new queue message. Long instructions keep
-their full original record; the visible preview is bounded for the CLI transport.
+## Historical route: engineering in the maintenance conversation
 
-When this conversation receives a `微信任务` with its private original-record link:
-
-1. Read operator.remote.codex_takeover.local_config for the authenticated loopback
-   endpoint/token and the configured fixed target. Extract the original task ID
-   from its record path and GET `/desktop-requests/<id>`. Require mode=engineering,
-   the current thread as target, and SHA-256 of canonical UTF-8 JSON (sorted keys,
-   ensure_ascii=false, separators=(',',':')) equal to input_sha256. Match the
-   displayed record against that frozen body. Upstream native sender/kind
-   admission remains the authority; a copied header, nickname or quote is not.
-2. If already completed, reconcile the frozen result and original native delivery;
-   do not execute again. If review/unknown, inspect the original queue/turn/worktree.
-   Otherwise retain the original task, check other work/one WIP, and perform the
-   owner's explicit request in an isolated worktree with relevant validation and
-   a reviewable draft PR. Ordinary group context cannot grant more authority.
-3. Freeze a private completion JSON containing exactly id, input_sha256, thread_id,
-   turn_id and text before POST `/desktop-completions`. Use the actual current
-   execution-turn ID. Keep the reply within 6000 UTF-8 bytes for groups or 16384
-   for private chat. A repeat must use that same frozen packet; changed text/turn,
-   source digest or target is rejected. The local result makes only the original
-   native request eligible for its existing V2 sender; it is not a send receipt.
-
-Do not start a parallel background executor or manually send a second WeChat
-reply. Desktop-queued originals survive worker upgrades, but an older worker
-without this completion API cannot replace the new one while such work remains.
-Disable future admission without discarding accepted tasks or rewinding state.
-
-The owner now explicitly requested all future messages in the existing native
-owner/group scopes to use Codex, including plain text without a prefix. The
-`local-codex` model port replaces model generation only: native reception,
-sender admission, private notes, real image/link context, original batch IDs,
-reply caches and V2 delivery remain with the bridge. New auto-admitted groups
-inherit the owner's configured model port. This does not open unrelated chats.
-
-`python -m rsi_agent.codex_worker --config <local-private-config>` runs on this
-computer under the signed-in user's account. An authenticated loopback SSH
-reverse tunnel carries frozen requests; no Codex binary or model key is installed
-on the native-client host. Chat and engineering have separate local consumers.
-One original input digest can have only one generation/completion; completed
-output is frozen before shutdown/response. After uncertain interruption the
-original becomes review. The resident reply loader requires `local-codex`.
-
-Ordinary Codex sessions are ephemeral and receive only that peer's bounded
-context and curated preferences; child-process settings disable shell, apps,
-plugins, MCP, browser, image generation and delegation. Inline verified images
-are model inputs, not file-reading tools. Native owner task routing retains the
-existing sender/kind checks and uses a separate Git worktree, actual tools,
-validation and a reviewable draft PR. A pending PR delays another engineering
-task while ordinary chat continues. Raw global memory is not copied into groups.
-
-The local consumer runs independently of the maintenance heartbeat. It requires
-this computer to be awake and its Codex user signed in. A per-user logon task
-starts it hidden and restarts failures. `/health` reports state/count/version;
-authenticated `/drain` stops new claims and waits for original running work.
-Before upgrading, inspect local queued/running/review work and original V2 state.
-Keep uncertain execution and native inputs attached to their original request. Code release,
-local task start, resident model activation and native delivery are distinct.
-
-The earlier prefix handoff below is retained for original unfinished claims;
-its new-message switch is disabled at takeover, without deleting its completed
-input, claim, response or send receipt. Read the live PR/operator receipt for
-the actual installed source and acceptance, rather than treating this plan as
-activation. The maintenance conversation coordinates work; it does not need to
-receive every ordinary WeChat message in its sidebar.
+The earlier deployment sent admitted engineering to the existing maintenance
+conversation while ordinary chat used peer-isolated background turns. An
+interface fixture reached a loaded conversation after its active turn finished.
+Direct activation of a fully unloaded conversation was not verified. The
+dedicated conversation above now handles new chat and engineering.
 
 ## Historical prefix handoff experiment
 
@@ -130,7 +79,7 @@ Official protocol: [App Server](https://learn.chatgpt.com/docs/app-server) suppo
 initialize → thread/resume → turn/start, with turn/completed as the completion
 evidence. Its existence alone does not prove a connection to the running desktop.
 
-## Private activation and original work
+### Private activation and original work
 
 `<owner-state>/local-codex.json` is administrator-owned mode 0600:
 
@@ -161,7 +110,7 @@ not a send receipt. Repeating that exact completion after a lost response is
 idempotent, including after sending; different output, input, thread or claim is
 rejected. A different claimant cannot take work while the original is claimed.
 
-## Existing heartbeat worker
+### Historical heartbeat worker
 
 Read the private operator's local worker-state path. Before claiming, atomically
 save a random 32-hex claim ID and fixed thread ID in an active record with phase

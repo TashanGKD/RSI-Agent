@@ -3,10 +3,11 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-1. **Group questions and share cards.** Verify the original new card's admission
-   and desktop outcome with the deployed trigger. Only the card title goes to
-   the gate. Retain the original V2 order and owner-only article reading. Use
-   Issue #26 for the next independent native sticker search and saving path.
+1. **WeChat input through the trigger and receiver.** Follow a new ordinary
+   photo from native export through the dedicated Codex conversation to its
+   original V2 reply. For the share card, reconcile the original admission,
+   desktop turn and V2 outcome. Keep original IDs and the owner-only article
+   scope. Track sticker search and saving separately in Issue #26.
 2. **Retired DSH runtime.** PR #24 records the historical publication recovery.
    Keep old inputs, completed effects and rollback releases private. New task
    delivery and recovery stay on Codex and its original completion contract.
