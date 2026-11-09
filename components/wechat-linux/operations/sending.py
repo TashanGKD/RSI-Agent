@@ -1,7 +1,7 @@
 """One programmatic prepare/commit/finalize path for text, image and file sends."""
 import hashlib,time,os
 from pathlib import Path
-from . import composer
+from . import composer,navigation
 from .runtime import BeforeEffect
 from .recipes import PreparationError
 from .navigation import header_key
@@ -68,11 +68,16 @@ def prepare(driver,j):
  asset=None
  if j['action']=='send_image':
   from .assets import validate_image
-  asset=driver.assets.get(j['client'],j['payload']['asset'])
-  if asset['bytes']>10000000:raise PreparationError('SEND_PREPARATION_FAILED','Clipboard image byte budget exceeded.')
-  data=Path(asset['path']).read_bytes()
-  if validate_image(data):
+  try:
+   asset=driver.assets.get(j['client'],j['payload']['asset'])
+   if asset['bytes']>10000000:raise ValueError('Clipboard image byte budget exceeded.')
+   data=Path(asset['path']).read_bytes()
+   animated=validate_image(data)
+  except (OSError,ValueError) as e:
+   raise PreparationError('SEND_PREPARATION_FAILED','The image could not be prepared before navigation.') from e
+  if animated:
    raise PreparationError('ANIMATED_IMAGE_UNSUPPORTED','The image draft transport supports one frame.')
+ if j['action'] in navigation.BASIC:navigation.begin(driver,j)
  driver._select(j);window=main_window(driver);windows=scene(driver,j)
  try:ui=driver.ui(j['peer'])
  except ValueError:raise PreparationError('RECIPIENT_NOT_VERIFIED','Target changed before input; no composer was modified.') from None
