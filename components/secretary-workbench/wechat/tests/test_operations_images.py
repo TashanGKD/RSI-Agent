@@ -79,6 +79,15 @@ class ImageExecutionTests(unittest.TestCase):
    (data,p),adapter=self.run_export(td);self.assertEqual(data,sample());self.assertTrue(p['exportPerformedThisRequest']);self.assertFalse(p['cacheReused']);self.assertFalse(p['businessAIReadClaimed']);self.assertEqual(p['messagesSent'],0);adapter.dispatch.assert_called_once()
    bound=adapter.dispatch.call_args.kwargs['ui'];self.assertEqual(bound.config({'username':PEER})['header_sha256'],'selected-current-binding')
    with self.assertRaises(ValueError):bound.config({'username':'other@chatroom'})
+ def test_visible_exact_image_does_not_require_filename_proof(self):
+  with tempfile.TemporaryDirectory() as td:
+   def visible(d,j,c,im,r):j['payload']['representation']='visible'
+   (data,proof),_=self.run_export(td,visible)
+   self.assertEqual(data,sample())
+   self.assertTrue(proof['nativeMessageMD5Matched'])
+   self.assertEqual(proof['representation'],'original')
+   self.assertEqual(proof['sourceIdentityMethod'],'native-message-md5')
+   self.assertNotIn('officialDefaultFilename',proof)
  def test_wrong_source_export_receipt_is_rejected(self):
   with tempfile.TemporaryDirectory() as td:
    with self.assertRaises(images.ImageReadError):self.run_export(td,lambda d,j,c,im,r:r.update(peer='other@chatroom'))
@@ -107,10 +116,13 @@ class ImageExecutionTests(unittest.TestCase):
   import types
   from unittest.mock import patch,Mock
   with tempfile.TemporaryDirectory() as td:
-   d,j,c,im,r=self.fixture(td);locked=object();adapter=types.SimpleNamespace(locked=locked,dispatch=Mock(side_effect=ValueError('do not expose raw XML here')))
+   d,j,c,im,r=self.fixture(td);locked=object()
+   failure=ValueError('do not expose raw XML here');failure.image_export_stage='save-dialog'
+   adapter=types.SimpleNamespace(locked=locked,dispatch=Mock(side_effect=failure))
    with patch.dict('sys.modules',{'image_client':adapter}),patch('operations.images.load_context',return_value=c),patch('operations.recipes.screen',return_value=im):
     with self.assertRaises(images.ImageReadError) as e:images.export(d,j)
    self.assertIs(adapter.locked,locked);self.assertNotIn('raw XML',str(e.exception));self.assertEqual(e.exception.code,'IMAGE_EXPORT_NOT_PROVEN')
+   self.assertIn('save-dialog',str(e.exception))
 
 class ImageRoutingTests(unittest.TestCase):
  def test_uncached_image_in_native_only_group_uses_proven_session_binding(self):

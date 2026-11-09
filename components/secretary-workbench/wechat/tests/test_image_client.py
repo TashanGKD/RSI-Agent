@@ -47,8 +47,9 @@ class ClientImageTests(unittest.TestCase):
                 patch('image_client.viewport',return_value=box), \
                 patch('operations.windows.window_identity',side_effect=window_identity), \
                 patch('operations.lease.birth',return_value='fixture-birth'):
-            with self.assertRaisesRegex(ValueError,'official viewer process' if foreign else 'not a calibrated inactive layout'):
+            with self.assertRaisesRegex(ValueError,'official viewer process' if foreign else 'not a calibrated inactive layout') as error:
                 image_client.dispatch(Mock(),request,ui=selected)
+            self.assertEqual(error.exception.image_export_stage,'save-dialog')
         return control
 
     def test_unknown_save_toolbar_closes_only_original_viewer_without_toolbar_click(self):
@@ -80,6 +81,23 @@ class ClientImageTests(unittest.TestCase):
             actual,proof=image_client.verify_visible_export(p,native,root,'Weixin Image_19700101080200_7_1.jpg')
             self.assertEqual(actual,data);self.assertEqual(proof['representation'],'official-visible-variant')
             self.assertTrue(proof['nativeSourceIdentityVerified'])
+
+    def test_visible_export_accepts_exact_image_without_filename_proof(self):
+        import io
+        from PIL import Image
+        b = io.BytesIO()
+        Image.new('RGB', (40, 30), 'red').save(b, format='PNG')
+        data = b.getvalue()
+        native = {'time': 120, 'sourceLocalId': 7, 'imageMetadata': {'md5': hashlib.md5(data).hexdigest()}}
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            p = root / 'image.png'
+            p.write_bytes(data)
+            actual, proof = image_client.verify_visible_export(p, native, root, 'Localized default.png')
+        self.assertEqual(actual, data)
+        self.assertEqual(proof['representation'], 'original')
+        self.assertEqual(proof['sourceIdentityMethod'], 'native-message-md5')
+        self.assertNotIn('officialDefaultFilename', proof)
 
     def test_reparented_viewer_uses_absolute_display_coordinates(self):
         rows=image_client.parse_windows('  0x400075 "Photos and Videos": ("wechat" "wechat") 827x501+0+0 +280+371\n')

@@ -48,17 +48,21 @@ def verify_filename(name,metadata):
         raise ValueError('official filename differs from exact native time and local ID')
 
 def verify_visible_export(path,metadata,root,filename):
-    verify_filename(filename,metadata)
     from attachments import read_bound
     from operations.assets import validate_image
     from PIL import Image
-    data=read_bound(root,path);validate_image(data)
-    with Image.open(io.BytesIO(data)) as im:info={'width':im.width,'height':im.height,'format':im.format}
+    data=read_bound(root,path)
     md5=hashlib.md5(data).hexdigest()
+    if md5==metadata['imageMetadata']['md5']:
+        proof={'representation':'original','sourceIdentityMethod':'native-message-md5'}
+    else:
+        verify_filename(filename,metadata)
+        proof={'representation':'official-visible-variant','officialDefaultFilename':filename,
+               'sourceIdentityMethod':'official-save-as-native-time-and-local-id'}
+    validate_image(data)
+    with Image.open(io.BytesIO(data)) as im:info={'width':im.width,'height':im.height,'format':im.format}
     return data,{**info,'bytes':len(data),'md5':md5,'sha256':hashlib.sha256(data).hexdigest(),
-        'nativeSourceIdentityVerified':True,'officialDefaultFilename':filename,
-        'sourceIdentityMethod':'official-save-as-native-time-and-local-id',
-        'representation':'original' if md5==metadata['imageMetadata']['md5'] else 'official-visible-variant'}
+        'nativeSourceIdentityVerified':True,**proof}
 
 def parse_windows(text):
     pattern=r'^\s*(0x[0-9a-fA-F]+) "([^\r\n]*)": \("wechat" "wechat"\)\s+(\d+)x(\d+)\+(-?\d+)\+(-?\d+)(?:\s+([+-]\d+)([+-]\d+))?\s*$'
@@ -251,6 +255,7 @@ def dispatch(tool,r,*,ui=None):
         export_root.mkdir(mode=0o700,exist_ok=True)
         if export_root.stat().st_mode&0o077:raise ValueError('private export root required')
         control=Controls(ROOT);viewer=None;dialog=None;viewer_identity=None;dialog_identity=None;viewer_birth=None;host_identity=None
+        stage='viewer'
         try:
             if control.one('Save',True) or control.one('Photos and Videos',True):raise ValueError('close an existing native image/save window before this read')
             control.click(*point);control.wait(120);control.click(*point);control.wait(800)
@@ -260,20 +265,28 @@ def dispatch(tool,r,*,ui=None):
             viewer_identity=window_identity(viewer);viewer_birth=birth(viewer_identity['pid'])
             host_identity=window_identity(control.one('Weixin'))
             control.focus(viewer)
+            stage='save-dialog'
             opened=open_viewer_save(control,viewer,ui.screenshot,require_guard)
             dialog=opened['dialog'];dialog_identity=opened['dialogIdentity']
             filename=None
-            if r.get('representation')=='visible':
-                require_guard();control.focus(dialog);filename=control.filename(dialog);verify_filename(filename,metadata)
+            visible=r.get('representation')=='visible'
+            if visible:
+                stage='filename'
+                require_guard();control.focus(dialog);filename=control.filename(dialog)
+            stage='export'
             with tempfile.TemporaryDirectory(prefix='image-',dir=export_root) as td:
                 folder=Path(td);out=folder/'image'
                 control.focus(dialog);control.click(dialog['x']+int(dialog['width']*.45),dialog['y']+dialog['height']-56)
                 control.require_focus(dialog);control.paste(str(out));control.require_focus(dialog);control.key(0xff0d);control.wait(800)
                 files=[p for p in folder.iterdir() if p.name.startswith('image') and not p.name.endswith('.tmp')]
                 if len(files)!=1:raise ValueError('official client did not export a unique image')
-                data,info=verify_visible_export(files[0],metadata,folder,filename) if filename else verify_export(files[0],metadata['imageMetadata']['md5'],folder);files[0].chmod(0o600)
+                stage='verification'
+                data,info=verify_visible_export(files[0],metadata,folder,filename) if visible else verify_export(files[0],metadata['imageMetadata']['md5'],folder);files[0].chmod(0o600)
                 result={'state':'image_ready',**metadata,**info,'origin':'official-client-save-as','messageMd5Matched':info['md5']==metadata['imageMetadata']['md5'],'contentReady':True,'wholeScreenScreenshot':False,'messageImageFileObtained':True,'rawCameraOriginalClaimed':False,'content_base64':base64.b64encode(data).decode(),'temporaryExportCleaned':True,'messagesSent':0}
             return result
+        except ValueError as exc:
+            exc.image_export_stage=stage
+            raise
         finally:
             try:
                 if dialog and (w:=control.one('Save',True))==dialog and window_identity(w)==dialog_identity:

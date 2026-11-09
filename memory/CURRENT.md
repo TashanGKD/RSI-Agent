@@ -28,3 +28,8 @@ is governed by its originating conversation.
 
 Check the live release receipt and match the actual new card to its original
 gate decision, desktop turn and V2 outcome. Keep the original batches and ACKs.
+
+Ordinary photo export accepts decoded bytes matching the exact native message
+MD5 even when the default Save filename changes. Converted files still require
+the native time and local ID in the official filename. Export failures retain
+a bounded stage for the next real image investigation.

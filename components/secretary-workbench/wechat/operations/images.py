@@ -170,23 +170,32 @@ def export(driver,j):
    return p['uiBinding']
  try:
   try:result=image_client.dispatch(driver.tool(),{'action':'image','peer':j['peer'],'server_id':context['sourceId'],'point':p['imagePoint'],'context_sha256':p['imagePaneSHA256'],'representation':j['payload'].get('representation','original')},ui=SelectedImageUI(driver.root))
-  except ValueError:
-   raise ImageReadError('IMAGE_EXPORT_NOT_PROVEN','Official image export did not prove the expected source; no bytes returned.',clean=clean(driver,j)) from None
+  except ValueError as exc:
+   stage=getattr(exc,'image_export_stage',None)
+   reason='Official image export did not prove the expected source.'
+   if stage in ('viewer','save-dialog','filename','export','verification'):
+    reason='Official image export failed at '+stage+'.'
+   raise ImageReadError('IMAGE_EXPORT_NOT_PROVEN',reason+' No bytes returned.',clean=clean(driver,j)) from None
  finally:image_client.locked=old
  if not clean(driver,j):raise ImageReadError('IMAGE_CLEANUP_UNPROVEN','Image export windows did not return to the verified initial state.',clean=False)
  visible=j['payload'].get('representation')=='visible'
  if result.get('peer')!=context['peer'] or result.get('serverId')!=context['sourceId'] or result.get('senderId')!=context['sender'] or not result.get('contentReady'):raise ImageReadError('IMAGE_SOURCE_MISMATCH','Official export receipt does not match the frozen native image source.')
- if visible:
-  if not result.get('nativeSourceIdentityVerified') or result.get('sourceLocalId')!=context['localId'] or result.get('time')!=context['time']:raise ImageReadError('IMAGE_SOURCE_MISMATCH','Official visible source identity is not proven.')
-  image_client.verify_filename(result.get('officialDefaultFilename'),result)
- elif not result.get('messageMd5Matched'):raise ImageReadError('IMAGE_SOURCE_MISMATCH','Native original image MD5 is not proven.')
+ if not visible and not result.get('messageMd5Matched'):raise ImageReadError('IMAGE_SOURCE_MISMATCH','Native original image MD5 is not proven.')
  encoded=result.get('content_base64')
  if not isinstance(encoded,str):raise ImageReadError('IMAGE_NOT_DECODABLE','Encoded exported image required.')
  try:data=base64.b64decode(encoded,validate=True)
  except ValueError:raise ImageReadError('IMAGE_NOT_DECODABLE','Invalid exported image bytes.') from None
- actual_md5=hashlib.md5(data).hexdigest();info=validate_payload(data,actual_md5 if visible else context['nativeMD5']);suffix={'JPEG':'jpg','TIFF':'tiff'}.get(info['format'],info['format'].lower());matched=actual_md5==context['nativeMD5']
+ actual_md5=hashlib.md5(data).hexdigest();matched=actual_md5==context['nativeMD5']
+ if visible and not matched:
+  if not result.get('nativeSourceIdentityVerified') or result.get('sourceLocalId')!=context['localId'] or result.get('time')!=context['time']:raise ImageReadError('IMAGE_SOURCE_MISMATCH','Official visible source identity is not proven.')
+  try:image_client.verify_filename(result.get('officialDefaultFilename'),result)
+  except ValueError:raise ImageReadError('IMAGE_SOURCE_MISMATCH','Official visible filename does not match the original message.') from None
+ info=validate_payload(data,actual_md5 if visible else context['nativeMD5']);suffix={'JPEG':'jpg','TIFF':'tiff'}.get(info['format'],info['format'].lower())
  proof=dict(info,name='image-'+context['sourceId']+'.'+suffix,sourceId=context['sourceId'],sender=context['sender'],resourceId=context['resourceId'],nativeMessageMD5Matched=matched,sourceContextVerified=True,origin='official-client-save-as-programmatic',exportPerformedThisRequest=True,cacheReused=False,contentReady=True,businessAIReadClaimed=False,messagesSent=0)
- if visible:proof.update(nativeSourceIdentityVerified=True,nativeSourceMD5=context['nativeMD5'],sourceLocalId=context['localId'],sourceCreateTime=context['time'],officialDefaultFilename=result['officialDefaultFilename'],sourceIdentityMethod='official-save-as-native-time-and-local-id',representation='original' if matched else 'official-visible-variant')
+ if visible:
+  proof.update(nativeSourceIdentityVerified=True,nativeSourceMD5=context['nativeMD5'],sourceLocalId=context['localId'],sourceCreateTime=context['time'])
+  if matched:proof.update(sourceIdentityMethod='native-message-md5',representation='original')
+  else:proof.update(officialDefaultFilename=result['officialDefaultFilename'],sourceIdentityMethod='official-save-as-native-time-and-local-id',representation='official-visible-variant')
  from . import navigation
  if navigation.load(driver.root,j):
   if not navigation.finish(driver,j):raise ImageReadError('IMAGE_CLEANUP_UNPROVEN','Original image navigation did not return to its verified baseline.',clean=False)
