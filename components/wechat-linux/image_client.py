@@ -77,6 +77,9 @@ SAVE_TOOLBARS={
     # Same inactive Save controls; original forum next-image arrow is enabled.
     '22754d0fea83ce24040b5cd8566cdfeb0e99779b3548e20bfdfadac832ae89d7':('without-qr',540),
     '6a899c59fd8029a1c46945873e8ad5a86caf1cdc7fa126c85bdb2e2f40b4ba13':('with-qr',582),
+    # Official QR toolbar with one enabled gallery arrow, in either direction.
+    '493d6f3fd6fd6dc75030dc9c4d544f5d0ed50dabefefdd58275a61f06add63cf':('with-qr',520),
+    '26febe08f2ad144705227e7e11f4a48a0a60eaa11df06dc4bdd8b489e5951962':('with-qr',520),
 }
 
 def viewer_save_proof(viewer,image):
