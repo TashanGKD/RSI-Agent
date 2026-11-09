@@ -30,9 +30,14 @@ python -m rsi_agent notebook --workspace ./var/demo --demo
 
 已有目录不允许被 `--demo` 覆盖；后续只需省略 `--demo`。模型执行默认关闭，保留原记事本数据和权限实现。
 
-## 模型接口
+## Codex 回复与群聊筛选
 
-RSI Agent 可通过 OpenAI 兼容的 Chat Completions 接口调用 SCNET DeepSeek。
+微信私聊、群聊回复和本人任务由本机 Codex 处理。目标机通过已认证的回环 SSH 通道桥接
+原输入和结果，仍由原 V2 发送器投递。部署及排障见 [本机 Codex](harness/LOCAL-CODEX.md)
+和 [微信统一会话](harness/DESKTOP-WECHAT.md)。普通群聊可先由独立的 DeepSeek 筛选，
+具体问题进入 Codex，单纯寒暄可以静默。
+
+单独的 `model` 诊断命令可通过 OpenAI 兼容的 Chat Completions 接口调用 SCNET DeepSeek。
 以 [配置示例](examples/scnet.json) 创建私有 `config.json`，把 API Key 单独写入同目录的
 `api-key.txt`；目录权限为 0700，两份文件为 0600，均由实际调用用户拥有。不要把密钥写入 Git 或命令参数。
 
@@ -57,10 +62,10 @@ python3 -B -m rsi_agent --config /var/lib/rsi-agent/owner-replies/config.json re
 ```
 
 配置、确认过的会话身份、原生接收回执及对话状态均保存在主机私有目录。
-`check` 仅核对私有配置和身份，不调用模型或发送消息；`run` 需要两侧启用开关和
+`check` 核对私有配置、身份和本机 Codex 健康接口；`run` 需要两侧启用开关和
 固定的会话/模型/发送范围指纹一致。只处理启用后的本人私聊文字与明确选定的最近一条，
 不回放其他历史消息。接收批次在持久提交后 ACK，模型回复在提交原 V2 队列前保存，
-每条原生消息派生固定请求 ID。发送仍须原 SDK 的原生认证；回执未知、需要人工确认或
+每条原生消息派生固定请求 ID。发送仍须通过原生身份及收件人验证；回执未知、需要人工确认或
 清理未证实时停止后续回复，保留原请求，不盲目确认或换 ID 重发。模型只生成回复文字。
 服务模板在 `deploy/owner-replies/`；代码发布、服务启用和真实微信回执须分别验收。
 

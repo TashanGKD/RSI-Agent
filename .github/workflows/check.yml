@@ -23,7 +23,5 @@ jobs:
       - run: python -B scripts/check.py --linux
       - name: Check isolated trigger experiments without model calls
         run: python -B -m unittest discover -s experiments/triggers -p 'test_*.py' -v
-      - name: Check native DSH plugin contract
-        run: node --test plugins/dsh-rsi-wechat-status/test/*.test.js
       - name: Rehearse cancellation in an isolated Qt and Openbox desktop
         run: /usr/bin/python3 -B scripts/rehearse_composer_cleanup.py --execute

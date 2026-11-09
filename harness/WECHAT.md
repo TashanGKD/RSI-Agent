@@ -90,8 +90,9 @@ port. The owner's latest choice routes ordinary chat and admitted owner tasks to
 one new visible conversation; see DESKTOP-WECHAT.md and live activation receipts.
 The native host only bridges inputs/results, without running Codex CLI. Native
 reception, recipient checks, reply caches, V2 IDs and send/cleanup receipts stay
-with that bridge. Prior DSH/SCNET configuration is retained, not an offline
-fallback. Ordinary chat and owner engineering retain different tool authority;
+with that bridge. `local-codex` is the only resident reply configuration.
+The independent DeepSeek gate still makes quiet/admit decisions for eligible
+group input. Ordinary chat and owner engineering retain different tool authority;
 sharing a visible thread does not grant group members engineering permissions.
 
 User reference: [the shared WeChat tutorial](https://mp.weixin.qq.com/s/-LcRUPe5OYBRjiTEzYXKog).

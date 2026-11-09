@@ -7,15 +7,9 @@ as candidates rather than silently expanding the active task.
    and desktop outcome with the deployed trigger. Only the card title goes to
    the gate. Retain the original V2 order and owner-only article reading. Use
    Issue #26 for the next independent native sticker search and saving path.
-2. **Completed task publication recovery: delivered.** A private
-   post-shutdown journal binds the frozen result to its original Git effects.
-   Branch-update/push SIGKILL replay resumes one original result without another
-   SDK run, commit or completed gate. Code/activation is closed in PR #24's live
-   receipt; native fresh owner-task acceptance requires real input.
-   Legacy uncertain completions without the journal remain review. PR #23 popup
-   recognition is delivered. The old original navigation was recovered under
-   the owner's latest automatic-execution instruction and settled failed/noSend,
-   retaining its cached reply and ACK. Do not repeat the completed recovery.
+2. **Retired DSH runtime.** PR #24 records the historical publication recovery.
+   Keep old inputs, completed effects and rollback releases private. New task
+   delivery and recovery stay on Codex and its original completion contract.
 3. **Local Codex handoff: fresh native delivery verified.**
    Scheduled wake fixture completed in the actual desktop heartbeat and receipt
    is in PR #22/operator metadata. Do not repeat it or the failed Dot probes.
@@ -25,12 +19,9 @@ as candidates rather than silently expanding the active task.
    Retain its original input/completion/V2; do not claim new legacy work or
    regenerate after an uncertain running turn. PR #21 links/preferences are
    delivered too; only fresh link/card native acceptance remains observation.
-4. **Persistent task-event/agent-autoloop binding.** First retain delivery of the
-   bounded publisher above; do not rebuild its completed-output persistence or
-   reopen already manually recovered historical work. Stable task-engine CLI
-   and separate Node 24 are installed, with no active WeChat event binding. Reuse
-   the same original Session/input/result and publication effects; do not create
-   a second model consumer, fake task/PR or claim the manual recovery autonomous.
+4. **Persistent task events.** Improve the original Codex delivery and completion
+   contract before adding another trigger integration. A successful queue
+   receipt, a visible user item and a native send are distinct stages.
 5. **Dafeiyu native WeChat output.** The library/native search/actual GIF are
    prepared. Issue #26 freezes the static-carrier animation loss; do not repeat
    that probe. Add the original-request asset/recipient/V2 path and native carrier, keeping
