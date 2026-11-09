@@ -5,10 +5,10 @@
 PR #23's compact official search popup support is merged, published and
 resident-active. The same exact two known shapes are shared by navigation and
 modal admission, retaining native ownership/new-window and final-recipient
-proof. This is recognition support, not proof the held old group reply recovered.
+proof. Recognition support alone is not proof of actual group delivery.
 Read current/release metadata, resident cwd and the latest PR receipt for versions.
 PR #22 local Codex handoff and #21 links/preferences remain delivered. Scheduled
-wake is verified; no fresh native /codex request has been claimed. Do not repeat
+wake and one fresh native /codex delivery are verified. Do not repeat
 the nonce or failed Dot probes. No open old PR is inferred from candidate text.
 
 ## Current increment: two separately accepted event-trigger experiments
@@ -47,7 +47,42 @@ An actual Dot event subscription/result remains unproven. Installed tools do
 not prove an event receiver exists. Read the same draft PR's live receipt for
 the exact hosted source, final-head CI and private connection/acceptance state.
 
+## Native handoff and authorized recovery
+
+A fresh native owner /codex message was identity-checked, claimed and completed
+once in this same existing desktop conversation. After the owner's explicit
+instruction to execute routine recovery automatically, the old group's exact
+owned search navigation was verified, restored and settled failed/noSend. Its
+cached reply was preserved and never replayed. The new owner completion then
+received native status 2 with one Send click, matching text, restored draft and
+navigation. Phone acceptance is not established. This is real native delivery
+through an active desktop turn, not proof of unattended immediate Dot activation.
+
+The resumed image read exposed a different defect: an automatically admitted
+named group has a valid native-only registration, while uncached image prepare
+entered legacy static header calibration without starting native navigation.
+The frozen Linux fixture reproduces the exact header_box KeyError on deployed
+source. The candidate uses the existing guarded native navigation, derives the
+selected binding and restores its owned navigation before returning image bytes.
+Source/recipient proof and cached-image fast paths are retained. The original
+failed read was verified to have no preview/journal/execution, then settled
+failed/noSend under the original driver guards without replay or UI input.
+
+A later cached group text reply failed cleanly before opening a chat because
+the selected conversation did not stabilize. It is a separate remaining
+recipient-path failure, not successful group recovery. Its cache/IDs remain;
+global V2 is free, and the affected group's consumer retains attention.
+
 ## Unique next step
+
+Review and gate the native-only image navigation fix in this same PR, then
+publish fixed source and activate residents reversibly. Verify the installed
+fixture, original requests and actual process versions; positive new-image
+acceptance still requires genuine fresh input. Do not replay the old image or
+regenerate its frozen model batch. Actual group recipient recovery remains
+unproven; retain its original failure for the next bounded investigation.
+
+## Separate trigger experiment boundary
 
 Obtain one real supported Dot event subscription and send its one
 operator-authorized fixture. Local installation and MCP loading are done; do
@@ -57,9 +92,8 @@ only transport evidence. Do not replace the production handoff worker or repeat
 the completed local event/old socket/nonce experiments to manufacture progress.
 Keep capability URLs, signing secrets, raw events and journals private.
 
-The old group's original needs_attention/reply/ACK/navigation remains preserved.
-Its one-off navigation cleanup is unapproved and the concrete question is already
-pending. Do not repeat it, operate the UI or infer permission from maintenance.
+The former one-off cleanup is complete under the latest owner authorization.
+Keep its original history and private recovery receipts; do not repeat it.
 
 ## Remaining boundaries
 

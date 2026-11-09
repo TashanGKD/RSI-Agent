@@ -1,0 +1,35 @@
+{
+  "problem": "uncached inbound image preparation in a native-only registered named group raises header_box KeyError",
+  "native_registration_keys": [
+    "peer",
+    "displayName",
+    "paired_account"
+  ],
+  "baseline": {
+    "source": "deployed images.prepare and recipes.selected",
+    "result": "KeyError: header_box",
+    "effects_before_failure": false
+  },
+  "candidate": {
+    "source": "operations/images.py prepare and export",
+    "behavior": "start existing guarded native recipient navigation, use its derived selected binding, restore owned baseline before returning bytes",
+    "frozen_linux_path": "components/secretary-workbench/wechat/tests/test_operations_images.py:ImageRoutingTests.test_uncached_image_in_native_only_group_uses_proven_session_binding",
+    "targeted_result": "passed",
+    "unsettled_navigation_bytes_rejected": true,
+    "cached_verified_image_fast_path": "unchanged"
+  },
+  "runtime_recovery": {
+    "authority": "latest direct owner automatic-execution instruction",
+    "old_search_navigation": "restored with original native parent/process/query guards, then failed/noSend",
+    "old_search_cached_reply": "preserved and never replayed",
+    "original_image_failure": "failed/noSend after proving no preview/navigation/execution and identical windows with NativeDriver.cleanup",
+    "new_group_text_reply": "failed/noSend with SEARCH_SELECTION_UNPROVEN; affected consumer retains attention",
+    "global_queue_after_recovery": "empty"
+  },
+  "validation": {
+    "full_linux_gate": "passed in isolated Linux checkout as dedicated unprivileged user",
+    "fresh_image_model_response": "not established; requires genuine new inbound",
+    "group_delivery_recovered": false
+  },
+  "release_state": "candidate; read live PR delivery receipt for current state"
+}

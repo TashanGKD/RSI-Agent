@@ -38,7 +38,6 @@
   },
   "not_established": [
     "immediate existing desktop thread or Dot wakeup",
-    "fresh native WeChat-to-Codex-to-V2 completion",
     "persistent local worker installation",
     "Penguin fixed-model RSI gain"
   ],
@@ -57,5 +56,20 @@
     "model_turns_for_discovery": 0,
     "desktop_restarted": false,
     "dot_subscription_proven": false
+  },
+  "native_owner_case": {
+    "source": "genuine new native owner private /codex text",
+    "executor": "same existing desktop conversation",
+    "model_completions": 1,
+    "native_v2_state": "succeeded",
+    "native_status": 2,
+    "send_clicks": 1,
+    "exact_text_matched": true,
+    "draft_restored": true,
+    "navigation_restored": true,
+    "phone_acceptance": false,
+    "unattended_immediate_event_trigger": false,
+    "old_group_reply_replayed": false,
+    "target_host_codex_installed": false
   }
 }

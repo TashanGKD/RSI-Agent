@@ -82,6 +82,16 @@ class ImageExecutionTests(unittest.TestCase):
  def test_wrong_source_export_receipt_is_rejected(self):
   with tempfile.TemporaryDirectory() as td:
    with self.assertRaises(images.ImageReadError):self.run_export(td,lambda d,j,c,im,r:r.update(peer='other@chatroom'))
+ def test_owned_image_navigation_must_settle_before_bytes_are_returned(self):
+  from unittest.mock import patch
+  for settled in (True,False):
+   with self.subTest(settled=settled),tempfile.TemporaryDirectory() as td,patch('operations.navigation.load',return_value={'state':'ready'}),patch('operations.navigation.finish',return_value=settled) as finish:
+    if settled:
+     (data,proof),_=self.run_export(td);self.assertEqual(data,sample());self.assertTrue(proof['navigationRestored'])
+    else:
+     with self.assertRaises(images.ImageReadError) as error:self.run_export(td)
+     self.assertEqual(error.exception.code,'IMAGE_CLEANUP_UNPROVEN');self.assertFalse(error.exception.clean)
+    finish.assert_called_once()
  def test_changed_pane_is_rejected_before_adapter(self):
   with tempfile.TemporaryDirectory() as td:
    with self.assertRaises(images.ImageReadError):self.run_export(td,lambda d,j,c,im,r:j['preview'].update(imagePaneSHA256='0'*64))
@@ -103,6 +113,35 @@ class ImageExecutionTests(unittest.TestCase):
    self.assertIs(adapter.locked,locked);self.assertNotIn('raw XML',str(e.exception));self.assertEqual(e.exception.code,'IMAGE_EXPORT_NOT_PROVEN')
 
 class ImageRoutingTests(unittest.TestCase):
+ def test_uncached_image_in_native_only_group_uses_proven_session_binding(self):
+  import os,types
+  from unittest.mock import Mock,patch
+  from operations import navigation
+  if not hasattr(os,'getuid'):self.skipTest('private navigation journal requires Linux')
+  with tempfile.TemporaryDirectory() as td:
+   main=dict(id='0x10',title='Weixin',x=0,y=0,width=905,height=667)
+   chat=dict(id='0x20',title='Fixture group',x=0,y=0,width=623,height=667)
+   identity=dict(pid=123,leader='0x1',**{'class':['wechat','wechat']})
+   registry=dict(peer=PEER,displayName=chat['title'],paired_account='self')
+   c=images.build_context(PEER,SID,records(),inbound=True)
+   image=Image.new('RGB',(905,667),(249,249,249));ImageDraw.Draw(image).rectangle((100,200,350,400),fill='white')
+   j=dict(id='b'*32,client='test',request_id='native-only-image',peer=PEER,action='save_attachment',payload={'source_id':SID,'source_mode':'inbound'})
+   d=types.SimpleNamespace(root=Path(td),fds=[1],active_window=None,session_bindings={},fast_versions=Mock(),name_peer=lambda name:PEER)
+   d.tool=lambda:types.SimpleNamespace(resolve=lambda peer:dict(username=peer,displayName=chat['title']))
+   d.app_windows=lambda:[main,chat] if d.active_window else [main]
+   d.binding=lambda peer:d.session_bindings.get(peer,registry)
+   d._select=lambda job:recipes.selected(d,job)
+   d.screenshot=lambda job:{}
+   def native_search(driver,job,target,cfg,query):
+    self.assertEqual(navigation.load(driver.root,job)['state'],'started')
+    self.assertEqual(query,chat['title'])
+    driver.active_window=chat
+    driver.session_bindings[PEER]=dict(cfg,header_box=[1,35,622,82],editor=[280,554],send=[573,635],nativeTargetProof={'peer':PEER})
+   with patch.dict('sys.modules',{'sender':types.SimpleNamespace(validate_binding=Mock(side_effect=AssertionError('static calibration must not be used')))}),patch('operations.image_verified.prepare',return_value=None),patch('operations.images.load_context',return_value=c),patch('operations.recipes.controls',return_value=Mock()),patch('operations.recipes.activate'),patch('operations.windows.window_identity',return_value=identity),patch('operations.lease.birth',return_value='fixture-birth'),patch('operations.recipes.main_window',side_effect=lambda driver:driver.active_window or main),patch('operations.recipes.screen',return_value=image),patch('operations.recipes.rows',return_value=[]),patch('operations.navigation.search_named',side_effect=native_search):
+    result=images.prepare(d,j)
+   self.assertTrue(result['imageRecipe']);self.assertEqual(result['imageContext'],c)
+   self.assertEqual(result['uiBinding']['nativeTargetProof']['peer'],PEER)
+   self.assertEqual(result['imagePoint'],[225,300]);self.assertNotIn('header_box',registry)
  def test_existing_save_attachment_routes_images_to_internal_program(self):
   import types
   from unittest.mock import patch

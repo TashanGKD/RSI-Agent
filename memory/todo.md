@@ -3,7 +3,16 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-1. **Two explicitly requested event-trigger trials: current WIP.** The isolated
+1. **Native-only group image navigation: current WIP in the same PR.** The
+   deployed source reproduces header_box KeyError; the candidate uses existing
+   guarded native navigation and requires baseline restoration before returning
+   image bytes. Review/gate and deliver it, retaining the original settled read
+   and frozen SDK batch. A later clean SEARCH_SELECTION_UNPROVEN group failure
+   remains a distinct native-recipient path, with its original cache and ID.
+   The fresh /codex owner reply has succeeded once after authorized old-search
+   cleanup; neither old cached reply nor old image was replayed.
+
+   **Two explicitly requested event-trigger trials.** The isolated
    remote event -> local App Server -> original completion path is verified;
    desktop-thread/Dot awakening and real WeChat source are separate. Finish the
    hosted nonce-only MCP Events endpoint and one real Dot subscription/result.
@@ -18,12 +27,14 @@ as candidates rather than silently expanding the active task.
    SDK run, commit or completed gate. Code/activation is closed in PR #24's live
    receipt; native fresh owner-task acceptance requires real input.
    Legacy uncertain completions without the journal remain review. PR #23 popup
-   recognition is delivered. The old group V2/reply/ACK/navigation remains held;
-   the prepared one-off unsent navigation recovery still needs its pending
-   explicit answer. Do not re-ask, clear or replay it during routine maintenance.
-3. **Local Codex handoff: delivered; native acceptance awaits fresh input.**
+   recognition is delivered. The old original navigation was recovered under
+   the owner's latest automatic-execution instruction and settled failed/noSend,
+   retaining its cached reply and ACK. Do not repeat the completed recovery.
+3. **Local Codex handoff: fresh native delivery verified.**
    Scheduled wake fixture completed in the actual desktop heartbeat and receipt
    is in PR #22/operator metadata. Do not repeat it or the failed Dot probes.
+   One real fresh request completed and sent once in this existing conversation;
+   this active-turn acceptance is not unattended immediate Dot activation.
    Observe/claim one new owner /codex request when present, freeze local input and
    completed output, preserve the original V2. No synthetic message or second
    generation after an uncertain running turn. PR #21 links/preferences are

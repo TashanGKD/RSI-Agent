@@ -182,3 +182,14 @@ an isolated private marketplace/package rather than requiring browser setup for
 local installation. Actual fresh-session MCP discovery verifies tool loading;
 it does not create or verify a Dot subscription. Preserve existing configuration
 and never restart the desktop or fabricate an event receipt to bridge that gap.
+
+## D018 — Automatic recovery preserves original effects
+
+The owner's later direct instruction permits routine reversible recovery
+without another confirmation. Reconcile the original request, guards, journals
+and side effects first. Restored unsent preparation becomes failed/noSend;
+completed model work and sent replies never get regenerated. Image reads in
+native-only groups must use the same guarded recipient navigation as text and
+restore that owned navigation before exposing bytes. Native owner delivery,
+group recipient recovery and immediate desktop/Dot awakening remain separate
+acceptance claims. Read the live PR/private receipt for actual delivery state.

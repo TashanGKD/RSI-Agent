@@ -128,7 +128,8 @@ def prepare(driver,j):
  except ValueError as exc:raise ImageReadError('IMAGE_SOURCE_EVIDENCE_INVALID',str(exc)[:150]) from None
  if verified is not None:return verified
  from .recipes import main_window,screen,rows
- context=load_context(driver,j);driver._select(j);w=main_window(driver)
+ from . import navigation
+ context=load_context(driver,j);navigation.begin(driver,j);driver._select(j);w=main_window(driver)
  if (w['width'],w['height']) not in ((905,667),(623,667)):raise ImageReadError('UNSUPPORTED_IMAGE_LAYOUT','A calibrated official main or conversation window is required.')
  cfg=driver.binding(j['peer']);pane=[cfg['header_box'][0],cfg['header_box'][3]+1,cfg['header_box'][2],cfg['editor'][1]-34];body=[pane[0]+60,pane[1],pane[2]-75,pane[3]]
  image=screen(driver);observed=rows(driver,body,contrast=160);point=locate_visible(image,body,observed,context)
@@ -186,4 +187,8 @@ def export(driver,j):
  actual_md5=hashlib.md5(data).hexdigest();info=validate_payload(data,actual_md5 if visible else context['nativeMD5']);suffix={'JPEG':'jpg','TIFF':'tiff'}.get(info['format'],info['format'].lower());matched=actual_md5==context['nativeMD5']
  proof=dict(info,name='image-'+context['sourceId']+'.'+suffix,sourceId=context['sourceId'],sender=context['sender'],resourceId=context['resourceId'],nativeMessageMD5Matched=matched,sourceContextVerified=True,origin='official-client-save-as-programmatic',exportPerformedThisRequest=True,cacheReused=False,contentReady=True,businessAIReadClaimed=False,messagesSent=0)
  if visible:proof.update(nativeSourceIdentityVerified=True,nativeSourceMD5=context['nativeMD5'],sourceLocalId=context['localId'],sourceCreateTime=context['time'],officialDefaultFilename=result['officialDefaultFilename'],sourceIdentityMethod='official-save-as-native-time-and-local-id',representation='original' if matched else 'official-visible-variant')
+ from . import navigation
+ if navigation.load(driver.root,j):
+  if not navigation.finish(driver,j):raise ImageReadError('IMAGE_CLEANUP_UNPROVEN','Original image navigation did not return to its verified baseline.',clean=False)
+  proof['navigationRestored']=True
  return data,proof
