@@ -1,0 +1,36 @@
+{
+  "scope": "owner-requested default local Codex takeover for existing owner and eligible group scopes",
+  "baseline": "resident DeepSeek Harness generation; explicit /codex owner handoff consumed by maintenance",
+  "candidate": "native bridge -> frozen loopback SSH model port -> persistent local Codex consumer -> original V2 sender",
+  "prefix_required": false,
+  "remote_codex_installation": false,
+  "dsh_fallback": false,
+  "normal_chat_execution_tools": "disabled using child-process feature/MCP overrides; global config unchanged",
+  "owner_tasks": "native identity/kind admission, separate engineering consumer/worktree/draft PR",
+  "evidence": {
+    "frozen_native_prefix_free_loop": "tests/test_codex_backend.py:CodexBackendTests.test_prefix_free_native_owner_loop_commits_then_sends_only_original_completion",
+    "real_local_codex_model": "gpt-6.1-sol (inherited local configuration)",
+    "real_inline_image_result": "correctly identified three blue circles",
+    "real_group_json_schema": "passed",
+    "real_completed_item_types": [
+      "userMessage",
+      "reasoning",
+      "agentMessage"
+    ],
+    "global_config_unchanged": true,
+    "interrupted_originals": "review; never reclaimed",
+    "completed_response_reopen_and_changed_input_rejection": "passed",
+    "linux_targeted": "passed as dedicated unprivileged user",
+    "linux_full_gate": "passed before final-answer phase filter; final exact head checked by CI"
+  },
+  "boundaries": {
+    "isolated_model_smoke_is_native_wechat": false,
+    "new_native_codex_takeover_reply_observed": false,
+    "old_claims_and_v2": "preserved",
+    "existing_group_recipient_failure": "separate, not repaired by changing models",
+    "requires_local_computer_awake_and_user_logged_in": true,
+    "dot_direct_thread_wakeup": false,
+    "rsi_gain_claimed": false
+  },
+  "delivery": "candidate; actual publication/task/resident/native state is in the live PR receipt"
+}

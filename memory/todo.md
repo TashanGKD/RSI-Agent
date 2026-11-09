@@ -3,24 +3,14 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-1. **Native-only group image navigation: current WIP in the same PR.** The
-   deployed source reproduces header_box KeyError; the candidate uses existing
-   guarded native navigation and requires baseline restoration before returning
-   image bytes. Review/gate and deliver it, retaining the original settled read
-   and frozen SDK batch. A later clean SEARCH_SELECTION_UNPROVEN group failure
-   remains a distinct native-recipient path, with its original cache and ID.
-   The fresh /codex owner reply has succeeded once after authorized old-search
-   cleanup; neither old cached reply nor old image was replayed.
-
-   **Two explicitly requested event-trigger trials.** The isolated
-   remote event -> local App Server -> original completion path is verified;
-   desktop-thread/Dot awakening and real WeChat source are separate. Finish the
-   hosted nonce-only MCP Events endpoint and one real Dot subscription/result.
-   Direct local Codex plugin installation and actual MCP tool loading passed;
-   the earlier external-browser login request is superseded for that step.
-   Preserve one original fixture, no production queue injection or duplicate consumer.
-   PR #27 private named memory and #25 diagnosis are delivered; native memory
-   command acceptance awaits fresh owner input, not a repeated implementation.
+1. **Default local Codex takeover: current WIP.** Route future owner and eligible
+   group generation through the persistent local consumer without a prefix;
+   retain native reception/identity/context/memory/images/links and original V2.
+   Exact-head review/CI, fixed local installation, reversible host release and
+   resident activation come before fresh native acceptance. No DSH fallback or
+   duplicate legacy prefix consumer. The older PR #28 code and native owner
+   handoff are delivered, not another WIP. Its separate clean group recipient
+   failure remains preserved and is not solved merely by changing models.
 2. **Completed task publication recovery: delivered.** A private
    post-shutdown journal binds the frozen result to its original Git effects.
    Branch-update/push SIGKILL replay resumes one original result without another

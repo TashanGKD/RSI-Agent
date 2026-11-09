@@ -49,7 +49,7 @@ def worker(path, channel, service, current, now):
         result['observation'] = status['state'] if status.get('state') in allowed else 'unknown'
         result['enabled'] = config.get('enabled') is True
         backend = status.get('model_backend')
-        result['model_backend'] = backend if backend in ('deepseek-harness', 'direct-scnet') else 'unknown'
+        result['model_backend'] = backend if backend in ('deepseek-harness', 'direct-scnet', 'local-codex') else 'unknown'
         # Read only state/count, never message text, generated replies or native IDs.
         database = state / 'inbox.sqlite'
         if not private_file(database):

@@ -1,4 +1,46 @@
-# Local Codex handoff experiment
+# Local Codex reply and task backend
+
+## Default takeover
+
+The owner now explicitly requested all future messages in the existing native
+owner/group scopes to use Codex, including plain text without a prefix. The
+`local-codex` model port replaces model generation only: native reception,
+sender admission, private notes, real image/link context, original batch IDs,
+reply caches and V2 delivery remain with the bridge. New auto-admitted groups
+inherit the owner's configured model port. This does not open unrelated chats.
+
+`python -m rsi_agent.codex_worker --config <local-private-config>` runs on this
+computer under the signed-in user's account. An authenticated loopback SSH
+reverse tunnel carries frozen requests; no Codex binary or model key is installed
+on the native-client host. Chat and engineering have separate local consumers.
+One original input digest can have only one generation/completion; completed
+output is frozen before shutdown/response. After uncertain interruption the
+original becomes review, never a second generation. DSH is not an offline fallback.
+
+Ordinary Codex sessions are ephemeral and receive only that peer's bounded
+context and curated preferences; child-process settings disable shell, apps,
+plugins, MCP, browser, image generation and delegation. Inline verified images
+are model inputs, not file-reading tools. Native owner task routing retains the
+existing sender/kind checks and uses a separate Git worktree, actual tools,
+validation and a reviewable draft PR. A pending PR delays another engineering
+task while ordinary chat continues. Raw global memory is not copied into groups.
+
+The local consumer runs independently of the maintenance heartbeat. It requires
+this computer to be awake and its Codex user signed in. A per-user logon task
+starts it hidden and restarts failures. `/health` reports state/count/version;
+authenticated `/drain` stops new claims and waits for original running work.
+Before upgrading, inspect local queued/running/review work and original V2 state.
+Do not kill uncertain execution or roll native inputs back to DSH. Code release,
+local task start, resident model activation and native delivery are distinct.
+
+The earlier prefix handoff below is retained for original unfinished claims;
+its new-message switch is disabled at takeover, without deleting its completed
+input, claim, response or send receipt. Read the live PR/operator receipt for
+the actual installed source and acceptance, rather than treating this plan as
+activation. The maintenance conversation coordinates work; it does not need to
+receive every ordinary WeChat message in its sidebar.
+
+## Earlier prefix handoff experiment
 
 The owner requested a second route alongside DSH: the native client host only
 queues and delivers; this computer's existing Codex conversation answers or

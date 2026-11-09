@@ -196,7 +196,11 @@ def load_model(path, *, verify_runtime=False):
     if not private_file(path):
         raise ModelError('Private model/backend configuration required.')
     value = json.loads(Path(path).read_text())
-    model = DshBackend(path) if value.get('backend') == 'deepseek-harness' else ModelClient(path)
+    if value.get('backend') == 'local-codex':
+        from .codex_backend import CodexBackend
+        model = CodexBackend(path)
+    else:
+        model = DshBackend(path) if value.get('backend') == 'deepseek-harness' else ModelClient(path)
     if verify_runtime and isinstance(model, DshBackend):
         model.check_runtime()
     return model
