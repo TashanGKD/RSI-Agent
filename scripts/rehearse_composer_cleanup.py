@@ -60,7 +60,9 @@ def main():
     if sys.platform != 'linux':
         parser.error('Linux with X/VNC, Openbox, GTK3 and PyQt5 is required.')
     source = args.source.resolve()
-    wx = source / 'components/secretary-workbench/wechat'
+    wx = source / 'components/wechat-linux'
+    if not wx.is_dir():
+        wx = source / 'components/secretary-workbench/wechat'
     sys.path[:0] = [str(wx), str(wx / 'host_support')]
     spec = importlib.util.spec_from_file_location('bootstrap', ROOT / 'deploy/wechat-gui/prepare_runtime.py')
     bootstrap = importlib.util.module_from_spec(spec)

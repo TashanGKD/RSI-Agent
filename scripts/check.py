@@ -30,7 +30,7 @@ def main():
                    WECHAT_ACCOUNT_ID='wxid_fixture_operator')
         for key in ('DISPLAY', 'XAUTHORITY', 'WECHAT_DISPLAY', 'WECHAT_XAUTHORITY'):
             env.pop(key, None)
-        cwd = ROOT / 'components/secretary-workbench/wechat'
+        cwd = ROOT / 'components/wechat-linux'
         for pattern in ('test_operations*.py', 'test_snapshot.py'):
             subprocess.run([sys.executable, '-B', '-m', 'unittest', 'discover', '-s', 'tests', '-p', pattern], cwd=cwd, env=env, check=True)
         code = "import sys,unittest;sys.path.insert(0,'tests');suite=unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromName(name) for name in ['test_linux_tool','test_sender','test_read_metadata','test_receive_source','test_image_client']);result=unittest.TextTestRunner().run(suite);sys.exit(not result.wasSuccessful())"

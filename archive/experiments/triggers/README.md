@@ -15,7 +15,7 @@ the shell, freezes the completed result, and returns it to the remote caller.
 The target host does not install or run Codex. The tunnel is closed afterward.
 
 ```powershell
-python -B experiments/triggers/local_codex/local_codex_probe.py `
+python -B archive/experiments/triggers/local_codex/local_codex_probe.py `
   --codex <existing-local-codex.exe> --ssh <existing-destination> `
   --identity <existing-private-key-path> --state var/trigger-probe/<new-run>
 ```
@@ -48,7 +48,7 @@ CLI. Generated packages and config backups contain private data; keep them
 under the ignored `var/` directory.
 
 ```text
-python -B experiments/triggers/dot_mcp/install_codex_plugin.py --codex <existing-local-codex.exe> --connection <private-connection.json> --state var/trigger-probe/<new-install>
+python -B archive/experiments/triggers/dot_mcp/install_codex_plugin.py --codex <existing-local-codex.exe> --connection <private-connection.json> --state var/trigger-probe/<new-install>
 ```
 
 The plugin's display name is **RSI Trigger Lab**. A fresh App Server inventory
@@ -81,8 +81,8 @@ Give that Dot this instruction:
 After an actual subscription has passed callback verification:
 
 ```text
-python -B experiments/triggers/dot_mcp/dot_events_probe.py status --config <private-config>
-python -B experiments/triggers/dot_mcp/dot_events_probe.py emit --config <private-config>
+python -B archive/experiments/triggers/dot_mcp/dot_events_probe.py status --config <private-config>
+python -B archive/experiments/triggers/dot_mcp/dot_events_probe.py emit --config <private-config>
 ```
 
 `emit` requires exactly one unexpired subscription. One-hour subscriptions can
@@ -94,7 +94,7 @@ Dot-processing evidence. A simulated callback/unit test cannot supply it.
 Offline contract checks (no model/network request):
 
 ```text
-python -B -m unittest discover -s experiments/triggers/dot_mcp -p 'test_*.py' -v
+python -B -m unittest discover -s archive/experiments/triggers/dot_mcp -p 'test_*.py' -v
 ```
 
 ## Acceptance and removal

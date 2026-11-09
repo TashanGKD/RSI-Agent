@@ -6,7 +6,7 @@ import re
 import subprocess
 import sys
 
-from .config import WORKBENCH
+from .config import WECHAT_LINUX
 from .wechat import doctor, environment
 
 SERVICES = ('wechat-gui-x.service', 'wechat-gui-desktop.service', 'wechat-gui-web.service')
@@ -38,7 +38,7 @@ def audit(config, run=None, proc=Path('/proc')):
         return result.stdout
 
     try:
-        spec = importlib.util.spec_from_file_location('rsi_window_metadata', WORKBENCH / 'wechat/operations/windows.py')
+        spec = importlib.util.spec_from_file_location('rsi_window_metadata', WECHAT_LINUX / 'operations/windows.py')
         windows = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(windows)
         main = [w for w in windows.parse_app_windows(command(['xwininfo', '-root', '-tree']))

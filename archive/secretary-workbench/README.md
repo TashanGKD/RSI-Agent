@@ -69,8 +69,8 @@ licenses/          原样保留的第三方许可
 
 - [架构与边界](docs/ARCHITECTURE.md)
 - [安装与配置](docs/INSTALL.md)
-- [微信唯一操作接口](wechat/docs/OPERATIONS-API.md)
-- [微信只读接口](wechat/docs/TOOL-API.md)
+- [微信唯一操作接口](../../components/wechat-linux/docs/OPERATIONS-API.md)
+- [微信只读接口](../../components/wechat-linux/docs/TOOL-API.md)
 - [秘书更新入口](skills/notebook-secretary/SKILL.md)
 - [数字员工共同入口](skills/digital-employee/SKILL.md)（30文件的方法、参考和空白模板）
 - [真实对话交接入口](skills/codex-thread-handoff/SKILL.md)

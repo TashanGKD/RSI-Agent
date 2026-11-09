@@ -17,7 +17,7 @@ class ReceiptRecoveryTests(unittest.TestCase):
         self.folder = tempfile.TemporaryDirectory(prefix='rsi-receipt-recovery-')
         self.addCleanup(self.folder.cleanup)
         self.base = Path(self.folder.name).resolve()
-        self.native = ROOT / 'components/secretary-workbench/wechat'
+        self.native = ROOT / 'components/wechat-linux'
         sys.path.insert(0, str(self.native))
         self.addCleanup(sys.path.remove, str(self.native))
         from operations.public_api import PublicAPI

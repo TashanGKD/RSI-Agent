@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-from rsi_agent.config import WORKBENCH
+from rsi_agent.config import WECHAT_LINUX
 from trigger.group_io import CLIENT, handle, token
 from trigger.group_reply import GroupLoop
 
@@ -18,8 +18,8 @@ class GroupFailureRecoveryTests(unittest.TestCase):
         self.folder = tempfile.TemporaryDirectory()
         self.addCleanup(self.folder.cleanup)
         self.root = Path(self.folder.name)
-        sys.path.insert(0, str(WORKBENCH / 'wechat'))
-        self.addCleanup(sys.path.remove, str(WORKBENCH / 'wechat'))
+        sys.path.insert(0, str(WECHAT_LINUX))
+        self.addCleanup(sys.path.remove, str(WECHAT_LINUX))
         from operations.public_api import PublicAPI
         from operations import navigation
         self.binding = {'account': 'wxid_fixture_self', 'owner_peer': 'wxid_fixture_owner',

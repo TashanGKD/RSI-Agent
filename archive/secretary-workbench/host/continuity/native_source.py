@@ -8,7 +8,7 @@ from pathlib import Path
 from xml.etree import ElementTree as ET
 ACCOUNT = _install.setting('continuity.native_source', 'ACCOUNT', 'wxid_fixture_operator')
 OWNER = _install.setting('continuity.native_source', 'OWNER', 'wxid_fixture_owner')
-RELEASE = str(_install.REPO / 'wechat')
+RELEASE = str(_install.REPO.parents[1] / 'components/wechat-linux')
 PROFILE = _install.path('wechat_profile') / 'db_storage/message/message_0.db'
 MAX_ROUTES = 128
 

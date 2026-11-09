@@ -8,7 +8,7 @@ import sys
 import time
 from xml.etree import ElementTree as ET
 
-from rsi_agent.config import WORKBENCH, load
+from rsi_agent.config import WECHAT_LINUX, load
 from .reply_io import advance, status
 from rsi_agent.wechat import environment, private_file
 
@@ -266,7 +266,7 @@ def main():
     os.umask(0o077)
     installation = load(args.installation)
     os.environ.update(environment(installation))
-    sys.path.insert(0, str(WORKBENCH / 'wechat'))
+    sys.path.insert(0, str(WECHAT_LINUX))
     value = load_binding(args.binding, installation)
     if args.check:
         members = group_info(value)

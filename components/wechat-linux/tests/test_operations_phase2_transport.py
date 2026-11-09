@@ -8,7 +8,7 @@ from operations.contract import parse_request
 HERE=Path(__file__).resolve().parent
 class ResourceTransportTests(unittest.TestCase):
  def mac(self):
-  spec=importlib.util.spec_from_file_location('wrapper',HERE.parents[1]/'host/tools/wechat_operations.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
+  spec=importlib.util.spec_from_file_location('wrapper',HERE.parents[2]/'archive/secretary-workbench/host/tools/wechat_operations.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
  def test_actual_asset_over_inline_budget_remains_downloadable_without_new_id(self):
   with tempfile.TemporaryDirectory() as td:
    root=Path(td).resolve();a=API(root,{'account':'self','clients':{}});self.addCleanup(a.close);raw=b'x'*11000000;x=a.assets.put('uploader','payload.bin',raw,hashlib.sha256(raw).hexdigest());r=a.call({'op':'download','client':'reader','asset':x['id']});self.assertEqual(base64.b64decode(r['data']),raw);self.assertEqual(r['id'],x['id']);self.assertEqual(r['client'],'uploader')
@@ -25,7 +25,7 @@ class ResourceTransportTests(unittest.TestCase):
   self.assertEqual(len(seen[0]['data']),15000001)
  def test_mac_native_output_can_use_actual_relative_parent_alias(self):
   import io,sys
-  spec=importlib.util.spec_from_file_location('native_wrapper',HERE.parents[1]/'host/tools/wechat_linux.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+  spec=importlib.util.spec_from_file_location('native_wrapper',HERE.parents[2]/'archive/secretary-workbench/host/tools/wechat_linux.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
   with tempfile.TemporaryDirectory() as td:
    root=Path(td).resolve();(root/'real').mkdir();(root/'alias').symlink_to(root/'real',target_is_directory=True);old=Path.cwd();os.chdir(root)
    try:

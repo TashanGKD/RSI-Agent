@@ -10,7 +10,7 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-from rsi_agent.config import WORKBENCH, load
+from rsi_agent.config import WECHAT_LINUX, load
 from trigger.owner_reply import ReplyLoop
 from rsi_agent.model import PublicationPending
 from trigger.reply_io import CLIENT, binding_token, handle, request_id
@@ -205,7 +205,7 @@ class ReplyNativeTests(unittest.TestCase):
         self.folder = tempfile.TemporaryDirectory()
         self.addCleanup(self.folder.cleanup)
         self.root = Path(self.folder.name)
-        native = WORKBENCH / 'wechat'
+        native = WECHAT_LINUX
         sys.path.insert(0, str(native))
         self.addCleanup(sys.path.remove, str(native))
         from operations.public_api import PublicAPI

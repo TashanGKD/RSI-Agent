@@ -12,7 +12,7 @@ from unittest.mock import Mock, patch
 from trigger.group_context import FACTS, owner_context
 from trigger.group_io import mentioned, read_group
 from trigger.group_reply import GroupLoop
-from rsi_agent.config import WORKBENCH
+from rsi_agent.config import WECHAT_LINUX
 from rsi_agent.model import PublicationPending
 
 
@@ -435,7 +435,7 @@ class GroupSourceTests(unittest.TestCase):
                     (8, 8, (5 << 32) | 49, 2, 145, 5,
                      'a:\n<msg><appmsg><type>5</type><title>Article</title><url>https://mp.weixin.qq.com/s/fixture</url></appmsg></msg>', ''),
                     (5, 5, 1, 4, 150, 5, 'foreign', '')])
-            sys.path.insert(0, str(WORKBENCH / 'wechat'))
+            sys.path.insert(0, str(WECHAT_LINUX))
             try:
                 import linux_tool
                 @contextlib.contextmanager
@@ -463,4 +463,4 @@ class GroupSourceTests(unittest.TestCase):
                     read_group(root, binding, {'op': 'ack', **{k: batch[k] for k in ('batch_id', 'batch_hash', 'ack_ids')}}, members)
                     self.assertEqual(read_group(root, binding, {'op': 'read'}, members)['events'], [])
             finally:
-                sys.path.remove(str(WORKBENCH / 'wechat'))
+                sys.path.remove(str(WECHAT_LINUX))

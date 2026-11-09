@@ -7,7 +7,7 @@ from pathlib import Path
 import sys
 import time
 
-from rsi_agent.config import WORKBENCH, load
+from rsi_agent.config import WECHAT_LINUX, load
 from rsi_agent.wechat import environment, private_file
 
 CLIENT = 'rsi-owner'
@@ -236,7 +236,7 @@ def main():
                           'enabled': owner.get('auto_reply_enabled') is True}))
         return
     os.environ.update(environment(installation))
-    sys.path.insert(0, str(WORKBENCH / 'wechat'))
+    sys.path.insert(0, str(WECHAT_LINUX))
     raw = sys.stdin.read(1000001)
     if len(raw.encode()) > 1000000:
         raise ValueError('Owner reply transport input too large.')

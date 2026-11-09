@@ -1,7 +1,7 @@
 import unittest,tempfile,sys,importlib.util,hashlib,base64
 from pathlib import Path
 from unittest.mock import patch
-spec=importlib.util.spec_from_file_location('write_client',str(__import__('pathlib').Path(__file__).resolve().parents[2]/'host/tools/wechat_operations.py'));client=importlib.util.module_from_spec(spec);spec.loader.exec_module(client)
+spec=importlib.util.spec_from_file_location('write_client',str(__import__('pathlib').Path(__file__).resolve().parents[3]/'archive/secretary-workbench/host/tools/wechat_operations.py'));client=importlib.util.module_from_spec(spec);spec.loader.exec_module(client)
 class ClientTests(unittest.TestCase):
  def test_upload_file_validates_and_transmits_bytes_without_model(self):
   with tempfile.TemporaryDirectory() as td:

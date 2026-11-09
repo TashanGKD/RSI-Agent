@@ -7,4 +7,6 @@ if __name__=='__main__':
         sys.path.insert(0,str(Path(__file__).resolve().parent))
         from ownership import check_from_env
         check_from_env()
-    runpy.run_path(str(Path(__file__).resolve().parents[2]/'wechat/desktop_control.py'),run_name='__main__')
+    source = Path(__file__).resolve().parents[4] / 'components/wechat-linux'
+    sys.path.insert(0, str(source))
+    runpy.run_path(str(source / 'desktop_control.py'), run_name='__main__')

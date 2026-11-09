@@ -9,7 +9,7 @@ import types
 import unittest
 from unittest.mock import Mock, patch
 
-from rsi_agent.config import WORKBENCH
+from rsi_agent.config import WECHAT_LINUX
 from trigger.group_admission import catalog, put, refresh
 from trigger.group_context import group_configs
 from trigger.group_reply import sync_groups, run
@@ -115,7 +115,7 @@ class AdmissionTests(unittest.TestCase):
 
     def test_new_group_native_identity_seed_requires_fresh_search_before_input(self):
         self.refresh()
-        sys.path.insert(0, str(WORKBENCH / 'wechat'))
+        sys.path.insert(0, str(WECHAT_LINUX))
         from operations.driver import NativeDriver
         from operations.recipes import selected
         @contextlib.contextmanager
