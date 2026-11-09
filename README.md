@@ -1,6 +1,6 @@
 # RSI Agent
 
-RSI Agent 把微信消息交给本机 Codex 处理，再由原微信发送队列回传结果。项目在同一个仓库维护两个核心模块：[触发器](#触发器)负责从微信接入，[接收器](#接收器)负责接单并交给专用 Codex 会话。
+RSI Agent 把微信消息交给本机 Codex 处理，再由原微信发送队列回传结果。项目在同一个仓库维护两个核心模块。[触发器](trigger/)负责从微信接入，[接收器](receiver/)负责接单并交给专用 Codex 会话。
 
 ```text
 微信消息 → Linux 触发器 → SSH 回环通道 → 本机接收器 → 专用 Codex 会话
@@ -15,10 +15,10 @@ RSI Agent 把微信消息交给本机 Codex 处理，再由原微信发送队列
 
 | 想找什么 | 入口 |
 | --- | --- |
-| 本人私聊接入与回传 | [owner_reply.py](rsi_agent/owner_reply.py)、[reply_io.py](rsi_agent/reply_io.py) |
-| 群聊接入与回传 | [group_reply.py](rsi_agent/group_reply.py)、[group_io.py](rsi_agent/group_io.py)、[群聊准入](harness/GROUP-ADMISSION.md) |
-| 固定原始请求并投递 | [codex_backend.py](rsi_agent/codex_backend.py) |
-| 图片读取及验真 | [media_io.py](rsi_agent/media_io.py)、[微信图像适配](components/secretary-workbench/wechat/operations/images.py) |
+| 本人私聊接入与回传 | [owner_reply.py](trigger/owner_reply.py)、[reply_io.py](trigger/reply_io.py) |
+| 群聊接入与回传 | [group_reply.py](trigger/group_reply.py)、[group_io.py](trigger/group_io.py)、[群聊准入](harness/GROUP-ADMISSION.md) |
+| 固定原始请求并投递 | [codex_backend.py](trigger/codex_backend.py) |
+| 图片与 PDF 原件校验 | [media_io.py](trigger/media_io.py)、[微信图像适配](components/secretary-workbench/wechat/operations/images.py) |
 
 用已配置的私有文件检查触发器。两个 `check` 都不发送微信消息。
 
@@ -31,13 +31,13 @@ python -B -m rsi_agent --config /private/invited-groups/config.json groups check
 
 ## 接收器
 
-[本机接收器](rsi_agent/codex_worker.py)在已登录 Codex 的电脑上运行。它认证请求，按原 ID 和输入摘要持久化去重，然后通过 `codex queue` 把请求交给配置中固定的专用会话。该会话核对原始请求，读取已校验的附件，再把完成结果交回接收器。接收器保存结果，触发器据此交给原 V2 发送队列核对收件人并投递。
+[本机接收器](receiver/codex_worker.py)在已登录 Codex 的电脑上运行。它认证请求，按原 ID 和输入摘要持久化去重，然后通过 `codex queue` 把请求交给配置中固定的专用会话。该会话核对原始请求，读取已校验的附件，再把完成结果交回接收器。接收器保存结果，触发器据此交给原 V2 发送队列核对收件人并投递。
 
 ```sh
-python -B -m rsi_agent.codex_worker --config /private/local-codex.json
+python -B -m receiver.codex_worker --config /private/local-codex.json
 ```
 
-该命令用于接收器的启动配置。运行中的实例可通过认证的 `GET /health` 核对就绪状态和会话路由。配置、启动和恢复见[接收器运行说明](harness/LOCAL-CODEX.md)，会话如何读取原始请求和提交结果见[微信专用会话协议](harness/DESKTOP-WECHAT.md)。
+原有的 `python -m rsi_agent.codex_worker` 仍可启动同一个接收器。运行中的实例可通过认证的 `GET /health` 核对就绪状态和会话路由。配置、启动和恢复见[接收器运行说明](harness/LOCAL-CODEX.md)，会话如何读取原始请求和提交结果见[微信专用会话协议](harness/DESKTOP-WECHAT.md)。
 
 | 遇到的问题 | 从哪里查 |
 | --- | --- |
@@ -59,9 +59,9 @@ python -B scripts/check.py --linux
 
 Linux 安装配置示例见 [examples/linux.json](examples/linux.json)，默认关闭写操作。相对路径以配置文件所在目录为准，账号资料和授权文件归实际调用用户持有。手动读取、原 V2 回执查询和桌面服务准备见 [Linux 微信操作说明](docs/INTEGRATION.md#linux-微信操作)。
 
-## 配套组件
+## 配套目录
 
-- [秘书工作台](components/secretary-workbench/) 提供原生微信、发送队列和记事本。 `python -m rsi_agent notebook --workspace ./var/demo --demo` 可用新目录启动合成记事本。
-- [Mac 微信采集器](components/wechat-collector-mac/) 保留源码。 `python -m rsi_agent mac verify` 检查静态源码；实际构建仍有[依赖缺口](components/wechat-collector-mac/docs/BUILD_GAPS.md)。
-- [触发器实验](experiments/triggers/README.md) 保存 Dot 和本机事件实验的复现方法。[SCNET 独立诊断](docs/INTEGRATION.md#scnet-独立诊断)和[项目验收记录](docs/HORYZON-ACCEPTANCE.md)也在本仓库。
-- [来源锁定](SOURCES.lock.json)、[来源与许可](NOTICE.md)、[项目记忆](memory/README.md)和[Penguin 接入](harness/PENGUIN.md)集中维护在这里。
+- [components/](components/) 存放秘书工作台和 Mac 微信采集器，以及各自的来源与运行范围。
+- [experiments/](experiments/) 存放本机 Codex 事件探针和 Dot MCP 实验。
+- [rsi_agent/](rsi_agent/) 提供统一命令、配置、诊断和旧启动入口。[deploy/](deploy/) 放服务模板，[scripts/](scripts/) 和 [tests/](tests/) 放验证脚本和回归测试。
+- [harness/](harness/) 放协议与接入说明。[memory/](memory/) 放项目决策与待办。[docs/](docs/) 放集成和验收记录。

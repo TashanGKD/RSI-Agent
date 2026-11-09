@@ -12,7 +12,7 @@ import sys
 from urllib.parse import urlsplit
 from xml.etree import ElementTree as ET
 
-from .config import ROOT
+from rsi_agent.config import ROOT
 
 
 def address(url):
@@ -154,7 +154,7 @@ def linked_pages(db, source, text, explicit=None):
             continue
         value = {'state': 'unavailable', 'url': url, 'code': 'PUBLIC_PAGE_UNAVAILABLE'}
         try:
-            result = subprocess.run([sys.executable, '-B', '-m', 'rsi_agent.link_reader', url], cwd=ROOT,
+            result = subprocess.run([sys.executable, '-B', '-m', 'trigger.link_reader', url], cwd=ROOT,
                                     capture_output=True, text=True, timeout=20)
             if result.returncode == 0 and len(result.stdout.encode()) < 100000:
                 value = json.loads(result.stdout)

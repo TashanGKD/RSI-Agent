@@ -20,8 +20,8 @@ class InboundPdfTests(unittest.TestCase):
     def test_pdf_reads_the_original_resource_and_rejects_wrong_sender_or_cache(self):
         sys.path.insert(0, str(WORKBENCH / 'wechat'))
         self.addCleanup(sys.path.remove, str(WORKBENCH / 'wechat'))
-        from rsi_agent.media import pdf_name, pdf_part
-        from rsi_agent.media_io import pdf
+        from trigger.media import pdf_name, pdf_part
+        from trigger.media_io import pdf
 
         peer, sender = 'fixture@chatroom', 'member'
         table = 'Msg_' + hashlib.md5(peer.encode()).hexdigest()
@@ -163,7 +163,7 @@ class InboundImageTests(unittest.TestCase):
     def test_original_queue_exports_once_then_returns_the_same_verified_asset(self):
         from PIL import Image
         from operations.public_api import PublicAPI
-        from rsi_agent.media_io import image
+        from trigger.media_io import image
         output = io.BytesIO()
         Image.new('RGB', (40, 30), 'red').save(output, format='PNG')
         data = output.getvalue()
@@ -218,7 +218,7 @@ class InboundImageTests(unittest.TestCase):
 
     def test_existing_original_read_failure_is_not_replaced_by_visible_request(self):
         from operations.public_api import PublicAPI
-        from rsi_agent.media_io import image,CLIENT
+        from trigger.media_io import image,CLIENT
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder);policy={'account':'account','clients':{}}
             api=PublicAPI(root/'operations-state',policy);self.addCleanup(api.close)

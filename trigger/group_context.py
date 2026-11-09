@@ -4,7 +4,7 @@ from pathlib import Path
 import re
 
 from .owner_reply import Transport
-from .wechat import private_file
+from rsi_agent.wechat import private_file
 
 REGISTRY = Path('/var/lib/rsi-agent/groups/config.json')
 FACTS = ('你叫星语，正在微信里和人聊天。'
@@ -20,7 +20,7 @@ FACTS = ('你叫星语，正在微信里和人聊天。'
 
 
 class GroupTransport(Transport):
-    module = 'rsi_agent.group_io'
+    module = 'trigger.group_io'
 
 
 def normal(value):

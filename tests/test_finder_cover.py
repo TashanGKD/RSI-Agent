@@ -6,8 +6,8 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-from rsi_agent.finder_cover import annotate, descriptor, read
-from rsi_agent.codex_backend import CodexBackend
+from trigger.finder_cover import annotate, descriptor, read
+from trigger.codex_backend import CodexBackend
 from rsi_agent.config import WORKBENCH
 
 
@@ -66,7 +66,7 @@ class FinderAssetTests(unittest.TestCase):
             response.__exit__ = Mock(return_value=False)
             opener = Mock()
             opener.open.return_value = response
-            with patch('rsi_agent.finder_cover.urllib.request.build_opener', return_value=opener):
+            with patch('trigger.finder_cover.urllib.request.build_opener', return_value=opener):
                 first = read(api, 'self', 'group@chatroom', '42', value)
                 second = read(api, 'self', 'group@chatroom', '42', value)
                 self.assertEqual(first, second)

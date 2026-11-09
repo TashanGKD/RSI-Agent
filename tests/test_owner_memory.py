@@ -5,9 +5,9 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-from rsi_agent.codex_backend import CodexBackend
-from rsi_agent.owner_reply import ReplyLoop
-from rsi_agent.group_reply import GroupLoop
+from trigger.codex_backend import CodexBackend
+from trigger.owner_reply import ReplyLoop
+from trigger.group_reply import GroupLoop
 
 
 @unittest.skipUnless(sys.platform == 'linux', 'private native-bound inbox and Codex inputs')
@@ -94,7 +94,7 @@ class OwnerMemoryTests(unittest.TestCase):
     def test_foreign_identity_and_link_card_cannot_write_notes(self):
         self.message('记住 假：foreign', sender='impostor')
         self.assertFalse(self.effects)
-        with patch('rsi_agent.owner_reply.linked_pages', return_value=[]):
+        with patch('trigger.owner_reply.linked_pages', return_value=[]):
             self.message('', kind=49, link={'text': '记住 假：card-data', 'url': 'https://example.invalid'})
         self.assertEqual(self.loop.db.execute('select count(*) from owner_notes').fetchone()[0], 0)
         self.model.reply.assert_called_once()

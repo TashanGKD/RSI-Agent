@@ -9,9 +9,9 @@ import threading
 import unittest
 from unittest.mock import Mock, patch
 
-from rsi_agent.codex_worker import Jobs, blocks, notify_desktop, run_codex, server
-from rsi_agent.backend import load_model
-from rsi_agent.codex_backend import CodexBackend
+from receiver.codex_worker import Jobs, blocks, notify_desktop, run_codex, server
+from trigger.backend import load_model
+from trigger.codex_backend import CodexBackend
 from rsi_agent.model import ModelError, PublicationPending
 
 
@@ -75,7 +75,7 @@ for line in sys.stdin:
                 self.assertIn('features.shell_tool=false', command)
                 self.assertIn('mcp_servers.fixture.enabled=false', command)
                 return original([sys.executable, '-B', str(fake)], **kwargs)
-            with patch('rsi_agent.codex_worker.subprocess.Popen', side_effect=spawn):
+            with patch('receiver.codex_worker.subprocess.Popen', side_effect=spawn):
                 run_codex(config, jobs, row)
             result = jobs.get(request['id'])
             self.assertEqual((result['state'], result['result']), ('completed', 'original result'))
@@ -97,7 +97,7 @@ class DesktopRelayTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     jobs.accept(dict(request, messages=[{'role': 'user', 'content': [invalid]}]))
             jobs.accept(request)
-            with patch('rsi_agent.codex_worker.subprocess.run', return_value=queued()) as command:
+            with patch('receiver.codex_worker.subprocess.run', return_value=queued()) as command:
                 notify_desktop({'codex': 'existing-codex', 'desktop_thread_id': THREAD,
                     'desktop_all_requests': True}, jobs, jobs.claim('chat'))
             task = jobs.desktop_task(request['id'], THREAD)
@@ -115,21 +115,21 @@ class DesktopRelayTests(unittest.TestCase):
                 jobs.desktop_task(request['id'], THREAD)
 
     def test_unified_route_never_falls_back_when_its_target_is_missing(self):
-        from rsi_agent.codex_worker import process_job
+        from receiver.codex_worker import process_job
         with tempfile.TemporaryDirectory() as td:
             jobs = Jobs(td);jobs.accept(packet())
-            with patch('rsi_agent.codex_worker.run_codex') as background:
+            with patch('receiver.codex_worker.run_codex') as background:
                 with self.assertRaises(ValueError):
                     process_job({'desktop_all_requests': True}, jobs, jobs.claim('chat'))
                 background.assert_not_called()
 
     def test_chat_and_task_share_one_visible_target_without_background_generation(self):
-        from rsi_agent.codex_worker import process_job
+        from receiver.codex_worker import process_job
         with tempfile.TemporaryDirectory() as td:
             jobs = Jobs(td)
             config = {'codex': 'existing-codex', 'desktop_thread_id': THREAD, 'desktop_all_requests': True}
-            with patch('rsi_agent.codex_worker.run_codex', side_effect=AssertionError('No parallel background turn')), \
-                    patch('rsi_agent.codex_worker.subprocess.run', return_value=queued()) as command:
+            with patch('receiver.codex_worker.run_codex', side_effect=AssertionError('No parallel background turn')), \
+                    patch('receiver.codex_worker.subprocess.run', return_value=queued()) as command:
                 for mode, key in [('chat', 'a'), ('engineering', 'b')]:
                     request = dict(packet(), id=key * 64, mode=mode)
                     jobs.accept(request);process_job(config, jobs, jobs.claim(mode))
@@ -147,7 +147,7 @@ class DesktopRelayTests(unittest.TestCase):
                 {'type': 'text', 'text': '{"group":"Fixture group","new_messages":[{"sender_name":"Member","text":"看看这张"}]}'},
                 {'type': 'image_url', 'image_url': {'url': 'data:image/png;base64,' + base64.b64encode(data).decode()}}]}])
             jobs.accept(request)
-            with patch('rsi_agent.codex_worker.subprocess.run', return_value=queued()) as command:
+            with patch('receiver.codex_worker.subprocess.run', return_value=queued()) as command:
                 notify_desktop({'codex': 'existing-codex', 'desktop_thread_id': THREAD, 'desktop_all_requests': True},
                                jobs, jobs.claim('chat'))
             task = jobs.desktop_task(request['id'], THREAD)
@@ -166,7 +166,7 @@ class DesktopRelayTests(unittest.TestCase):
                                      'work_index': {'type': ['integer', 'null']}}}
             request = dict(packet(), scope=['self', 'group@chatroom'], schema=schema)
             jobs.accept(request)
-            with patch('rsi_agent.codex_worker.subprocess.run', return_value=queued()):
+            with patch('receiver.codex_worker.subprocess.run', return_value=queued()):
                 notify_desktop({'codex': 'existing-codex', 'desktop_thread_id': THREAD, 'desktop_all_requests': True},
                                jobs, jobs.claim('chat'))
             task = jobs.desktop_task(request['id'], THREAD)
@@ -186,7 +186,7 @@ class DesktopRelayTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             jobs = Jobs(td);request = dict(packet(), mode='engineering');jobs.accept(request)
             config = {'codex': 'existing-codex', 'desktop_thread_id': THREAD}
-            with patch('rsi_agent.codex_worker.subprocess.run', return_value=queued()) as command:
+            with patch('receiver.codex_worker.subprocess.run', return_value=queued()) as command:
                 notify_desktop(config, jobs, jobs.claim('engineering'))
             command.assert_called_once();self.assertEqual(command.call_args.args[0][1], 'queue')
             row = jobs.get(request['id']);self.assertEqual(row['state'], 'desktop_queued')
@@ -205,7 +205,7 @@ class DesktopRelayTests(unittest.TestCase):
     def test_uncertain_queue_acceptance_is_reviewed_without_requeueing(self):
         with tempfile.TemporaryDirectory() as td:
             jobs = Jobs(td);request = dict(packet(), mode='engineering');jobs.accept(request)
-            with patch('rsi_agent.codex_worker.subprocess.run', return_value=subprocess.CompletedProcess([], 0, '', '')) as command:
+            with patch('receiver.codex_worker.subprocess.run', return_value=subprocess.CompletedProcess([], 0, '', '')) as command:
                 with self.assertRaises(ValueError):
                     notify_desktop({'codex': 'existing-codex', 'desktop_thread_id': THREAD}, jobs, jobs.claim('engineering'))
             jobs.review_interrupted();self.assertEqual(jobs.get(request['id'])['state'], 'review')
@@ -254,7 +254,7 @@ class CodexBackendTests(unittest.TestCase):
             self.assertNotIn('provider_config', self.config)
 
     def test_native_plain_chat_waits_for_new_desktop_completion_and_sends_once(self):
-        from rsi_agent.owner_reply import ReplyLoop
+        from trigger.owner_reply import ReplyLoop
         owner = {'account': 'self', 'peer': 'owner', 'scope': {'mode': 'owner-private-text', 'since': 100}}
         event = {'account': 'self', 'peer': 'owner', 'sender': 'owner', 'kind': 1,
                  'created': 120, 'server_id': 42, 'text': '现在都进专用会话'}
@@ -267,7 +267,7 @@ class CodexBackendTests(unittest.TestCase):
         loop = ReplyLoop(self.root / 'desktop-chat.sqlite', owner, self.backend, native);self.addCleanup(loop.close)
         with self.assertRaises(PublicationPending):loop.cycle()
         key = self.backend.last_input_key
-        with patch('rsi_agent.codex_worker.subprocess.run', return_value=queued()):
+        with patch('receiver.codex_worker.subprocess.run', return_value=queued()):
             notify_desktop({'codex': 'existing-codex', 'desktop_thread_id': THREAD, 'desktop_all_requests': True},
                            self.jobs, self.jobs.claim('chat'))
         with self.assertRaises(PublicationPending):loop.cycle()
@@ -281,7 +281,7 @@ class CodexBackendTests(unittest.TestCase):
         self.assertEqual([s['text'] for s in sends], ['这条从专用会话回复'])
 
     def test_group_model_review_releases_only_the_original_batch(self):
-        from rsi_agent.group_reply import GroupLoop
+        from trigger.group_reply import GroupLoop
         group = {'account': 'self', 'peer': 'group@chatroom', 'owner_peer': 'owner',
                  'name': 'Fixture group', 'scope': {'mode': 'invited-group-text', 'since': 100, 'introduction': False}}
         event = {'account': 'self', 'peer': 'group@chatroom', 'sender': 'member',
@@ -344,7 +344,7 @@ class CodexBackendTests(unittest.TestCase):
         self.assertEqual(self.backend.engineer('Do not replace the original'), 'Actual result with review link')
 
     def test_prefix_free_native_owner_loop_commits_then_sends_only_original_completion(self):
-        from rsi_agent.owner_reply import ReplyLoop
+        from trigger.owner_reply import ReplyLoop
         owner = {'account': 'self', 'peer': 'owner', 'scope': {'mode': 'owner-private-text', 'since': 100}}
         event = {'account': 'self', 'peer': 'owner', 'sender': 'owner', 'kind': 1,
                  'created': 120, 'server_id': 42, 'text': '你好，不带前缀'}
@@ -366,7 +366,7 @@ class CodexBackendTests(unittest.TestCase):
         self.assertEqual(len(sent), 1);self.assertEqual(sent[0]['text'], '接上啦')
 
     def test_native_owner_task_waits_for_this_desktop_result_then_original_sender(self):
-        from rsi_agent.owner_reply import ReplyLoop
+        from trigger.owner_reply import ReplyLoop
         owner = {'account': 'self', 'peer': 'owner', 'scope': {'mode': 'owner-private-text', 'since': 100}}
         event = {'account': 'self', 'peer': 'owner', 'sender': 'owner', 'kind': 1,
                  'created': 120, 'server_id': 42, 'text': '检查实际项目并修复问题'}
@@ -381,7 +381,7 @@ class CodexBackendTests(unittest.TestCase):
         self.jobs.update(self.backend.last_input_key, state='completed', result='{"engineering":true,"text":""}')
         with self.assertRaises(PublicationPending):loop.cycle()
         key = self.backend.last_input_key
-        with patch('rsi_agent.codex_worker.subprocess.run', return_value=queued()):
+        with patch('receiver.codex_worker.subprocess.run', return_value=queued()):
             notify_desktop({'codex': 'existing-codex', 'desktop_thread_id': THREAD}, self.jobs, self.jobs.claim('engineering'))
         with self.assertRaises(PublicationPending):loop.cycle()
         self.assertEqual(sends, [])

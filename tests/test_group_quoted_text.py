@@ -10,8 +10,8 @@ import unittest
 from unittest.mock import Mock, patch
 
 from rsi_agent.config import WORKBENCH
-from rsi_agent.group_io import read_group
-from rsi_agent.group_reply import GroupLoop
+from trigger.group_io import read_group
+from trigger.group_reply import GroupLoop
 
 
 @unittest.skipUnless(sys.platform == 'linux', 'uses the native Linux source and private consumer')
@@ -147,7 +147,7 @@ class QuotedTextTests(unittest.TestCase):
         self.assertEqual(event['quote'], {'self': False})
 
     def test_ordinary_card_unsafe_xml_and_empty_title_remain_nontext(self):
-        from rsi_agent.group_io import quoted_reply
+        from trigger.group_io import quoted_reply
         for raw in [self.card().split('\n', 1)[1].replace('<type>57', '<type>5'),
                     '<!DOCTYPE msg>' + self.card().split('\n', 1)[1],
                     '<msg><appmsg><type>57</type><title/></appmsg></msg>',

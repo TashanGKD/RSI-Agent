@@ -11,9 +11,9 @@ import unittest
 from unittest.mock import Mock, patch
 
 from rsi_agent.config import WORKBENCH, load
-from rsi_agent.owner_reply import ReplyLoop
+from trigger.owner_reply import ReplyLoop
 from rsi_agent.model import PublicationPending
-from rsi_agent.reply_io import CLIENT, binding_token, handle, request_id
+from trigger.reply_io import CLIENT, binding_token, handle, request_id
 
 
 def event(server=1, **changes):
@@ -153,7 +153,7 @@ class ReplyLoopTests(unittest.TestCase):
         context = Mock(return_value=[])
         loop = ReplyLoop(self.path, self.owner, self.model, self.io, context=context)
         self.addCleanup(loop.close)
-        with patch('rsi_agent.owner_reply.image_part', return_value={'type': 'image_url'}):
+        with patch('trigger.owner_reply.image_part', return_value={'type': 'image_url'}):
             self.assertEqual(loop.cycle()['state'], 'sent')
         context.assert_called_once_with('')
         self.assertFalse(self.model.reply.call_args.kwargs['allow_engineering'])
@@ -189,7 +189,7 @@ class ReplyLoopTests(unittest.TestCase):
         self.batch['events'] = [event(kind=49, text='', link={
             'url': 'https://mp.weixin.qq.com/s/fixture', 'text': 'Article title\nhttps://mp.weixin.qq.com/s/fixture'})]
         page = {'state': 'ready', 'url': 'https://mp.weixin.qq.com/s/fixture', 'text': 'Actual extracted article body.'}
-        with patch('rsi_agent.owner_reply.linked_pages', create=True, return_value=[page]) as read:
+        with patch('trigger.owner_reply.linked_pages', create=True, return_value=[page]) as read:
             self.assertEqual(self.loop().cycle()['state'], 'sent')
         read.assert_called_once()
         self.assertIn('Actual extracted article body.', str(self.model.reply.call_args.kwargs['pages']))

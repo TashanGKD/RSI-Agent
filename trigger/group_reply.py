@@ -10,7 +10,7 @@ import time
 
 from .group_context import FACTS, GroupTransport, group_configs
 from .group_io import INTRODUCTION
-from .model import ModelError, OriginalReview, PublicationPending
+from rsi_agent.model import ModelError, OriginalReview, PublicationPending
 from .owner_reply import ReplyLoop
 from .media import image_part, pdf_part, MediaPending, MediaUnavailable
 from .link_reader import linked_pages
