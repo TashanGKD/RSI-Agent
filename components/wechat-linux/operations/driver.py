@@ -373,7 +373,6 @@ class NativeDriver:
     raise PreparationError('TARGET_NOT_CALIBRATED','Target has no verified native/UI binding; no UI input was attempted.') from None
   from .recipes import prepare
   from . import navigation
-  if j['action'] in navigation.BASIC:navigation.begin(self,j)
   try:return prepare(self,j)
   except Exception as e:
    if getattr(e,'code',None)=='DRAFT_PROTECTED':

@@ -1,7 +1,7 @@
 import unittest,sys
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from operations.proof import matches,friend
+from operations.proof import matches,friend,sticker_md5
 class ProofTests(unittest.TestCase):
  def test_text_whitespace_preserved(self):
   j={'action':'send_text','payload':{'text':'  中文\n尾巴  '}}
@@ -22,3 +22,10 @@ class ProofTests(unittest.TestCase):
   self.assertTrue(friend({'username':'x','flag':3,'local_type':1,'delete_flag':0}))
  def test_unsafe_xml_refused(self):
   self.assertFalse(matches({'action':'reply','payload':{'text':'x','source_id':'1'}},49,'<!DOCTYPE x [<!ENTITY a "x">]><msg>&a;</msg>',''))
+ def test_native_sticker_requires_one_exact_emoji_and_bound_group_prefix(self):
+  md5='a'*32;emoji=f'<emoji md5="{md5}"/>'
+  self.assertEqual(sticker_md5(f'member:\n<msg>{emoji}</msg>',str,'member'),md5)
+  self.assertIsNone(sticker_md5(f'other:\n<msg>{emoji}</msg>',str,'member'))
+  self.assertIsNone(sticker_md5(f'<msg>{emoji}{emoji}</msg>',str))
+  self.assertIsNone(sticker_md5(f'<!DOCTYPE msg><msg>{emoji}</msg>',str))
+  self.assertIsNone(sticker_md5(b'\xff',bytes.decode))

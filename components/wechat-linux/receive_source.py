@@ -92,6 +92,10 @@ class SourceInbox:
                    'local_id':int(row['local_id']),'server_id':int(sid(row['server_id'])),'kind':kind,
                    'created':int(row['create_time']),'sort_seq':int(row['sort_seq'] or 0),
                    'text':self.decode(row['message_content']) if kind==1 else ''}
+                if kind==47 and len(matches)==1:
+                    from operations.proof import sticker_md5
+                    md5=sticker_md5(row['message_content'],self.decode,e['sender'] if self.peer.endswith('@chatroom') else None)
+                    if md5:e['sticker']={'md5':md5}
                 if self.event_context:
                     extra=self.event_context(row,e)
                     if set(extra)&set(e):raise ValueError('source identity/context collision')

@@ -3,6 +3,39 @@ import unittest,tempfile,io,hashlib
 from pathlib import Path
 from PIL import Image,ImageDraw
 from operations import composer,sending
+class ImagePreparationTests(unittest.TestCase):
+ def test_animated_asset_is_rejected_before_opening_chat(self):
+  from unittest.mock import Mock,patch
+  from operations.driver import NativeDriver
+  with tempfile.TemporaryDirectory() as td:
+   path=Path(td)/'animated.gif'
+   Image.new('RGB',(16,16),'red').save(path,save_all=True,
+      append_images=[Image.new('RGB',(16,16),'green')],duration=[120,180],loop=0)
+   driver=Mock()
+   driver.root=Path(td)
+   driver.prepare_basic.side_effect=lambda request:sending.prepare(driver,request)
+   driver._select.side_effect=AssertionError('Animated input reached chat navigation')
+   driver.assets.get.return_value={'path':str(path),'bytes':path.stat().st_size}
+   request={'id':'b'*32,'action':'send_image','client':'fixture','peer':'fixture','payload':{'asset':'a'*64}}
+   with patch('operations.navigation.begin') as begin:
+    with self.assertRaises(sending.PreparationError) as result:NativeDriver.prepare(driver,request)
+    self.assertEqual(result.exception.code,'ANIMATED_IMAGE_UNSUPPORTED')
+    self.assertTrue(result.exception.clean)
+    self.assertTrue(NativeDriver.cleanup(driver,request))
+    path.write_bytes(b'invalid image')
+    with self.assertRaises(sending.PreparationError) as invalid:NativeDriver.prepare(driver,request)
+    self.assertTrue(invalid.exception.clean)
+    self.assertTrue(NativeDriver.cleanup(driver,request))
+    begin.assert_not_called()
+    driver._select.assert_not_called()
+    driver.ui.assert_not_called()
+    Image.new('RGB',(16,16),'red').save(path)
+    driver.assets.get.return_value['bytes']=path.stat().st_size
+    with self.assertRaisesRegex(AssertionError,'Animated input reached chat navigation'):
+     NativeDriver.prepare(driver,request)
+    begin.assert_called_once_with(driver,request)
+    driver._select.assert_called_once_with(request)
+
 class DraftTests(unittest.TestCase):
  def test_only_losslessly_plain_text_can_be_parked(self):
   composer.validate_plain('保留的草稿',{'text/plain'},'',False,False)

@@ -37,6 +37,18 @@ class ToolsTests(unittest.TestCase):
         r=self.tool.handle({'action':'voice','peer':'other','server_id':'124'})
         self.assertEqual(r['serverId'],'124');self.assertEqual(r['sha256'],hashlib.sha256(b'#!SILK_V3voice').hexdigest())
         with self.assertRaises(ValueError):self.tool.handle({'action':'voice','peer':'owner','server_id':'124'})
+    def test_read_native_sticker_keeps_sender_asset_and_receipt_status_together(self):
+        self.msg.execute('alter table '+self.table+' add column status integer')
+        raw = '<msg><emoji md5="' + 'a' * 32 + '" cdnurl="https://example.invalid/opaque"/></msg>'
+        self.msg.execute('insert into '+self.table+' values(8,125,47,2,102,1020,?,2)', (raw,))
+        request = {'action':'messages','peer':'other','server_ids':['125']}
+        row = self.tool.handle(request)['messages'][0]
+        self.assertEqual((row['kind'], row['senderId'], row['serverId']), (47, 'small', '125'))
+        self.assertEqual(row['sticker'], {'md5':'a' * 32})
+        self.assertEqual(row['nativeStatus'], 2)
+        self.assertEqual(row['text'], '')
+        self.msg.execute('insert into '+self.table+' values(9,125,47,2,102,1020,?,2)', (raw,))
+        self.assertNotIn('sticker', self.tool.handle(request)['messages'][0])
     def test_no_unbounded_account_scan(self):
         with self.assertRaises(ValueError):self.tool.handle({'action':'sessions'})
         with self.assertRaises(ValueError):self.tool.handle({'action':'messages','peer':'other','start':1,'end':999999999,'limit':10})

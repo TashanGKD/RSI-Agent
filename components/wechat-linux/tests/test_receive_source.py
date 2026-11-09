@@ -27,6 +27,21 @@ class SourceTests(unittest.TestCase):
     def test_capture_survives_native_row_removal_before_ack(self):
         self.row(1,100);b=self.n.read();self.native.execute('delete from Msg_pair');self.native.commit()
         self.assertEqual(self.n.read(),b)
+    def test_sticker_identity_is_frozen_with_the_original_batch(self):
+        md5 = 'a' * 32
+        raw = f'<msg><emoji md5="{md5.upper()}" cdnurl="https://example.invalid/opaque"/></msg>'
+        self.native.execute('insert into Msg_pair values(1,100,47,1,100,1000,?)', (raw,))
+        self.native.commit()
+        batch = self.n.read()
+        event = batch['events'][0]
+        self.assertEqual(event['sticker'], {'md5': md5})
+        self.assertEqual(event['text'], '')
+        self.assertNotIn('opaque', json.dumps(batch))
+        self.native.execute('update Msg_pair set message_content=?', (raw.replace(md5.upper(), 'b' * 32),))
+        self.native.commit()
+        self.assertEqual(self.n.read(), batch)
+        self.ack(batch)
+        self.assertEqual(self.n.read()['events'], [])
     def test_zero_identity_is_not_exported_or_acknowledged(self):
         self.row(1,0);self.assertEqual(self.n.read()['events'],[])
         self.assertEqual(self.n.read()['provisional'][0]['local_id'],1)

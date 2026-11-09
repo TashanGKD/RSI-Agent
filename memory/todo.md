@@ -23,11 +23,12 @@ as candidates rather than silently expanding the active task.
 4. **Persistent task events.** Improve the original Codex delivery and completion
    contract before adding another trigger integration. A successful queue
    receipt, a visible user item and a native send are distinct stages.
-5. **Dafeiyu native WeChat output.** The library/native search/actual GIF are
-   prepared. Issue #26 freezes the static-carrier animation loss; do not repeat
-   that probe. Add the original-request asset/recipient/V2 path and native carrier, keeping
-   moderate reactions in the already-authorized owner/groups. Web Markdown is
-   not a send receipt; no periodic probe or other-recipient test is authorized.
+5. **Dafeiyu native WeChat output.** Issue #26 records native search, one
+   authorized kind-47 send and saving the same animated sticker. The reader
+   returns a source-bound sticker MD5 and native status. New SourceInbox
+   batches bind the MD5 to the original message before ACK. Next verify the
+   favorite-to-asset selection without sending, then bind it to one original
+   V2 effect. Keep text replies and uncertain sends on their existing paths.
 6. **Group/semantic memory after the private lifecycle.** Keep native identities
    and peer stores separate; no raw Codex mirror, automatic profiling or nickname
    authority. Do not relabel named lookup as semantic retrieval or a full plugin.

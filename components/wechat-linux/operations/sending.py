@@ -1,6 +1,7 @@
 """One programmatic prepare/commit/finalize path for text, image and file sends."""
 import hashlib,time,os
-from . import composer
+from pathlib import Path
+from . import composer,navigation
 from .runtime import BeforeEffect
 from .recipes import PreparationError
 from .navigation import header_key
@@ -64,6 +65,19 @@ def prepare(driver,j):
  from .recipes import main_window
  from .driver import preview_context
  from .visual import attachment_box
+ asset=None
+ if j['action']=='send_image':
+  from .assets import validate_image
+  try:
+   asset=driver.assets.get(j['client'],j['payload']['asset'])
+   if asset['bytes']>10000000:raise ValueError('Clipboard image byte budget exceeded.')
+   data=Path(asset['path']).read_bytes()
+   animated=validate_image(data)
+  except (OSError,ValueError) as e:
+   raise PreparationError('SEND_PREPARATION_FAILED','The image could not be prepared before navigation.') from e
+  if animated:
+   raise PreparationError('ANIMATED_IMAGE_UNSUPPORTED','The image draft transport supports one frame.')
+ if j['action'] in navigation.BASIC:navigation.begin(driver,j)
  driver._select(j);window=main_window(driver);windows=scene(driver,j)
  try:ui=driver.ui(j['peer'])
  except ValueError:raise PreparationError('RECIPIENT_NOT_VERIFIED','Target changed before input; no composer was modified.') from None
@@ -74,16 +88,13 @@ def prepare(driver,j):
    from .fast import binding_identity
    versions=driver.fast_versions(j)
    if versions['bindingIdentitySHA256']!=binding_identity(ui.cfg):raise BeforeEffect('session identity differs from current registration')
-  phase='park-draft';parked=composer.park(driver,j,ui,window);asset=None;file_selection=None
+  phase='park-draft';parked=composer.park(driver,j,ui,window);file_selection=None
   if j['action']=='send_text':
    phase='stage-text';ui.stage(j['payload']['text'],None)
   elif j['action']=='send_image':
-   from .assets import validate_image
    from . import image_draft
    from gi.repository import GdkPixbuf
-   phase='image-source';asset=driver.assets.get(j['client'],j['payload']['asset'])
-   if asset['bytes']>10000000:raise BeforeEffect('clipboard image byte budget unchanged')
-   data=__import__('pathlib').Path(asset['path']).read_bytes();validate_image(data);loader=GdkPixbuf.PixbufLoader.new();loader.write(data);loader.close()
+   phase='image-source';loader=GdkPixbuf.PixbufLoader.new();loader.write(data);loader.close()
    identity=image_draft.pixel_identity(loader.get_pixbuf())
    # Record ownership before paste, so failure before preview can still be cleaned.
    parked.update(state='image-paste-pending',imageIdentity=identity,imageAssetSHA256=asset['sha256']);composer.save(driver.root,j,parked)
