@@ -16,6 +16,10 @@ class PublicationPending(ModelError):
     """The original Codex request is waiting for completion or transport."""
 
 
+class OriginalReview(ModelError):
+    """The worker retained the original request for review instead of retrying."""
+
+
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, *args, **kwargs):
         return None

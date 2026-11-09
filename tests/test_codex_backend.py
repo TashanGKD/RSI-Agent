@@ -249,6 +249,50 @@ class CodexBackendTests(unittest.TestCase):
         self.assertEqual(loop.cycle()['state'], 'sent');self.assertEqual(loop.cycle()['state'], 'idle')
         self.assertEqual([s['text'] for s in sends], ['这条从专用会话回复'])
 
+    def test_group_model_review_releases_only_the_original_batch(self):
+        from rsi_agent.group_reply import GroupLoop
+        group = {'account': 'self', 'peer': 'group@chatroom', 'owner_peer': 'owner',
+                 'name': 'Fixture group', 'scope': {'mode': 'invited-group-text', 'since': 100, 'introduction': False}}
+        event = {'account': 'self', 'peer': 'group@chatroom', 'sender': 'member',
+                 'sender_name': 'Member', 'mentioned': True, 'kind': 1, 'created': 120,
+                 'server_id': 44, 'text': 'Original question'}
+        events = [event]
+        sends = []
+        def native(value):
+            if value['op'] == 'read':
+                return {'events': events}
+            if value['op'] == 'submit':
+                sends.append(value['server_id'])
+                return {'state': 'succeeded', 'outcome': 'sent'}
+            raise AssertionError('Unexpected native action')
+        loop = GroupLoop(self.root / 'group-inbox.sqlite', group, self.backend, native)
+        self.addCleanup(loop.close)
+        with self.assertRaises(PublicationPending):
+            loop.cycle()
+        original_key = self.backend.last_input_key
+        original_packet = self.jobs.get(original_key)['body']
+        events.append(dict(event, server_id=45, created=121, text='Later question'))
+        with self.assertRaises(PublicationPending):
+            loop.cycle()
+        self.assertEqual(loop.value('model_batch'), '["44"]')
+        self.jobs.update(original_key, state='review')
+        self.assertEqual(loop.cycle()['state'], 'model_review')
+        self.assertIsNone(loop.value('model_batch'))
+        self.assertEqual(loop.counts(), {'model_review': 1, 'new': 1})
+        with self.assertRaises(PublicationPending):
+            loop.cycle()
+        later_key = self.backend.last_input_key
+        self.assertNotEqual(later_key, original_key)
+        self.assertEqual(json.loads(self.jobs.get(later_key)['body'])['request'], ['45'])
+        self.jobs.update(later_key, state='completed',
+                         result='{"speak":true,"text":"Later answer","work_index":null}')
+        self.assertEqual(loop.cycle()['state'], 'pending')
+        self.assertEqual(loop.cycle()['state'], 'sent')
+        self.assertEqual(loop.cycle()['state'], 'idle')
+        self.assertEqual(sends, ['45'])
+        self.assertEqual(self.jobs.get(original_key)['body'], original_packet)
+        self.assertEqual(self.jobs.get(original_key)['state'], 'review')
+
     def test_native_group_schema_keeps_original_work_index_and_image(self):
         self.backend.bind('self', 'group@chatroom');self.backend.use_request(['44', '45'])
         image = 'data:image/png;base64,' + base64.b64encode(b'fixture').decode()

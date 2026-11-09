@@ -10,7 +10,7 @@ import time
 
 from .group_context import FACTS, GroupTransport, group_configs
 from .group_io import INTRODUCTION
-from .model import ModelError, PublicationPending
+from .model import ModelError, OriginalReview, PublicationPending
 from .owner_reply import ReplyLoop
 from .media import image_part, MediaPending, MediaUnavailable
 from .link_reader import linked_pages
@@ -210,8 +210,16 @@ class GroupLoop(ReplyLoop):
                         self.db.execute("DELETE FROM participation WHERE k='model_batch'")
                 if decision is False:
                     return {'state': 'quiet', 'counts': self.counts()}
-        result = self.model.complete([{'role': 'system', 'content': system}, {'role': 'user',
-            'content': [{'type': 'text', 'text': data}, *images] if images else data}], json_output=True)
+        try:
+            result = self.model.complete([{'role': 'system', 'content': system}, {'role': 'user',
+                'content': [{'type': 'text', 'text': data}, *images] if images else data}], json_output=True)
+        except OriginalReview:
+            # Initial chat admission has no native send or engineering effect.
+            with self.db:
+                self.db.executemany("UPDATE inbox SET state='model_review' WHERE id=? AND state='new'",
+                                    [(row['id'],) for row in rows])
+                self.db.execute("DELETE FROM participation WHERE k='model_batch'")
+            return {'state': 'model_review', 'counts': self.counts()}
         decision = json.loads(result['message']['content'])
         expected = {'speak', 'text', 'work_index'} if engineering else {'speak', 'text'}
         work = decision.get('work_index')
