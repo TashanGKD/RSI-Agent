@@ -81,6 +81,19 @@ class GroupFailureRecoveryTests(unittest.TestCase):
         return loop
 
     def test_clean_terminal_failure_preserves_original_and_resumes_new_input(self):
+        self.assert_intake_resumes_without_resending_original()
+
+    def test_restored_preparation_attention_resumes_new_input(self):
+        self.api.s.c.execute("DELETE FROM events WHERE job_id=? AND state='failed'", (self.key,))
+        self.api.s.set_state(self.key, 'needs_attention', {'reason': 'preparation_failed'})
+        recovery = dict(self.failure, code='NAVIGATION_PREPARATION_FAILED', automaticReplay=False)
+        self.api.s.set_state(self.key, 'failed', recovery)
+        self.assertFalse(self.status()['recoverable_preinput_failure'])
+        self.api.s.c.execute('UPDATE jobs SET result=? WHERE id=?',
+            (json.dumps(dict(recovery, navigationRestored=True)), self.key))
+        self.assert_intake_resumes_without_resending_original()
+
+    def assert_intake_resumes_without_resending_original(self):
         loop = self.loop()
         before = self.job()
         self.assertEqual(loop.cycle()['state'], 'failed')
