@@ -226,8 +226,10 @@ do not replay completed background work or replace its request IDs.
 Keep the native failure, original cached reply and ACK. Release only its group
 consumer attention when read-only exact-original lookup proves failed/noSend,
 sideEffectStarted=false, no preview or confirmation/execution, no input artifacts,
-identity-bound settled navigation and a matching cached-reply digest. Missing or
-uncertain proof remains attention. Transition the consumer to failed; a later
+identity-bound settled navigation and a matching cached-reply digest. An earlier
+preparation attention event can also settle when the terminal receipt explicitly
+proves navigation restoration and disables replay. Missing or uncertain proof
+remains attention. Transition the consumer to failed; a later
 cycle reads new input, never resubmits the old reply. This lifecycle recovery is
 not a fix or acceptance of the original recipient selector, and says nothing
 about another active request's cleanup or send result.

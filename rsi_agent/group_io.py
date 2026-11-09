@@ -185,7 +185,11 @@ def failed_before_input(store, job):
         return False
     events = [row[0] for row in store.c.execute('SELECT state FROM events WHERE job_id=? ORDER BY seq', (job['id'],))]
     if events != ['queued', 'preparing', 'failed']:
-        return False
+        if (events != ['queued', 'preparing', 'needs_attention', 'failed']
+                or result.get('code') != 'NAVIGATION_PREPARATION_FAILED'
+                or result.get('navigationRestored') is not True
+                or result.get('automaticReplay') is not False):
+            return False
     journal = navigation.path(store.root, job)
     if any(path != journal for path in store.root.glob(job['id'] + '-*')):
         return False
