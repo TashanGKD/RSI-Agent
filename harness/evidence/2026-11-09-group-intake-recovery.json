@@ -1,0 +1,28 @@
+{
+  "user_path": "a group can receive new input after its original reply demonstrably failed before input",
+  "hypothesis": "consumer attention survives a clean native terminal failure and prevents every later read",
+  "frozen_native_facts": {
+    "events": ["queued", "preparing", "failed"],
+    "state": "failed",
+    "code": "SEARCH_SELECTION_UNPROVEN",
+    "noSend": true,
+    "sideEffectStarted": false,
+    "preview": null,
+    "navigation": "settled",
+    "input_artifacts": []
+  },
+  "baseline": "the frozen user-path assertion fails: attention instead of failed; later read never runs",
+  "candidate": "read-only exact-original status and cache digest -> consumer failed -> restart -> new input -> only new reply submitted",
+  "modules": ["rsi_agent/group_io.py:handle", "rsi_agent/group_io.py:failed_before_input", "rsi_agent/group_reply.py:GroupLoop.cycle"],
+  "fixture": "tests/test_group_failure_recovery.py:GroupFailureRecoveryTests",
+  "directed_linux": "passed as dedicated unprivileged user, with group reply regressions",
+  "full_linux_gate": "python -B scripts/check.py --linux passed",
+  "negative_proofs": ["unknown/attention", "noSend false", "side effect started", "cleanup debt", "missing/unsettled navigation", "preview/confirmed", "input or extra artifact", "changed cache or journal identity"],
+  "limits": {
+    "recipient_selector_repaired": false,
+    "code_publication_and_resident_activation": "candidate; read live PR receipt",
+    "fresh_native_group_send_after_recovery": "not yet observed",
+    "unrelated_image_export_attention": "retained; no cleanup or retry authorized by this proof",
+    "rsi_gain_claimed": false
+  }
+}

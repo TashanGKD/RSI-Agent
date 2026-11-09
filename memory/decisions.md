@@ -220,3 +220,14 @@ requeue. A copied visible header/link alone is not authority. Verify the private
 original before tools, freeze one completion, and let the existing original V2
 sender deliver it. Pending desktop tasks keep their completion API across rollout;
 do not replay completed background work or replace its request IDs.
+
+## D021 — A clean pre-input failure does not retry, but need not stop intake
+
+Keep the native failure, original cached reply and ACK. Release only its group
+consumer attention when read-only exact-original lookup proves failed/noSend,
+sideEffectStarted=false, no preview or confirmation/execution, no input artifacts,
+identity-bound settled navigation and a matching cached-reply digest. Missing or
+uncertain proof remains attention. Transition the consumer to failed; a later
+cycle reads new input, never resubmits the old reply. This lifecycle recovery is
+not a fix or acceptance of the original recipient selector, and says nothing
+about another active request's cleanup or send result.
