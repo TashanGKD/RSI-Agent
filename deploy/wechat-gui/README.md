@@ -4,6 +4,36 @@
 定义也在 `/run`。这些定义不能跨主机启动保留。仅把现有命令复制到 `/etc`
 仍缺少 `/run/wechat-gui` 和 Xauthority 的启动初始化。
 
+## 最小 Linux 的首次启动
+
+新环境的底包只包含 Linux 用户空间、图形和触发器依赖。创建普通用户
+`wechat-gui` 后，启动授权的 X11 显示并设置 `DISPLAY`、`XAUTHORITY` 和
+`XDG_RUNTIME_DIR`。最后在该环境中以 root 运行首次启动入口。
+
+```sh
+/bin/sh deploy/wechat-gui/start-official-client.sh
+```
+
+入口在首次启动时从腾讯下载 amd64 微信 4.1.13.26，核对固定 SHA-256 后安装，
+再用 `wechat-gui` 用户启动窗口管理器和微信。已有可用安装会直接启动。在 WSL
+的标准挂载路径上优先用 Windows `curl.exe` 下载。也可设置 `RSI_WECHAT_DEB` 指向
+已取得的官方安装包，仍需通过相同的哈希校验。腾讯更新固定下载地址的内容后，
+维护者需要核验新版本并更新脚本中的哈希。[首次启动入口](start-official-client.sh)
+
+安装前准备 `curl`、`ca-certificates`、`dpkg`、`util-linux`、
+`dbus-x11`、`openbox`、`fonts-noto-cjk` 及客户端图形依赖。用于 RSI
+触发器时还需 Python、PyCryptodome 3.23.0、Pillow、GTK 3、X11 查询工具和
+中英文 Tesseract 数据。官方 x86_64 客户端的安装包为 221.12 MiB。
+[腾讯下载地址](https://dldir1.qq.com/weixin/Universal/Linux/WeChatLinux_x86_64.deb)
+
+在 Windows 的 WSL 2 上，Debian 13 slim amd64 是本次两套实测底座中较小的
+一套。官方基础层为 28.47 MiB，加入上述图形和识别依赖的实验根文件系统为
+约 679 MiB，安装客户端后约 1.40 GiB。Ubuntu Base 24.04 对应为 28.64 MiB、
+约 686 MiB 和约 1.41 GiB。基础层是压缩下载量，后两项是 Linux 内文件的
+磁盘占用。两套均在 Xvfb 打开了未登录微信窗口，验证了包校验和后续复用。
+Windows 可用 WSL 2 导入自己的根文件系统。
+[微软 WSL 导入说明](https://learn.microsoft.com/windows/wsl/use-custom-distro)
+
 本目录提供六个 systemd 定义、普通微信启动脚本和私有运行目录初始化工具。
 假设是：在空运行目录中先创建授权，再等待真实 X/VNC 就绪，才能启动依赖的
 桌面和网页通道。隔离测试要求有效授权能访问 X、无授权不能访问、VNC Unix
