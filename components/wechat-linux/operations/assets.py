@@ -135,12 +135,14 @@ class Assets:
   return dict(x,path=str(p))
 
 def validate_image(data,*,encoded_byte_limit=None):
- """Use installed decoder support and actual resources, not business quotas."""
+ """Validate the image and report whether it contains multiple frames."""
  if not isinstance(data,bytes) or not data:raise ValueError('actual image bytes required')
  from PIL import Image
  Image.MAX_IMAGE_PIXELS=None
  try:
   with Image.open(io.BytesIO(data)) as image:
    image.verify()
-  with Image.open(io.BytesIO(data)) as image:image.load()
+  with Image.open(io.BytesIO(data)) as image:
+   image.load()
+   return bool(getattr(image,'is_animated',False))
  except Exception:raise ValueError('image is not readable by the installed decoder') from None

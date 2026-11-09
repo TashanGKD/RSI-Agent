@@ -3,6 +3,27 @@ import unittest,tempfile,io,hashlib
 from pathlib import Path
 from PIL import Image,ImageDraw
 from operations import composer,sending
+class ImagePreparationTests(unittest.TestCase):
+ def test_animated_asset_is_rejected_before_opening_chat(self):
+  from unittest.mock import Mock
+  with tempfile.TemporaryDirectory() as td:
+   path=Path(td)/'animated.gif'
+   Image.new('RGB',(16,16),'red').save(path,save_all=True,
+      append_images=[Image.new('RGB',(16,16),'green')],duration=[120,180],loop=0)
+   driver=Mock()
+   driver._select.side_effect=AssertionError('Animated input reached chat navigation')
+   driver.assets.get.return_value={'path':str(path),'bytes':path.stat().st_size}
+   request={'action':'send_image','client':'fixture','peer':'fixture','payload':{'asset':'a'*64}}
+   with self.assertRaises(sending.PreparationError) as result:sending.prepare(driver,request)
+   self.assertEqual(result.exception.code,'ANIMATED_IMAGE_UNSUPPORTED')
+   driver._select.assert_not_called()
+   driver.ui.assert_not_called()
+   Image.new('RGB',(16,16),'red').save(path)
+   driver.assets.get.return_value['bytes']=path.stat().st_size
+   with self.assertRaisesRegex(AssertionError,'Animated input reached chat navigation'):
+    sending.prepare(driver,request)
+   driver._select.assert_called_once_with(request)
+
 class DraftTests(unittest.TestCase):
  def test_only_losslessly_plain_text_can_be_parked(self):
   composer.validate_plain('保留的草稿',{'text/plain'},'',False,False)
