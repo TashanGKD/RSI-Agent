@@ -3,6 +3,70 @@ from pathlib import Path
 import image_client
 
 class ClientImageTests(unittest.TestCase):
+    def rejected_viewer(self, changed=False, foreign=False):
+        from contextlib import contextmanager
+        from unittest.mock import Mock,patch
+        from PIL import Image
+        viewer={'id':'0x4000d0','title':'Photos and Videos','x':280,'y':31,'width':827,'height':1181}
+        identity={'class':['wechat','wechat'],'pid':1234,'leader':'0x400009','transientFor':None,
+                  'types':['_NET_WM_WINDOW_TYPE_NORMAL']}
+        class Control:
+            def __init__(self):self.open=False;self.clicks=[];self.keys=[]
+            def one(self,title,optional=False):
+                if title=='Photos and Videos':return viewer if self.open else None
+                if title=='Weixin':return {'id':'0x400011','title':'Weixin'}
+                return None
+            def click(self,*point):
+                self.clicks.append(point)
+                if len(self.clicks)==2:self.open=True
+            def focus(self,w):pass
+            def require_focus(self,w):pass
+            def wait(self,ms):pass
+            def close(self):pass
+            def key(self,key):
+                self.keys.append(key)
+                if key==0xff1b:self.open=False
+        control=Control();selected=Mock();im=Image.new('RGB',(1387,1244),'white')
+        selected.screenshot.return_value=im
+        box=[0,0,600,450]
+        request={'action':'image','point':[200,250],'context_sha256':hashlib.sha256(im.crop(box).tobytes()).hexdigest()}
+        @contextmanager
+        def held(_):yield lambda:None
+        def window_identity(w):
+            # The first lookup freezes the created viewer. A later changed
+            # native process must not be closed under the original ownership.
+            if w==viewer:
+                window_identity.calls+=1
+                if foreign:return dict(identity,pid=9999)
+                if changed and window_identity.calls>2:return dict(identity,pid=9999)
+            return identity
+        window_identity.calls=0
+        with tempfile.TemporaryDirectory() as td,patch('linux_tool.ROOT',Path(td)), \
+                patch('image_client.source',return_value=({'username':'fixture@chatroom'},{})), \
+                patch('image_client.locked',held),patch('image_client.Controls',return_value=control), \
+                patch('image_client.viewport',return_value=box), \
+                patch('operations.windows.window_identity',side_effect=window_identity), \
+                patch('operations.lease.birth',return_value='fixture-birth'):
+            with self.assertRaisesRegex(ValueError,'official viewer process' if foreign else 'not a calibrated inactive layout'):
+                image_client.dispatch(Mock(),request,ui=selected)
+        return control
+
+    def test_unknown_save_toolbar_closes_only_original_viewer_without_toolbar_click(self):
+        control=self.rejected_viewer()
+        self.assertFalse(control.open)
+        self.assertEqual(control.keys,[0xff1b])
+        self.assertEqual(control.clicks,[(200,250),(200,250)])
+
+    def test_changed_viewer_process_is_left_protected(self):
+        control=self.rejected_viewer(changed=True)
+        self.assertTrue(control.open)
+        self.assertEqual(control.keys,[])
+
+    def test_foreign_viewer_process_is_not_cleanup_authority(self):
+        control=self.rejected_viewer(foreign=True)
+        self.assertTrue(control.open)
+        self.assertEqual(control.keys,[])
+
     def test_converted_official_file_requires_exact_native_filename(self):
         import io
         from PIL import Image

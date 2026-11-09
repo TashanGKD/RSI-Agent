@@ -1,0 +1,26 @@
+{
+  "user_path": "a rejected image read must not leave both groups blocked behind its viewer",
+  "native_observation": {
+    "original_state": "needs_attention",
+    "action": "save_attachment",
+    "events": ["queued", "preparing", "awaiting_confirmation", "authorized-image-input", "confirmed", "executing", "needs_attention"],
+    "navigation": "started",
+    "only_extra_window": "Photos and Videos in the original official process",
+    "read_only_toolbar_check": "current Save/QR toolbar is not a calibrated inactive layout",
+    "native_bytes_accepted": false
+  },
+  "baseline": "dispatch rejects the unknown Save toolbar and leaves its original viewer open; original cleanup cannot match the pre-read window set",
+  "candidate": "retain source/toolbar rejection; guarded Escape closes only the same original viewer, same native host/process birth, without a toolbar coordinate",
+  "modules": ["components/secretary-workbench/wechat/image_client.py:dispatch", "operations/images.py:clean", "operations/runtime.py:Executor.step"],
+  "fixture": "components/secretary-workbench/wechat/tests/test_image_client.py:ClientImageTests.test_unknown_save_toolbar_closes_only_original_viewer_without_toolbar_click",
+  "directed_linux": "baseline fails and candidate passes; changed or foreign viewer process stays protected",
+  "full_linux_gate": "read actual gate log and PR receipt",
+  "limits": {
+    "unknown_toolbar_accepted_for_export": false,
+    "native_asset_identity_relaxed": false,
+    "original_image_reexported": false,
+    "code_publication_resident_activation_and_original_recovery": "candidate; read live delivery receipt",
+    "native_group_send_restored": "requires original/native receipts after recovery",
+    "rsi_gain_claimed": false
+  }
+}

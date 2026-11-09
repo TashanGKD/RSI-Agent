@@ -3,12 +3,19 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-1. **Clean native failure -> future group intake: current WIP.** Freeze the
+1. **Rejected image viewer -> group queue recovery: current WIP.** The original
+   read rejected an uncalibrated Save toolbar and left its own viewer open,
+   blocking both groups. Keep source validation; close only the same original
+   viewer with guarded Escape, then prove owned navigation cleanup. Normal CI,
+   reversible release and original recovery precede resumed native delivery.
+   No image re-export, old reply regeneration or client restart. Preserve all
+   original queued requests and verify both groups' actual results.
+   **Clean native failure -> future intake is delivered in PR #31.** Freeze the
    original failed/noSend pre-input record and settled navigation. Read only
    that original; retain its body/cache/ACK/failure while allowing future intake,
    without replaying the old selection or send. Unknown/input/cleanup evidence
-   stays attention. Baseline/candidate and restart paths are reproduced;
-   review, CI, release and installed original-path recovery remain separate.
+   stays attention. Baseline/candidate, release and installed original-path
+   recovery are verified in its live receipt; do not reopen the old candidate.
    A separate image-export attention cannot use this proof or be silently cleared.
    **Visible owner task handoff is delivered in PR #30.** Its original local CLI
    fixture became one real user item; genuine new owner task -> visible execution
