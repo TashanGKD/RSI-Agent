@@ -10,9 +10,9 @@ import unittest
 from unittest.mock import Mock, patch
 
 from rsi_agent.config import WORKBENCH
-from rsi_agent.group_admission import catalog, put, refresh
-from rsi_agent.group_context import group_configs
-from rsi_agent.group_reply import sync_groups, run
+from trigger.group_admission import catalog, put, refresh
+from trigger.group_context import group_configs
+from trigger.group_reply import sync_groups, run
 
 
 @unittest.skipUnless(sys.platform == 'linux', 'native Linux ownership and worker locks')
@@ -45,7 +45,7 @@ class AdmissionTests(unittest.TestCase):
     def refresh(self):
         response = types.SimpleNamespace(returncode=0, stdout=json.dumps(self.snapshot))
         identity = types.SimpleNamespace(pw_uid=os.getuid(), pw_gid=os.getgid())
-        with patch('rsi_agent.group_admission.subprocess.run', return_value=response), \
+        with patch('trigger.group_admission.subprocess.run', return_value=response), \
                 patch('pwd.getpwnam', return_value=identity):
             return refresh(self.registry)
 
@@ -75,7 +75,7 @@ class AdmissionTests(unittest.TestCase):
     def test_no_policy_does_not_probe_or_change_the_existing_registry(self):
         (self.root / 'admission.json').unlink()
         before = self.registry.read_bytes()
-        with patch('rsi_agent.group_admission.subprocess.run') as native:
+        with patch('trigger.group_admission.subprocess.run') as native:
             self.assertIsNone(refresh(self.registry))
             native.assert_not_called()
         self.assertEqual(before, self.registry.read_bytes())
@@ -106,7 +106,7 @@ class AdmissionTests(unittest.TestCase):
             yield db, {'consistency': 'committed', 'gap': False}
         who = {'account': 'self', 'owner_peer': 'owner', 'reply_model_binding': 'fixture'}
         with patch.dict(sys.modules, {'linux_tool': types.SimpleNamespace(native=native)}), \
-                patch('rsi_agent.reply_io.binding', return_value=who), patch.dict(os.environ):
+                patch('trigger.reply_io.binding', return_value=who), patch.dict(os.environ):
             snapshot = catalog(self.root / 'installation.json', 'unused-private-binding')
         groups = {g['peer']: g for g in snapshot['groups']}
         self.assertTrue(groups['good@chatroom']['owner_present'])
@@ -159,8 +159,8 @@ class AdmissionTests(unittest.TestCase):
             name = config['name']
             return Mock(return_value={'account': 'self', 'peer': name + '@chatroom', 'name': name,
                 'scope': {'mode': 'invited-group-text', 'since': 100, 'introduction': False}, 'enabled': True})
-        with patch('rsi_agent.backend.load_model', return_value=Mock(backend='fixture')), \
-                patch('rsi_agent.group_reply.GroupTransport', side_effect=transport):
+        with patch('trigger.backend.load_model', return_value=Mock(backend='fixture')), \
+                patch('trigger.group_reply.GroupTransport', side_effect=transport):
             sync_groups(workers, configs[:1])
             first = workers[configs[0]['state']][1]
             with first.db:
@@ -192,13 +192,13 @@ class AdmissionTests(unittest.TestCase):
             sleeps.append(1)
             if len(sleeps) >= 12:
                 handlers[__import__('signal').SIGTERM]()
-        with patch('rsi_agent.group_reply.group_configs', side_effect=lambda _: desired[:]), \
-                patch('rsi_agent.group_reply.GroupLoop', side_effect=make_loop), \
-                patch('rsi_agent.group_reply.GroupTransport', side_effect=lambda c: Mock(return_value=dict(c, enabled=True))), \
-                patch('rsi_agent.backend.load_model', return_value=types.SimpleNamespace(backend='fixture', model='fixture')), \
-                patch('rsi_agent.group_admission.refresh'), \
-                patch('rsi_agent.group_reply.signal.signal', side_effect=lambda sig, fn: handlers.update({sig: fn})), \
-                patch('rsi_agent.group_reply.time.sleep', side_effect=sleep):
+        with patch('trigger.group_reply.group_configs', side_effect=lambda _: desired[:]), \
+                patch('trigger.group_reply.GroupLoop', side_effect=make_loop), \
+                patch('trigger.group_reply.GroupTransport', side_effect=lambda c: Mock(return_value=dict(c, enabled=True))), \
+                patch('trigger.backend.load_model', return_value=types.SimpleNamespace(backend='fixture', model='fixture')), \
+                patch('trigger.group_admission.refresh'), \
+                patch('trigger.group_reply.signal.signal', side_effect=lambda sig, fn: handlers.update({sig: fn})), \
+                patch('trigger.group_reply.time.sleep', side_effect=sleep):
             self.assertEqual(run(str(self.registry), 'run')['state'], 'stopped')
         self.assertEqual(handled, ['a', 'a', 'b'])
 

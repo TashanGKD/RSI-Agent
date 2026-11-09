@@ -9,7 +9,7 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-from rsi_agent.link_reader import content, fetch, linked_pages, shared_link, urls
+from trigger.link_reader import content, fetch, linked_pages, shared_link, urls
 from rsi_agent.config import WORKBENCH
 
 
@@ -42,18 +42,18 @@ class LinkReaderTests(unittest.TestCase):
         self.assertEqual(urls('http://mp.weixin.qq.com/s/fixture'), ['https://mp.weixin.qq.com/s/fixture'])
 
     def test_private_network_resolution_is_refused_before_connection(self):
-        with patch('rsi_agent.link_reader.socket.getaddrinfo', return_value=[(2, 1, 6, '', ('127.0.0.1', 443))]), \
-                patch('rsi_agent.link_reader.http.client.HTTPSConnection') as connection:
+        with patch('trigger.link_reader.socket.getaddrinfo', return_value=[(2, 1, 6, '', ('127.0.0.1', 443))]), \
+                patch('trigger.link_reader.http.client.HTTPSConnection') as connection:
             self.assertEqual(fetch('https://example.com/article')['state'], 'unavailable')
         connection.assert_not_called()
 
     def test_public_address_is_pinned_and_redirects_are_not_followed(self):
         connection = Mock()
         connection.getresponse.return_value.status = 302
-        with patch('rsi_agent.link_reader.socket.getaddrinfo', return_value=[(2, 1, 6, '', ('93.184.216.34', 443))]), \
-                patch('rsi_agent.link_reader.http.client.HTTPSConnection', return_value=connection), \
-                patch('rsi_agent.link_reader.ssl.create_default_context'), \
-                patch('rsi_agent.link_reader.socket.create_connection') as connect:
+        with patch('trigger.link_reader.socket.getaddrinfo', return_value=[(2, 1, 6, '', ('93.184.216.34', 443))]), \
+                patch('trigger.link_reader.http.client.HTTPSConnection', return_value=connection), \
+                patch('trigger.link_reader.ssl.create_default_context'), \
+                patch('trigger.link_reader.socket.create_connection') as connect:
             result = fetch('https://example.com/article')
         self.assertEqual(result['code'], 'HTTP_302')
         self.assertEqual(connect.call_args.args[0], ('93.184.216.34', 443))
@@ -64,7 +64,7 @@ class LinkReaderTests(unittest.TestCase):
 
     def test_original_read_is_cached_before_model_retry_or_restart(self):
         page = {'state': 'ready', 'url': 'https://example.com/a', 'text': 'Original fetched body'}
-        with tempfile.TemporaryDirectory() as folder, patch('rsi_agent.link_reader.subprocess.run',
+        with tempfile.TemporaryDirectory() as folder, patch('trigger.link_reader.subprocess.run',
                 return_value=Mock(returncode=0, stdout=json.dumps(page))) as run:
             path = Path(folder) / 'cache.sqlite'
             db = sqlite3.connect(path)
@@ -76,7 +76,7 @@ class LinkReaderTests(unittest.TestCase):
         run.assert_called_once()
 
     def test_timeout_is_saved_as_unavailable_without_repeated_fetches(self):
-        with sqlite3.connect(':memory:') as db, patch('rsi_agent.link_reader.subprocess.run',
+        with sqlite3.connect(':memory:') as db, patch('trigger.link_reader.subprocess.run',
                 side_effect=subprocess.TimeoutExpired('reader', 20)) as run:
             first = linked_pages(db, 'native-id', 'https://example.com/a')
             self.assertEqual(first[0]['state'], 'unavailable')
@@ -87,7 +87,7 @@ class LinkReaderTests(unittest.TestCase):
 @unittest.skipUnless(sys.platform == 'linux', 'uses original native source receipts')
 class NativeOwnerLinkTests(unittest.TestCase):
     def test_native_link_metadata_survives_source_capture_and_ack(self):
-        from rsi_agent.reply_io import source
+        from trigger.reply_io import source
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             dbpath = root / 'native.sqlite'

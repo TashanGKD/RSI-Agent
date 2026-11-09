@@ -11,8 +11,8 @@ import urllib.request
 from urllib.parse import urlsplit
 import xml.etree.ElementTree as ET
 
-from .model import NoRedirect
-from .wechat import private_file
+from rsi_agent.model import NoRedirect
+from rsi_agent.wechat import private_file
 
 
 def descriptor(raw):

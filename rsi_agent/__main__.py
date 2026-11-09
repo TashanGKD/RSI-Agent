@@ -14,7 +14,7 @@ from .wechat import call, doctor
 def main(argv=None):
     parser = argparse.ArgumentParser(
         description='RSI Agent: connect authorized WeChat input to the local Codex receiver.',
-        epilog='Local Codex receiver: python -m rsi_agent.codex_worker --help.',
+        epilog='Local Codex receiver: python -m receiver.codex_worker --help.',
     )
     parser.add_argument('--version', action='version', version=__version__)
     parser.add_argument('--config', help='Private JSON configuration for the selected command.')
@@ -58,11 +58,11 @@ def main(argv=None):
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
     if args.command == 'replies':
-        from .owner_reply import run
+        from trigger.owner_reply import run
         print(json.dumps(run(args.config, args.mode), ensure_ascii=False))
         return 0
     if args.command == 'groups':
-        from .group_reply import run
+        from trigger.group_reply import run
         print(json.dumps(run(args.config, args.mode), ensure_ascii=False))
         return 0
     if args.command == 'services':

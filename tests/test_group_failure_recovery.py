@@ -8,8 +8,8 @@ import unittest
 from unittest.mock import Mock, patch
 
 from rsi_agent.config import WORKBENCH
-from rsi_agent.group_io import CLIENT, handle, token
-from rsi_agent.group_reply import GroupLoop
+from trigger.group_io import CLIENT, handle, token
+from trigger.group_reply import GroupLoop
 
 
 @unittest.skipUnless(sys.platform == 'linux', 'requires native private Linux state')
@@ -54,7 +54,7 @@ class GroupFailureRecoveryTests(unittest.TestCase):
         return self.api.s.by_id(self.key)
 
     def status(self):
-        with patch('rsi_agent.group_io.group_info', return_value=self.members):
+        with patch('trigger.group_io.group_info', return_value=self.members):
             return handle(self.installation, self.binding,
                 {'op': 'status', 'server_id': '1', '_binding': token(self.binding)})
 
@@ -164,7 +164,7 @@ class GroupFailureRecoveryTests(unittest.TestCase):
         before = snapshot()
         self.assertTrue(self.status()['recoverable_preinput_failure'])
         self.assertEqual(snapshot(), before)
-        with patch('rsi_agent.group_io.group_info', return_value=self.members):
+        with patch('trigger.group_io.group_info', return_value=self.members):
             with self.assertRaises(KeyError):
                 handle(self.installation, self.binding,
                     {'op': 'status', 'server_id': '99', '_binding': token(self.binding)})

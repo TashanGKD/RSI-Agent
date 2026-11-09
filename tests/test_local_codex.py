@@ -6,8 +6,8 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-from rsi_agent.owner_reply import ReplyLoop
-from rsi_agent.local_codex import handle, process
+from trigger.owner_reply import ReplyLoop
+from trigger.local_codex import handle, process
 
 
 @unittest.skipUnless(sys.platform == 'linux', 'private native-owner handoff')
@@ -133,7 +133,7 @@ class LocalCodexTests(unittest.TestCase):
         path = self.root / 'config.json'
         path.write_text(json.dumps({'state': str(self.root), 'enabled': True}))
         path.chmod(0o600)
-        with patch('rsi_agent.owner_reply.Transport', return_value=Mock(return_value=self.owner)):
+        with patch('trigger.owner_reply.Transport', return_value=Mock(return_value=self.owner)):
             self.assertEqual(handle(path, {'op': 'check'})['state'], 'enabled')
             self.owner['scope']['mode'] = 'one-message'
             with self.assertRaises(ValueError):

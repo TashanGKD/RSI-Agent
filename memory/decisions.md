@@ -261,5 +261,8 @@ desktop and V2 work. Review the live receipt for activation and real quiet cases
 The owner selected one repository for both core parts. The Linux trigger owns
 native admission, the original input and V2 delivery. The local receiver owns
 authenticated intake, desktop handoff and the frozen completion. Use the
-README as the current entrypoint and keep optional integrations and earlier
-experiments under their existing paths.
+README as the current entrypoint. Keep the Linux implementation in `trigger/`
+and the standalone desktop worker in `receiver/`, with the shared CLI under
+`rsi_agent/`. The imported components keep their pinned paths in `components/`.
+The local Codex and Dot MCP experiments have separate folders under
+`experiments/triggers/`.

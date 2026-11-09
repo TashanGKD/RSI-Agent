@@ -2,7 +2,7 @@
 import json
 from urllib.request import Request
 
-from .model import ModelClient
+from rsi_agent.model import ModelClient
 
 
 class GroupReplyGate(ModelClient):

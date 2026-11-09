@@ -8,17 +8,17 @@ import subprocess
 import sys
 import time
 
-from .config import ROOT
-from .model import ModelError, PublicationPending
+from rsi_agent.config import ROOT
+from rsi_agent.model import ModelError, PublicationPending
 from .media import image_part, pdf_part, MediaPending, MediaUnavailable
 from .link_reader import linked_pages
-from .wechat import private_file
+from rsi_agent.wechat import private_file
 from . import owner_memory
 from .local_codex import settings as codex_settings, instruction as codex_instruction, initialize as codex_initialize, enqueue as codex_enqueue
 
 
 class Transport:
-    module = 'rsi_agent.reply_io'
+    module = 'trigger.reply_io'
     def __init__(self, config):
         self.config = config
 

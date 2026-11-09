@@ -7,8 +7,11 @@ Codex conversation. The original V2 queue delivers eligible replies.
 
 ## Current configuration and operation
 
-Run `python -B -m rsi_agent.codex_worker --config /private/local-codex.json`
-on the computer with the signed-in Codex user. The installed per-user logon task
+Run `python -B -m receiver.codex_worker --config /private/local-codex.json`
+on the computer with the signed-in Codex user. The old `rsi_agent.codex_worker`
+module command still forwards to the receiver. For a standalone installation,
+copy [`receiver/codex_worker.py`](../receiver/codex_worker.py) as the worker script.
+The installed per-user logon task
 keeps it running in the background, independently of the maintenance heartbeat.
 The computer must be awake and the Codex user signed in.
 
@@ -26,7 +29,7 @@ connection. The Codex process runs on this computer.
    original queue-message ID in `desktop_queued`. If submission is uncertain,
    inspect the original queue and conversation records in review.
 3. The dedicated conversation verifies the original request, its native scope
-   and bound image files through [the desktop protocol](DESKTOP-WECHAT.md). Only
+   and bound images or PDFs through [the desktop protocol](DESKTOP-WECHAT.md). Only
    the native-owner gate can admit an engineering task. The shared conversation
    uses the current packet's peer context.
 4. Authenticated `POST /desktop-completions` saves the frozen result. The
