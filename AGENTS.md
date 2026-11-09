@@ -70,3 +70,10 @@ desktop conversation/30-minute heartbeat and preserve one original request,
 claim and completion. Only the local Codex worker resolves the handed-off task;
 the host stores and delivers its result. See `harness/LOCAL-CODEX.md`. A failed
 direct desktop control-socket probe is not an automatic Dot wake-up acceptance.
+
+The owner's latest instruction authorizes automatic routine execution and
+reversible recovery without repeated confirmation. It supersedes the earlier
+pending one-off navigation-cleanup question. Verify the original effects first;
+this is not permission to regenerate completed work, replay uncertain sends or
+discard private state. The original old navigation has now been restored and
+settled failed/noSend, and the fresh native /codex reply succeeded once.

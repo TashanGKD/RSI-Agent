@@ -1,0 +1,75 @@
+{
+  "scope": "two user-requested isolated trigger experiments",
+  "baseline": "production local handoff is a 30-minute desktop consumer; ordinary DSH replies are resident",
+  "local_codex": {
+    "nonce_matches_actual_file": true,
+    "single_generation": true,
+    "changed_input_rejected": true,
+    "remote_event": true,
+    "wechat_transport": false,
+    "desktop_thread_wakeup": false,
+    "event_to_turn_seconds": 0.515,
+    "total_seconds": 28.937,
+    "command_exits": [
+      0
+    ],
+    "duplicate_cached": true,
+    "run_source_sha256": "bea8b6b6ce6d27f02d4321b45f9d100740df9a411c74317549feda2475d54db1",
+    "current_source_sha256": "eadb94a8c18aa93ad9be9ceaf5beb240c8c054f81063027adc75284f745a1926",
+    "after_run_change": "removed unused socket import only",
+    "state": "isolated_remote_event_completed"
+  },
+  "dot": {
+    "state": "isolated_https_active_local_codex_plugin_loaded_no_dot_subscription",
+    "protocol": "2025-03-26",
+    "offline_contract": "passed",
+    "real_subscriptions": 0,
+    "real_dot_completion": false,
+    "public_endpoint_verified": true,
+    "wechat_transport": false,
+    "hosted_source_commit": "46188554550ecbd5c91f0507d0e0da7f4464261f"
+  },
+  "production": {
+    "current_changed": false,
+    "resident_restarted": false,
+    "native_queue_claimed": false,
+    "wechat_sends": 0,
+    "client_restarted": false
+  },
+  "not_established": [
+    "immediate existing desktop thread or Dot wakeup",
+    "persistent local worker installation",
+    "Penguin fixed-model RSI gain"
+  ],
+  "codex_plugin": {
+    "display_name": "RSI Trigger Lab",
+    "plugin_id": "rsi-trigger-lab@rsi-trigger-experiments",
+    "installed": true,
+    "enabled": true,
+    "private_mcp_url_bundled": true,
+    "fresh_app_server_tool_discovery": true,
+    "discovered_tool": "complete_trigger_probe",
+    "tools_error": null,
+    "prior_plugins_preserved": true,
+    "prior_marketplaces_preserved": true,
+    "other_config_unchanged": true,
+    "model_turns_for_discovery": 0,
+    "desktop_restarted": false,
+    "dot_subscription_proven": false
+  },
+  "native_owner_case": {
+    "source": "genuine new native owner private /codex text",
+    "executor": "same existing desktop conversation",
+    "model_completions": 1,
+    "native_v2_state": "succeeded",
+    "native_status": 2,
+    "send_clicks": 1,
+    "exact_text_matched": true,
+    "draft_restored": true,
+    "navigation_restored": true,
+    "phone_acceptance": false,
+    "unattended_immediate_event_trigger": false,
+    "old_group_reply_replayed": false,
+    "target_host_codex_installed": false
+  }
+}

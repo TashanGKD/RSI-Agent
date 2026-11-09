@@ -96,6 +96,7 @@ class InboundImageTests(unittest.TestCase):
         job = {'peer': 'group@chatroom', 'payload': {'source_id': '42', 'source_mode': 'inbound'}}
         with patch('operations.image_verified.prepare', return_value=None), \
                 patch('operations.images.load_context', return_value=context), \
+                patch('operations.navigation.begin'), \
                 patch('operations.recipes.main_window', return_value={'width': 623, 'height': 667}), \
                 patch('operations.recipes.screen', return_value=picture), patch('operations.recipes.rows', return_value=[]):
             preview = images.prepare(driver, job)

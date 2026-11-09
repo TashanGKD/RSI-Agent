@@ -165,3 +165,31 @@ change the subsequent chat epoch/history boundary, retaining old SDK inputs and
 receipts. The original generation key/input remains immutable. First-feature
 rollback must not restore an older chat scope after real notes changed. Named
 lookup is the first path, not automatic profiling or a complete memory plugin.
+
+## D017 — Event-trigger experiments do not silently replace native admission
+
+The owner explicitly requested separate Dot and local-Codex trigger trials.
+A private remote HTTP event can start an independent local App Server through
+an SSH reverse forward, without a target-host Codex installation. This proves
+neither control of the existing desktop conversation nor a production consumer.
+The Dot experiment uses an isolated nonce/arithmetic event, a verified signed
+callback and original completion receipt; no WeChat data or host command tool
+is exposed. A real account plugin subscription is required before emission.
+Keep heartbeat admission/claims/V2 unchanged until that distinct integration is
+implemented and accepted; never run both consumers on one original request.
+The owner later requested direct Codex setup. Use the supported plugin CLI and
+an isolated private marketplace/package rather than requiring browser setup for
+local installation. Actual fresh-session MCP discovery verifies tool loading;
+it does not create or verify a Dot subscription. Preserve existing configuration
+and never restart the desktop or fabricate an event receipt to bridge that gap.
+
+## D018 — Automatic recovery preserves original effects
+
+The owner's later direct instruction permits routine reversible recovery
+without another confirmation. Reconcile the original request, guards, journals
+and side effects first. Restored unsent preparation becomes failed/noSend;
+completed model work and sent replies never get regenerated. Image reads in
+native-only groups must use the same guarded recipient navigation as text and
+restore that owned navigation before exposing bytes. Native owner delivery,
+group recipient recovery and immediate desktop/Dot awakening remain separate
+acceptance claims. Read the live PR/private receipt for actual delivery state.
