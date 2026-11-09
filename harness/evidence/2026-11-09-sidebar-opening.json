@@ -1,0 +1,17 @@
+{
+  "path": "native search selects the group but opening its selected conversation fails before any draft or send",
+  "fresh_native_record": "failed SEARCH_SELECTION_UNPROVEN; noSend; no preview/input/confirmation; settled navigation; original cache retained",
+  "observation": "read-only native main/sidebar inspection after the fresh failure, not a reconstruction of older incident pixels",
+  "frozen_control_geometry": {
+    "main": [131, 120, 905, 667],
+    "sidebar_green": [192, 266, 431, 331],
+    "old_probe_x": [442, 440, 438],
+    "observed_old_green_runs": [],
+    "corrected_probe_x": [428, 426, 424],
+    "observed_corrected_green_run_y": [266, 332]
+  },
+  "hypothesis": "the selection scan reaches into the message pane instead of the known sidebar and cannot see its selected row",
+  "change": "correct only the calibrated sidebar right boundary; retain exact green classification, stable selection, original ownership and final native recipient checks",
+  "fixture": "test_operations_autonomy.AutonomyTests.test_open_selected_chat_samples_the_sidebar_not_the_message_pane",
+  "limits": "fixture/opening proof is not a send receipt; never replay the preserved failed reply for acceptance"
+}

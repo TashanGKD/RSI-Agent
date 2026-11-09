@@ -65,7 +65,7 @@ def open_selected_popout(d,j,c,v):
   added=[w for w in current if w['id'] not in ids]
   if len(added)>1:raise PreparationError('RECIPIENT_NOT_VERIFIED','Multiple new windows during navigation.',clean=False)
   return (added[0],current) if added else None
- bounds=[main['x']+70,main['y']+82,main['x']+314,main['y']+650]
+ bounds=[main['x']+70,main['y']+82,main['x']+300,main['y']+650]
  for attempt in range(2):
   found=observed()
   if found:return found

@@ -4,6 +4,32 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from operations.driver import NativeDriver
 from operations.selectors import unique_line
 class AutonomyTests(unittest.TestCase):
+ def test_open_selected_chat_samples_the_sidebar_not_the_message_pane(self):
+  from PIL import Image,ImageDraw
+  from unittest.mock import patch
+  from operations.navigation import open_selected_popout
+  # Freeze the actual control boundary/green run, without names or chat pixels.
+  main={'id':'0x1','title':'Weixin','x':131,'y':120,'width':905,'height':667}
+  pop={'id':'0x2','title':'Fixture group','x':200,'y':100,'width':623,'height':667}
+  image=Image.new('RGB',(1387,1244),(250,250,250))
+  ImageDraw.Draw(image).rectangle((192,266,431,331),fill=(7,174,114))
+  class C:
+   clicks=[]
+   def require_focus(self,w):self.asserted=w
+   def click(self,*point):self.clicks.append(point)
+   def wait(self,ms):pass
+  c=C()
+  class D:
+   def app_windows(self):return [main,pop] if len(c.clicks)==2 else [main]
+  with tempfile.TemporaryDirectory() as td:
+   d=D();d.root=Path(td)
+   job={'id':'a'*32,'peer':'fixture@chatroom','payload':{'text':'never sent'}}
+   v={'state':'ready','main':main}
+   with patch('operations.recipes.activate'),patch('operations.recipes.screen',return_value=image):
+    own,windows=open_selected_popout(d,job,c,v)
+   self.assertEqual(own,pop);self.assertEqual(windows,[main,pop])
+   self.assertEqual(c.clicks,[(316,282),(316,282)])
+   self.assertEqual(c.asserted,main)
  def test_expired_navigation_has_no_owned_draft_to_clear(self):
   with tempfile.TemporaryDirectory() as td:
    d=object.__new__(NativeDriver);d.root=Path(td)

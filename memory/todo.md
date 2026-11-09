@@ -3,13 +3,21 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-1. **Rejected image viewer -> group queue recovery: current WIP.** The original
+1. **Selected group opening: current WIP.** Fresh native failure and actual
+   control geometry show the scan samples the message pane beyond the sidebar.
+   Correct its calibrated boundary; retain stable selection and final native
+   recipient proof. Frozen main fails and candidate passes; normal CI/release
+   precede native fresh-send acceptance. Never replay the failed reply as a test.
+   All currently joined groups (two in native inventory) are already enabled;
+   the owner's latest instruction includes every joined group.
+   **Rejected image viewer -> queue recovery is delivered in PR #32.** The original
    read rejected an uncalibrated Save toolbar and left its own viewer open,
    blocking both groups. Keep source validation; close only the same original
    viewer with guarded Escape, then prove owned navigation cleanup. Normal CI,
    reversible release and original recovery precede resumed native delivery.
    No image re-export, old reply regeneration or client restart. Preserve all
-   original queued requests and verify both groups' actual results.
+   original queued requests. The first queued group reply succeeded once; the
+   second group's separate pre-input opening failure remains the current task.
    **Clean native failure -> future intake is delivered in PR #31.** Freeze the
    original failed/noSend pre-input record and settled navigation. Read only
    that original; retain its body/cache/ACK/failure while allowing future intake,
