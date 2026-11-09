@@ -37,6 +37,28 @@ outside Git. Callback delivery accepts only pinned public HTTPS destinations,
 checks TLS, rejects redirects/private addresses, and uses Standard Webhooks
 signatures. Repeated subscriptions, events and completions retain their IDs.
 
+### Install directly into local Codex
+
+After hosting/verification, `install_codex_plugin.py` renders the private URL
+into a portable MCP plugin, creates a separate local marketplace and installs
+it using supported `codex plugin marketplace add` / `codex plugin add` commands.
+It backs up local config and retains CLI receipts; it does not automate or
+restart the desktop. Existing plugin/marketplace entries are preserved by the
+CLI. Generated packages and config backups contain private data; keep them
+under the ignored `var/` directory.
+
+```text
+python -B experiments/triggers/install_codex_plugin.py --codex <existing-local-codex.exe> --connection <private-connection.json> --state var/trigger-probe/<new-install>
+```
+
+The plugin's display name is **RSI Trigger Lab**. A fresh App Server inventory
+must actually discover `complete_trigger_probe` with no tools error before
+calling local MCP loading verified. This does not establish a Dot subscription
+or immediate awakening of an existing desktop conversation. Do not call the
+receipt tool against a made-up or production request to test installation.
+
+### Connect an event-receiving Dot
+
 Private configuration:
 
 ```json
@@ -46,8 +68,8 @@ Private configuration:
 Expose `/<capability>/mcp` through an isolated HTTPS route or a supported Secure
 MCP Tunnel. This experiment uses protocol version `2025-03-26`; it does not
 implement MCP 2.0. Create a custom MCP plugin in a signed-in ChatGPT account,
-then enable it for the intended Dot. A local CLI MCP setting alone does not
-establish a cloud/Dot subscription.
+then enable it for the intended Dot. The direct local plugin above provides
+the local MCP connection, but does not itself establish a cloud/Dot subscription.
 
 Give that Dot this instruction:
 

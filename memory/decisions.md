@@ -177,3 +177,8 @@ callback and original completion receipt; no WeChat data or host command tool
 is exposed. A real account plugin subscription is required before emission.
 Keep heartbeat admission/claims/V2 unchanged until that distinct integration is
 implemented and accepted; never run both consumers on one original request.
+The owner later requested direct Codex setup. Use the supported plugin CLI and
+an isolated private marketplace/package rather than requiring browser setup for
+local installation. Actual fresh-session MCP discovery verifies tool loading;
+it does not create or verify a Dot subscription. Preserve existing configuration
+and never restart the desktop or fabricate an event receipt to bridge that gap.

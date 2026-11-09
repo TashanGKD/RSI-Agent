@@ -6,9 +6,10 @@ as candidates rather than silently expanding the active task.
 1. **Two explicitly requested event-trigger trials: current WIP.** The isolated
    remote event -> local App Server -> original completion path is verified;
    desktop-thread/Dot awakening and real WeChat source are separate. Finish the
-   prepared nonce-only MCP Events endpoint and one real Dot subscription/result.
-   The plugin browser is signed out; a login question is pending. Preserve one
-   original fixture, no production queue injection or duplicate consumer.
+   hosted nonce-only MCP Events endpoint and one real Dot subscription/result.
+   Direct local Codex plugin installation and actual MCP tool loading passed;
+   the earlier external-browser login request is superseded for that step.
+   Preserve one original fixture, no production queue injection or duplicate consumer.
    PR #27 private named memory and #25 diagnosis are delivered; native memory
    command acceptance awaits fresh owner input, not a repeated implementation.
 2. **Completed task publication recovery: delivered.** A private

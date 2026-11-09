@@ -20,13 +20,14 @@
     "state": "isolated_remote_event_completed"
   },
   "dot": {
-    "state": "prepared_awaiting_signed_in_plugin_connection",
+    "state": "isolated_https_active_local_codex_plugin_loaded_no_dot_subscription",
     "protocol": "2025-03-26",
     "offline_contract": "passed",
     "real_subscriptions": 0,
     "real_dot_completion": false,
-    "public_endpoint_verified": false,
-    "wechat_transport": false
+    "public_endpoint_verified": true,
+    "wechat_transport": false,
+    "hosted_source_commit": "46188554550ecbd5c91f0507d0e0da7f4464261f"
   },
   "production": {
     "current_changed": false,
@@ -40,5 +41,21 @@
     "fresh native WeChat-to-Codex-to-V2 completion",
     "persistent local worker installation",
     "Penguin fixed-model RSI gain"
-  ]
+  ],
+  "codex_plugin": {
+    "display_name": "RSI Trigger Lab",
+    "plugin_id": "rsi-trigger-lab@rsi-trigger-experiments",
+    "installed": true,
+    "enabled": true,
+    "private_mcp_url_bundled": true,
+    "fresh_app_server_tool_discovery": true,
+    "discovered_tool": "complete_trigger_probe",
+    "tools_error": null,
+    "prior_plugins_preserved": true,
+    "prior_marketplaces_preserved": true,
+    "other_config_unchanged": true,
+    "model_turns_for_discovery": 0,
+    "desktop_restarted": false,
+    "dot_subscription_proven": false
+  }
 }

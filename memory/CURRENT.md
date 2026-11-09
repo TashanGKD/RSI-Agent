@@ -32,16 +32,26 @@ This is independent of the desktop heartbeat, but it neither awakened this
 existing desktop conversation nor consumed/sent a native WeChat request.
 
 The Dot fixture implements the official event/subscription/callback/receipt
-contract in experiments/triggers. Offline contract checks pass. The plugin
-connector failed transport and the browser plugin page is signed out; a real
-Dot subscription and result are still absent. The owner has been asked to sign
-in while endpoint preparation continues. No synthetic production input is made.
-Read the same PR's latest receipt for isolated endpoint hosting/CI state.
+contract in experiments/triggers. Offline contract and independent HTTPS
+discovery checks passed. Its isolated preview uses fixed source, a separate
+restricted unit, private state, a narrow bridge rule and its own proxy prefix;
+production source/resident PIDs were preserved. The initial gateway reachability
+failure rolled back cleanly before that narrow rule resolved the path.
+
+The owner then pointed to direct Codex installation. The supported plugin CLI
+installed and enabled RSI Trigger Lab from its own local marketplace, preserving
+prior plugins/marketplaces and other config. A fresh App Server actually loaded
+its MCP tool without a tools error or model turn. The earlier external-browser
+login request is superseded for local installation; do not keep asking it.
+An actual Dot event subscription/result remains unproven. Installed tools do
+not prove an event receiver exists. Read the same draft PR's live receipt for
+the exact hosted source, final-head CI and private connection/acceptance state.
 
 ## Unique next step
 
-Complete the isolated Dot HTTPS connection after review/CI, then obtain one real
-Dot subscription and send its one operator-authorized fixture. Accept only the
+Obtain one real supported Dot event subscription and send its one
+operator-authorized fixture. Local installation and MCP loading are done; do
+not reinstall or manufacture another local probe. Accept only the
 original probe's completion tool receipt as processing evidence; webhook 2xx is
 only transport evidence. Do not replace the production handoff worker or repeat
 the completed local event/old socket/nonce experiments to manufacture progress.
