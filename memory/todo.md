@@ -3,14 +3,12 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-1. **One dedicated visible conversation: current WIP.** All admitted WeChat chat
-   and native-owner tasks share the new fixed thread. Maintenance stays here.
-   Preserve original IDs/schema/images/completions, use original V2 only and do
-   not run another background model turn. Finish actual-head gates and reversible
-   native/local activation before claiming routing. The owner's completed test
-   record can be displayed read-only once; it is not fresh-route/send acceptance.
-   PR #31/32/33 are delivered according to live receipts; do not reopen them.
-   The pending article-reader path waits behind this explicit owner request.
+1. **DeepSeek group trigger: current WIP.** Classify eligible new ambient group
+   text before forwarding it to the dedicated Codex conversation. Preserve native
+   priority, original batches and sends. PR #34 has verified fresh private and
+   group completions with original V2 sends. Preserve its unresolved V2 jobs
+   without replay. The historical link-card case was skipped by the owner-only
+   reader scope. Revisit that case only on new evidence or owner scope change.
 2. **Completed task publication recovery: delivered.** A private
    post-shutdown journal binds the frozen result to its original Git effects.
    Branch-update/push SIGKILL replay resumes one original result without another
