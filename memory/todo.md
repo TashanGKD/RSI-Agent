@@ -3,15 +3,17 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-1. **Visible owner task handoff: current WIP.** The one original supported CLI
-   queue marker actually became a user item in this same conversation; do not
-   repeat it or call it native WeChat. Route future verified-owner engineering
-   here once, preserving original digest/IDs and a frozen completion returned
-   to the original V2 sender. No parallel background engineering turn. Review,
-   exact-head CI and reversible local/native delivery precede real new-task
-   acceptance. PR #29's prefix-free background Codex takeover is delivered.
-   Ordinary peer-isolated chat remains background; the separate clean group
-   recipient failure is retained for subsequent work, not hidden by this switch.
+1. **Clean native failure -> future group intake: current WIP.** Freeze the
+   original failed/noSend pre-input record and settled navigation. Read only
+   that original; retain its body/cache/ACK/failure while allowing future intake,
+   without replaying the old selection or send. Unknown/input/cleanup evidence
+   stays attention. Baseline/candidate and restart paths are reproduced;
+   review, CI, release and installed original-path recovery remain separate.
+   A separate image-export attention cannot use this proof or be silently cleared.
+   **Visible owner task handoff is delivered in PR #30.** Its original local CLI
+   fixture became one real user item; genuine new owner task -> visible execution
+   -> original V2 remains unobserved. Ordinary background group replies have
+   separate native acceptance. Do not repeat the fixture or completed chat cases.
 2. **Completed task publication recovery: delivered.** A private
    post-shutdown journal binds the frozen result to its original Git effects.
    Branch-update/push SIGKILL replay resumes one original result without another

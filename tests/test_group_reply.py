@@ -45,6 +45,8 @@ class GroupTests(unittest.TestCase):
                 self.assertGreater(db.execute('SELECT count(*) FROM inbox').fetchone()[0], 0)
             return {'state': 'acked'}
         key = request['server_id']
+        if request['op'] == 'status':
+            return self.effects[key]
         if request['op'] == 'submit':
             return self.effects.get(key, {'state': 'queued'})
         self.assertNotIn(key, self.effects)
@@ -167,7 +169,7 @@ class GroupTests(unittest.TestCase):
         self.assertEqual(loop.cycle()['state'], 'attention')
         calls = len(self.calls)
         self.assertEqual(loop.cycle()['state'], 'attention')
-        self.assertEqual(len(self.calls), calls)
+        self.assertEqual(self.calls[calls:], [{'op': 'status', 'server_id': '1'}])
         self.assertEqual(self.model.complete.call_count, 1)
 
     def test_one_time_introduction_reuses_original_request_after_restart(self):

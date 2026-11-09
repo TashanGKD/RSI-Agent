@@ -174,12 +174,31 @@ def read_group(root, value, request, members):
             inbox.close()
 
 
+def failed_before_input(store, job):
+    """Read only the original failed request's evidence; never retry its navigation."""
+    from operations import navigation
+    result = job.get('result') or {}
+    if (job['state'] != 'failed' or job['client'] != CLIENT or job['action'] != 'send_text'
+            or job.get('preview') is not None or result.get('noSend') is not True
+            or result.get('sideEffectStarted') is not False
+            or any(result.get(k) for k in ('postActionPending', 'draftRecoveryPending', 'navigationRecoveryPending'))):
+        return False
+    events = [row[0] for row in store.c.execute('SELECT state FROM events WHERE job_id=? ORDER BY seq', (job['id'],))]
+    if events != ['queued', 'preparing', 'failed']:
+        return False
+    journal = navigation.path(store.root, job)
+    if any(path != journal for path in store.root.glob(job['id'] + '-*')):
+        return False
+    original = navigation.load(store.root, job)
+    return bool(original and original.get('state') == 'settled')
+
+
 def handle(installation, value, request):
     if request.get('_binding') != token(value):
         raise ValueError('Invited group scope changed.')
     request = {k: v for k, v in request.items() if k != '_binding'}
     fields = {'read': {'op'}, 'context': {'op'}, 'image': {'op', 'server_id'}, 'ack': {'op', 'batch_id', 'batch_hash', 'ack_ids'},
-        'submit': {'op', 'server_id', 'text'}, 'advance': {'op', 'server_id'}}
+        'submit': {'op', 'server_id', 'text'}, 'advance': {'op', 'server_id'}, 'status': {'op', 'server_id'}}
     op = request.get('op')
     if op not in fields or set(request) != fields[op] or value.get('auto_reply_enabled') is not True:
         raise ValueError('Group action is outside its enabled scope.')
@@ -204,6 +223,8 @@ def handle(installation, value, request):
     policy = load_config(root / 'operations-state/config.json')
     if policy['account'] != value['account']:
         raise ValueError('Group sender account changed.')
+    if op == 'status' and not (root / 'operations-state/queue.sqlite').is_file():
+        raise ValueError('Original group queue is missing.')
     api = PublicAPI(root / 'operations-state', policy)
     try:
         if op == 'submit':
@@ -216,6 +237,9 @@ def handle(installation, value, request):
         job = api.s.get(CLIENT, rid)
         if job['peer'] != value['group_peer'] or job['action'] != 'send_text':
             raise ValueError('Original group request changed.')
+        if op == 'status':
+            return dict(status(api.view(job)), recoverable_preinput_failure=failed_before_input(api.s, job),
+                        reply_sha256=hashlib.sha256(job['payload']['text'].encode()).hexdigest())
         return advance(api, job, policy)
     finally:
         api.close()
