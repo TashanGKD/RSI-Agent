@@ -46,12 +46,12 @@ V2 sender once, with matching cached/model/native digests and restored navigatio
 This acceptance is in PR #30's live receipt. It is not owner engineering or a
 reason to notify every subsequent healthy chat count.
 
-## Current task: recover intake after a proven pre-input failure
+## Group intake recovery: delivered in PR #31
 
 A frozen original has native events queued -> preparing -> failed, explicit
 noSend/sideEffectStarted=false, no preview/input artifacts and identity-bound
 settled navigation. GroupLoop nevertheless returns before reading later input.
-The baseline reproduces that permanent attention block. The candidate adds a
+The baseline reproduces that permanent attention block. The delivered fix adds a
 read-only lookup of that exact group request and its cached-reply digest; only
 the complete proof transitions its consumer row to failed. Its original receipt,
 reply, body and ACK remain. Subsequent cycles can read new input after restart;
@@ -62,14 +62,33 @@ This fixes consumer lifecycle, not the native recipient selector. Another real
 image-export request has an unresolved original navigation/confirmation record;
 it cannot inherit this pre-input proof or be cleared to ease a release.
 
+The live delivery receipt verifies fixed code and both resident service cwd,
+the installed original proof and attention -> failed with original request/events,
+body/cache/ACK unchanged. Actual intake now reaches the next image. The local
+worker source/PID is unchanged. One safe rollout rollback was caused only by
+admission.last_checked naturally advancing; that timestamp was reconciled without
+rewinding private state or re-executing the transition.
+
+## Current task: image failure must release its own viewer
+
+Both groups are currently blocked behind a native image export. Read-only
+inspection proves its single extra official viewer and a rejected Save/QR toolbar;
+the finally block refuses a guessed Close coordinate and leaves that viewer open.
+The candidate instead uses guarded Escape only on the original viewer with the
+same native host/process/birth. Source and export validation remain unchanged.
+Frozen baseline fails to close; candidate closes without a toolbar click and
+preserves changed/foreign viewers. This is cleanup, not support for the rejected
+toolbar or acceptance of image bytes. The original preview/confirmation/execution
+and queued sends remain private and must not be replayed.
+
 ## Unique next step
 
-Review/gate and reversibly deliver this one intake-recovery candidate. Preserve
-the original failure/cache, all outstanding native image/send requests and local
-Codex results. Verify the installed read-only certificate and exact consumer
-transition separately from later intake or native send acceptance. No local
-worker source change is required. Do not replay input or clear an unrelated
-native request to manufacture acceptance; retain the visible-task completion API.
+Review/gate the image cleanup candidate, then publish fixed source reversibly.
+Under the original executor/display ownership, reconcile the sole original viewer
+and its navigation without exporting again. Only proven cleanup may settle that
+original failed/noSend. Preserve queued request IDs and frozen replies; resume
+resident delivery once and verify actual native results for both groups. Keep
+local desktop completion API, SDK results and every uncertain original intact.
 
 ## Other retained boundaries
 

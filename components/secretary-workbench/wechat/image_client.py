@@ -250,7 +250,7 @@ def dispatch(tool,r,*,ui=None):
         if export_root.is_symlink():raise ValueError('symlink export root')
         export_root.mkdir(mode=0o700,exist_ok=True)
         if export_root.stat().st_mode&0o077:raise ValueError('private export root required')
-        control=Controls(ROOT);viewer=None;dialog=None;viewer_identity=None;dialog_identity=None;viewer_birth=None
+        control=Controls(ROOT);viewer=None;dialog=None;viewer_identity=None;dialog_identity=None;viewer_birth=None;host_identity=None
         try:
             if control.one('Save',True) or control.one('Photos and Videos',True):raise ValueError('close an existing native image/save window before this read')
             control.click(*point);control.wait(120);control.click(*point);control.wait(800)
@@ -258,6 +258,7 @@ def dispatch(tool,r,*,ui=None):
             from operations.windows import window_identity
             from operations.lease import birth
             viewer_identity=window_identity(viewer);viewer_birth=birth(viewer_identity['pid'])
+            host_identity=window_identity(control.one('Weixin'))
             control.focus(viewer)
             opened=open_viewer_save(control,viewer,ui.screenshot,require_guard)
             dialog=opened['dialog'];dialog_identity=opened['dialogIdentity']
@@ -278,13 +279,13 @@ def dispatch(tool,r,*,ui=None):
                 if dialog and (w:=control.one('Save',True))==dialog and window_identity(w)==dialog_identity:
                     require_guard();control.focus(w);control.require_focus(w);control.key(0xff1b);control.wait(200)
                 if (viewer and not control.one('Save',True) and (w:=control.one('Photos and Videos',True))==viewer
-                    and window_identity(w)==viewer_identity and birth(viewer_identity['pid'])==viewer_birth):
-                    # A rejected narrow/unknown layout is not authority for the
-                    # old Close offset: width-24 could itself be Save or QR.
-                    try:viewer_save_proof(w,ui.screenshot())
-                    except ValueError:pass # Leave it protected for original-owner recovery.
-                    else:
-                        require_guard();control.focus(w);control.require_focus(w);control.click(w['x']+w['width']-24,w['y']+21);control.wait(200)
+                    and window_identity(w)==viewer_identity and viewer_birth is not None
+                    and host_identity and all(viewer_identity[k]==host_identity[k] for k in ('class','pid','leader'))
+                    and birth(viewer_identity['pid'])==viewer_birth):
+                    # Dismiss only this original viewer by key; an unknown
+                    # toolbar never grants permission for a guessed Close point.
+                    require_guard();control.focus(w);control.require_focus(w)
+                    control.key(0xff1b);control.wait(200)
             finally:
                 try:
                     if viewer:restore_main_focus(control)
