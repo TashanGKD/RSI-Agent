@@ -12,18 +12,21 @@ from .wechat import call, doctor
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='RSI Agent: notebook, Linux WeChat, and Mac source checks.')
+    parser = argparse.ArgumentParser(
+        description='RSI Agent: connect authorized WeChat input to the local Codex receiver.',
+        epilog='Local Codex receiver: python -m rsi_agent.codex_worker --help.',
+    )
     parser.add_argument('--version', action='version', version=__version__)
-    parser.add_argument('--config', help='Private installation or model-provider JSON; never commit credentials.')
+    parser.add_argument('--config', help='Private JSON configuration for the selected command.')
     commands = parser.add_subparsers(dest='command')
     commands.add_parser('doctor', help='Report prerequisites without reading messages or operating the GUI.')
     commands.add_parser('audit', help='Inspect the real Linux client process, layout and service persistence without input.')
     commands.add_parser('sources', help='Show the pinned source repositories and commits.')
     model = commands.add_parser('model', help='Use a privately configured model; no WeChat input or send.')
     model.add_argument('mode', choices=['check', 'reply'])
-    replies = commands.add_parser('replies', help='Explicitly scoped owner-only reply bridge.')
+    replies = commands.add_parser('replies', help='Trigger for authorized private WeChat messages.')
     replies.add_argument('mode', choices=['check', 'once', 'run'])
-    groups = commands.add_parser('groups', help='Moderated text participation in explicitly invited groups.')
+    groups = commands.add_parser('groups', help='Trigger for enabled WeChat groups.')
     groups.add_argument('mode', choices=['check', 'once', 'run'])
     services = commands.add_parser('services', help='Stage service definitions for review; no live activation.')
     service_commands = services.add_subparsers(dest='mode', required=True)

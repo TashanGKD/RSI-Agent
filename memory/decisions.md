@@ -253,3 +253,11 @@ input retain their original path. Freeze the native batch first. Only a valid
 quiet decision closes it before Codex. An allow, timeout or interrupted gate
 continues through the original Codex decision once. Preserve any already-frozen
 desktop and V2 work. Review the live receipt for activation and real quiet cases.
+
+## D024 — Keep the trigger and receiver in one project
+
+The owner selected one repository for both core parts. The Linux trigger owns
+native admission, the original input and V2 delivery. The local receiver owns
+authenticated intake, desktop handoff and the frozen completion. Use the
+README as the current entrypoint and keep optional integrations and earlier
+experiments under their existing paths.
