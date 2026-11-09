@@ -7,6 +7,13 @@ the original job and result. See the [repository entrypoint](../README.md) for
 code and operator commands. The independent SCNET group gate is disabled on the
 current deployment. Use the live release and process records to verify activation.
 
+Native confirmed friends can have ordinary private replies, and a joined group
+can participate when native membership confirms the signed-in account. The
+private conversation admission cutoff controls the new scopes. Friend inboxes
+are per peer and use local Codex chat without owner memory or engineering.
+Current friendship is checked before native sending. Keep the original owner
+and group state and verify new replies against their original V2 receipts.
+
 An initial group chat request explicitly returned in Codex review now isolates
 its original batch as model_review. Subsequent group messages can proceed. The
 original packet, ACK and worker review are retained for reconciliation.

@@ -104,6 +104,12 @@ class NativeDriver:
    if target['displayName']==j['peer']:
     from .recipes import search_identity
     members=self.group_identity(j['peer'],cfg);base=re.sub(r'[(（]\d+[)）]$','',cfg.get('observedTitle',''));names={v:self.name_peer(v) for v in base.split('、')};search_identity(target,cfg,members,names)
+  elif j['client']=='rsi-friend':
+   from .proof import friend
+   with native('contact/contact.db') as (c,r):
+    rows=c.execute('SELECT local_type,flag,delete_flag FROM contact WHERE username=? LIMIT 2',(j['peer'],)).fetchall()
+    if r.get('consistency')!='committed' or r.get('gap') or len(rows)!=1 or not friend(dict(rows[0])):
+     raise BeforeEffect('current native friendship not proven')
   return {'registeredBindingSHA256':digest(cfg),'bindingIdentitySHA256':binding_identity(cfg),'scopeSHA256':digest({'account':latest['account'],'client':j['client'],'authorization':'owner-authorized-work'})}
  def certify_fast(self,j):
   from .sending import certify_fast

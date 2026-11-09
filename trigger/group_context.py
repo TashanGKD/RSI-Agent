@@ -27,16 +27,16 @@ def normal(value):
     return re.sub(r'[\W_]+', '', value).removesuffix('群').lower()
 
 
-def group_configs(path=REGISTRY):
+def group_configs(path=REGISTRY, key='groups'):
     if not Path(path).exists():
         return []
     if not private_file(path):
         raise ValueError('Private group registry required.')
     value = json.loads(Path(path).read_text())
-    if set(value) != {'groups'} or not isinstance(value['groups'], list) or len(value['groups']) > 100:
+    if set(value) != {key} or not isinstance(value[key], list) or len(value[key]) > 100:
         raise ValueError('Explicit bounded group registry required.')
     configs = []
-    for item in value['groups']:
+    for item in value[key]:
         if not private_file(item):
             raise ValueError('Private group configuration required.')
         config = json.loads(Path(item).read_text())

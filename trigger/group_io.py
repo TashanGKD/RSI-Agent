@@ -32,8 +32,8 @@ def group_info(value):
             raise ValueError('Invited group identity changed.')
         members = {r['username']: r['nick_name'] for r in db.execute('SELECT c.username,c.nick_name '
             'FROM chatroom_member m JOIN contact c ON c.id=m.member_id WHERE m.room_id=?', (row['id'],))}
-        if value['account'] not in members or value['owner_peer'] not in members or len(members) > 1000:
-            raise ValueError('Self and inviting owner must remain in the confirmed group.')
+        if value['account'] not in members or len(members) > 1000:
+            raise ValueError('Current native group membership required.')
         return members
 
 
@@ -43,7 +43,8 @@ def load_binding(path, installation):
     value = json.loads(Path(path).read_text())
     scope = value.get('send_scope') or {}
     if (value.get('confirmed_by_user') is not True
-            or not (value.get('invited_by_owner') is True or value.get('admission') == 'new-owner-shared-group')
+            or not (value.get('invited_by_owner') is True
+                    or value.get('admission') in ('new-owner-shared-group', 'native-joined-group'))
             or value.get('account') != installation['wechat']['account']
             or not isinstance(value.get('group_peer'), str) or not value['group_peer'].endswith('@chatroom')
             or scope.get('mode') != 'invited-group-text' or type(scope.get('since')) is not int
