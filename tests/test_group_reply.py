@@ -104,6 +104,41 @@ class GroupTests(unittest.TestCase):
         loop.reply_gate.assert_not_called()
         self.model.complete.assert_called_once()
 
+    def test_group_card_title_can_be_admitted_while_an_older_send_is_queued(self):
+        loop = self.loop()
+        self.assertEqual(loop.cycle()['state'], 'pending')
+        original = loop.db.execute("SELECT reply FROM inbox WHERE id='1'").fetchone()[0]
+        link = 'https://example.test/note?share_token=fixture-secret'
+        title = '传统典籍的检索增强该怎么评估？'
+        self.batch['events'] = [self.event(2, mentioned=False, kind=49,
+            link={'text': title + '\n摘要\n' + link, 'url': link})]
+        self.batch['ack_ids'] = ['2']
+        loop.reply_gate = Mock(return_value=True)
+        older_state = 'confirmed'
+
+        def transport(request):
+            if request.get('server_id') == '1' and request['op'] == 'advance':
+                return {'state': 'busy'}
+            if request.get('server_id') == '1' and request['op'] == 'status':
+                return {'state': older_state, 'reply_sha256': hashlib.sha256(original.encode()).hexdigest()}
+            return self.io(request)
+
+        loop.io = transport
+        self.assertEqual(loop.cycle()['state'], 'pending')
+        loop.reply_gate.assert_not_called()
+        older_state = 'queued'
+        self.assertEqual(loop.cycle()['state'], 'pending')
+        loop.reply_gate.assert_called_once_with(['分享卡片标题：' + title])
+        self.assertEqual(loop.db.execute("SELECT id,state,reply FROM inbox ORDER BY id").fetchall()[0][:],
+                         ('1', 'pending', original))
+        self.assertEqual(loop.counts(), {'pending': 2})
+        self.batch['events'].append(self.event(3, mentioned=False, text='还有个新问题', created=121))
+        self.assertEqual(loop.cycle()['state'], 'pending')
+        self.assertEqual(loop.counts(), {'new': 1, 'pending': 2})
+        self.assertEqual(loop.model.complete.call_count, 2)
+        self.assertFalse(self.effects)
+        self.assertFalse(any(c['op'] == 'submit' and c.get('server_id') == '2' for c in self.calls))
+
     def test_unavailable_trigger_gate_preserves_the_original_codex_batch(self):
         self.batch['events'] = [self.event(text='这个流程有个实际问题', mentioned=False)]
         result = self.model.complete.return_value
