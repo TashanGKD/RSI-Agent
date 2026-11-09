@@ -371,7 +371,7 @@ def notify_desktop(config, jobs, row):
     label = '微信任务' if request['mode'] == 'engineering' else '微信输入'
     source = group.get('group') if isinstance(group, dict) else None
     if not isinstance(source, str) or not source.strip():
-        source = '微信群' if is_group else '本人私聊'
+        source = '微信群' if is_group else '微信私聊'
     source = ''.join(c if c.isprintable() and c not in '【】' else ' ' for c in source)[:120]
     preview = '\n'.join('> ' + line for line in text.splitlines())
     message = ('【' + label + ' · ' + source + ' · RSI-' + request['id'][:12] + '】\n'
