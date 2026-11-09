@@ -158,6 +158,32 @@ class ReplyLoopTests(unittest.TestCase):
         context.assert_called_once_with('')
         self.assertFalse(self.model.reply.call_args.kwargs['allow_engineering'])
 
+    def test_owner_pdf_is_bound_chat_and_frozen_completion_does_not_read_cache_again(self):
+        self.model.backend = 'local-codex'
+        self.model.has_original_input.return_value = False
+        self.model.reply.side_effect = [PublicationPending('waiting'), '论文正文已读']
+        self.batch['events'] = [event(kind=49, pdf_name='原件.pdf', text='')]
+        data = b'%PDF-1.7\noriginal fixture\n%%EOF'
+        original_io = self.io
+
+        def io(request):
+            if request['op'] == 'pdf':
+                self.assertFalse(self.model.has_original_input.return_value)
+                return {'state': 'pdf_ready', 'source_verified': True, 'name': '原件.pdf',
+                        'data': base64.b64encode(data).decode(), 'sha256': hashlib.sha256(data).hexdigest()}
+            return original_io(request)
+
+        loop = ReplyLoop(self.path, self.owner, self.model, io)
+        self.addCleanup(loop.close)
+        with self.assertRaises(PublicationPending):
+            loop.cycle()
+        first = self.model.reply.call_args.kwargs
+        self.assertEqual(base64.b64decode(first['images'][0]['data']), data)
+        self.assertFalse(first['allow_engineering'])
+        self.model.has_original_input.return_value = True
+        self.assertEqual(loop.cycle()['state'], 'sent')
+        self.assertFalse(self.model.reply.call_args.kwargs['allow_engineering'])
+
     def test_owner_shared_link_reaches_real_page_context_without_image_or_tools(self):
         self.model.backend = 'local-codex'
         self.batch['events'] = [event(kind=49, text='', link={

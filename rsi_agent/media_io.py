@@ -1,11 +1,48 @@
-"""Read one bound image through the original V2 source/export/asset pipeline."""
+"""Read source-bound native media without sending anything."""
 import base64
 import hashlib
 from pathlib import Path
 
 from .reply_io import advance
+from .media import pdf_name
 
 CLIENT = 'rsi-vision'
+
+
+def pdf(account, peer, server, allowed_senders, since):
+    from linux_tool import ACCOUNT, decode, native, signed
+    from operations.exports import cached
+    from receive_source import sid
+
+    if account != ACCOUNT:
+        raise ValueError('Native PDF account changed.')
+    server = sid(server)
+    table = 'Msg_' + hashlib.md5(peer.encode()).hexdigest()
+    with native('message/message_0.db') as (db, receipt):
+        if receipt.get('consistency') != 'committed' or receipt.get('gap'):
+            raise ValueError('Committed PDF source required.')
+        rows = db.execute('SELECT local_type,message_content,create_time,n.user_name FROM ' + table +
+            ' m JOIN Name2Id n ON n.rowid=m.real_sender_id WHERE server_id=?', (signed(server),)).fetchall()
+        if len(rows) != 1:
+            raise ValueError('Unique native PDF source required.')
+        kind, encoded, created, sender = rows[0]
+        if sender not in allowed_senders or created < since or int(kind) & 0xffffffff != 49:
+            raise ValueError('PDF is outside the confirmed incoming scope.')
+        raw = decode(encoded)
+        if raw.startswith(sender + ':\n'):
+            raw = raw[len(sender) + 2:]
+    name = pdf_name(raw)
+    if not name:
+        return {'state': 'media_attention', 'code': 'PDF_SOURCE_UNPROVEN'}
+    try:
+        data, proof = cached(peer, server, None, raw)
+    except (OSError, ValueError):
+        return {'state': 'media_attention', 'code': 'PDF_CACHE_UNAVAILABLE'}
+    if (proof['name'] != name or proof['sourceId'] != server or not proof['nativeMessageMD5Matched']
+            or not proof['resourceCacheBindingVerified'] or not data.startswith(b'%PDF-')):
+        return {'state': 'media_attention', 'code': 'PDF_BYTES_UNPROVEN'}
+    return {'state': 'pdf_ready', 'name': name, 'data': base64.b64encode(data).decode(),
+            'sha256': hashlib.sha256(data).hexdigest(), 'source_verified': True}
 
 
 def image(root, account, peer, server, allowed_senders):

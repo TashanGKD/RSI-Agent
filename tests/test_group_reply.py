@@ -266,12 +266,16 @@ class GroupTests(unittest.TestCase):
 
     def test_group_image_is_actual_separate_block_and_preserves_cached_send(self):
         self.model.backend = 'local-codex'
+        self.model.has_original_input.return_value = False
+        completed = self.model.complete.return_value
+        self.model.complete.side_effect = [PublicationPending('waiting'), completed]
         self.batch['events'] = [self.event(kind=3, text='<img aeskey="private-cache-token"/>')]
         raw = b'verified group image fixture'
         original_io = self.io
 
         def io(request):
             if request['op'] == 'image':
+                self.assertFalse(self.model.has_original_input.return_value)
                 return {'state': 'image_ready', 'source_verified': True, 'mime': 'image/png',
                         'data': base64.b64encode(raw).decode(), 'sha256': hashlib.sha256(raw).hexdigest()}
             return original_io(request)
@@ -280,13 +284,34 @@ class GroupTests(unittest.TestCase):
         self.addCleanup(loop.close)
         with loop.db:
             loop.save('introduction', 'sent')
-        self.assertEqual(loop.cycle()['state'], 'pending')
+        with self.assertRaises(PublicationPending):
+            loop.cycle()
         content = self.model.complete.call_args.args[0][1]['content']
         self.assertNotIn('private-cache-token', str(content))
         self.assertEqual(json.loads(content[0]['text'])['new_messages'][0]['image_status'], 'verified')
         self.assertEqual(base64.b64decode(content[1]['image_url']['url'].split(',')[1]), raw)
+        self.model.has_original_input.return_value = True
+        self.assertEqual(loop.cycle()['state'], 'pending')
         self.assertEqual(loop.cycle()['state'], 'sent')
-        self.model.complete.assert_called_once()
+        self.assertEqual(self.model.complete.call_count, 2)
+
+    def test_group_pdf_keeps_the_original_batch_and_never_becomes_owner_work(self):
+        self.model.backend = 'local-codex'
+        self.model.engineering = True
+        self.group['owner_peer'] = 'member'
+        self.batch['events'] = [self.event(kind=49, pdf_name='Paper.pdf', text='')]
+        self.model.complete.return_value = {'message': {'content': '{"speak":true,"text":"","work_index":0}'}}
+        loop = self.loop()
+        document = {'type': 'pdf', 'name': 'Paper.pdf', 'data': 'fixture'}
+        with patch('rsi_agent.group_reply.pdf_part', return_value=document) as read:
+            with self.assertRaisesRegex(ValueError, 'exact native owner text'):
+                loop.cycle()
+            read.assert_called_once_with(loop.io, '1', 'Paper.pdf')
+        self.model.engineer.assert_not_called()
+        self.model.use_request.assert_called_once_with(['1'])
+        payload = self.model.complete.call_args.args[0][1]['content']
+        self.assertEqual(payload[1], document)
+        self.assertEqual(json.loads(payload[0]['text'])['new_messages'][0]['pdf_status'], 'verified')
 
     def test_finder_cover_enters_image_input_and_ordinary_link_does_not(self):
         self.model.backend = 'local-codex'

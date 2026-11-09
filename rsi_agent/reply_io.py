@@ -61,11 +61,15 @@ def source(root, owner, request):
             if event['kind'] != 49:
                 return {}
             from .link_reader import shared_link
+            from .media import pdf_name
             raw = decode(row['message_content'])
             if raw.startswith(event['sender'] + ':\n'):
                 raw = raw[len(event['sender']) + 2:]
             link = shared_link(raw)
-            return {'link': link} if link else {}
+            if link:
+                return {'link': link}
+            name = pdf_name(raw)
+            return {'pdf_name': name} if name else {}
 
         inbox = SourceInbox(path, lambda: db, table, owner['account'], peer, decode,
                             str(scope['since']), only_incoming=True, event_context=context)
@@ -175,7 +179,8 @@ def handle(installation, owner, request):
         raise ValueError('Owner reply scope changed; preserve the original request.')
     request = {key: value for key, value in request.items() if key != '_binding'}
     op = request.get('op')
-    fields = {'read': {'op'}, 'image': {'op', 'server_id'}, 'ack': {'op', 'batch_id', 'batch_hash', 'ack_ids'},
+    fields = {'read': {'op'}, 'image': {'op', 'server_id'}, 'pdf': {'op', 'server_id'},
+              'ack': {'op', 'batch_id', 'batch_hash', 'ack_ids'},
               'submit': {'op', 'server_id', 'text'}, 'advance': {'op', 'server_id'}}
     if op not in fields or set(request) != fields[op]:
         raise ValueError('Unsupported owner reply transport fields.')
@@ -184,6 +189,12 @@ def handle(installation, owner, request):
     if op == 'image':
         from .media_io import image
         return image(root, owner['account'], owner['owner_peer'], request['server_id'], {owner['owner_peer']})
+    if op == 'pdf':
+        from .media_io import pdf
+        scope = owner['send_scope']
+        if scope['mode'] != 'owner-private-text':
+            raise ValueError('PDFs require the continuous owner private scope.')
+        return pdf(owner['account'], owner['owner_peer'], request['server_id'], {owner['owner_peer']}, scope['since'])
     from operations.cli import load_config
     from operations.public_api import PublicAPI
     from receive_source import sid

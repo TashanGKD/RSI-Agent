@@ -1,8 +1,10 @@
 import hashlib
 import base64
+from contextlib import contextmanager
 import io
 import json
 from pathlib import Path
+import sqlite3
 import sys
 import tempfile
 import unittest
@@ -11,6 +13,62 @@ from unittest.mock import Mock
 import types
 
 from rsi_agent.config import WORKBENCH
+
+
+@unittest.skipUnless(sys.platform == 'linux', 'requires the native WeChat file adapter')
+class InboundPdfTests(unittest.TestCase):
+    def test_pdf_reads_the_original_resource_and_rejects_wrong_sender_or_cache(self):
+        sys.path.insert(0, str(WORKBENCH / 'wechat'))
+        self.addCleanup(sys.path.remove, str(WORKBENCH / 'wechat'))
+        from rsi_agent.media import pdf_name, pdf_part
+        from rsi_agent.media_io import pdf
+
+        peer, sender = 'fixture@chatroom', 'member'
+        table = 'Msg_' + hashlib.md5(peer.encode()).hexdigest()
+        data = b'%PDF-1.7\noriginal resource fixture\n%%EOF'
+        digest = hashlib.md5(data).hexdigest()
+        raw = ('<msg><appmsg><title>Paper.pdf</title><type>6</type><appattach><totallen>'
+               + str(len(data)) + '</totallen></appattach><md5>' + digest + '</md5></appmsg></msg>')
+        self.assertEqual(pdf_name(raw), 'Paper.pdf')
+        self.assertIsNone(pdf_name(raw.replace('<type>6', '<type>5')))
+        self.assertIsNone(pdf_name(raw.replace('Paper.pdf', '../Paper.pdf')))
+
+        @contextmanager
+        def native(name):
+            with sqlite3.connect(':memory:') as db:
+                db.row_factory = sqlite3.Row
+                if name == 'message/message_0.db':
+                    db.executescript('CREATE TABLE Name2Id(user_name); CREATE TABLE ' + table +
+                                     '(local_type,message_content,create_time,real_sender_id,server_id);')
+                    db.execute('INSERT INTO Name2Id VALUES(?)', (sender,))
+                    db.execute('INSERT INTO ' + table + ' VALUES(49,?,120,1,42)', (sender + ':\n' + raw,))
+                elif name == 'message/message_resource.db':
+                    db.executescript('CREATE TABLE ChatName2Id(user_name); '
+                                     'CREATE TABLE MessageResourceInfo(message_id,chat_id,message_svr_id); '
+                                     'CREATE TABLE MessageResourceDetail(message_id,resource_id,size,status,type,packed_info);'
+                                     'INSERT INTO MessageResourceInfo VALUES(1,1,42);')
+                    db.execute('INSERT INTO ChatName2Id VALUES(?)', (peer,))
+                    db.execute('INSERT INTO MessageResourceDetail VALUES(1,8,?,1,3735555,?)', (len(data), b'cached.pdf'))
+                else:
+                    self.assertEqual(name, 'hardlink/hardlink.db')
+                    db.executescript("CREATE TABLE dir2id(username); INSERT INTO dir2id VALUES('2026-11'); "
+                                     'CREATE TABLE file_hardlink_info_v4(md5,file_name,file_size,dir1,dir2);')
+                    db.execute('INSERT INTO file_hardlink_info_v4 VALUES(?,?,?,1,0)', (digest, 'cached.pdf', len(data)))
+                yield db, {'consistency': 'committed'}
+            db.close()
+
+        with tempfile.TemporaryDirectory() as td:
+            profile = Path(td)
+            path = profile / 'msg/file/2026-11/cached.pdf'
+            path.parent.mkdir(parents=True)
+            path.write_bytes(data)
+            with patch('linux_tool.ACCOUNT', 'fixture'), patch('linux_tool.PROFILE', profile), patch('linux_tool.native', native):
+                result = pdf('fixture', peer, '42', {sender}, 100)
+                self.assertEqual(base64.b64decode(pdf_part(lambda _: result, '42', 'Paper.pdf')['data']), data)
+                with self.assertRaisesRegex(ValueError, 'incoming scope'):
+                    pdf('fixture', peer, '42', {'somebody_else'}, 100)
+                path.write_bytes(data.replace(b'fixture', b'changed'))
+                self.assertEqual(pdf('fixture', peer, '42', {sender}, 100)['code'], 'PDF_CACHE_UNAVAILABLE')
 
 
 @unittest.skipUnless(sys.platform == 'linux', 'requires original native image reader')

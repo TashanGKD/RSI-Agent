@@ -120,9 +120,12 @@ def read_group(root, value, request, members):
                 extra['quoted_reply'] = {'text': current['text'], 'quote': quote}
             else:
                 from .link_reader import shared_link
+                from .media import pdf_name
                 link = shared_link(raw)
                 if link:
                     extra['link'] = link
+                elif name := pdf_name(raw):
+                    extra['pdf_name'] = name
         return extra
 
     if request['op'] == 'ack':
@@ -201,7 +204,8 @@ def handle(installation, value, request):
     if request.get('_binding') != token(value):
         raise ValueError('Invited group scope changed.')
     request = {k: v for k, v in request.items() if k != '_binding'}
-    fields = {'read': {'op'}, 'context': {'op'}, 'image': {'op', 'server_id'}, 'ack': {'op', 'batch_id', 'batch_hash', 'ack_ids'},
+    fields = {'read': {'op'}, 'context': {'op'}, 'image': {'op', 'server_id'}, 'pdf': {'op', 'server_id'},
+        'ack': {'op', 'batch_id', 'batch_hash', 'ack_ids'},
         'submit': {'op', 'server_id', 'text'}, 'advance': {'op', 'server_id'}, 'status': {'op', 'server_id'}}
     op = request.get('op')
     if op not in fields or set(request) != fields[op] or value.get('auto_reply_enabled') is not True:
@@ -213,6 +217,10 @@ def handle(installation, value, request):
     if op == 'image':
         from .media_io import image
         return image(root, value['account'], value['group_peer'], request['server_id'], set(members) - {value['account']})
+    if op == 'pdf':
+        from .media_io import pdf
+        return pdf(value['account'], value['group_peer'], request['server_id'],
+                   set(members) - {value['account']}, value['send_scope']['since'])
     from operations.cli import load_config
     from operations.public_api import PublicAPI
     from receive_source import sid
