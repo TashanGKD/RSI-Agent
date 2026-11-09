@@ -201,10 +201,10 @@ class GroupLoop(ReplyLoop):
             'new_messages': [{k: e[k] for k in ('sender_name', 'text', 'mentioned', 'follows_self', 'kind', 'image_index', 'image_status', 'image_kind', 'pdf_name', 'pdf_status', 'quote', 'article_url', 'linked_pages', 'owner')
                               if k in e and (k != 'linked_pages' or not self.images)} for e in events],
             'seconds_since_own_post': round(elapsed)}, ensure_ascii=False)
+        identities = [row['id'] for row in rows]
         if self.images:
-            self.model.use_request([r['id'] for r in rows])
+            self.model.use_request(identities)
         if not active:
-            identities = [row['id'] for row in rows]
             with self.db:
                 self.save('model_batch', json.dumps(identities))
             texts = [gate_text(event) for event in events]
@@ -220,24 +220,33 @@ class GroupLoop(ReplyLoop):
                         self.db.execute("DELETE FROM participation WHERE k='model_batch'")
                 if decision is False:
                     return {'state': 'quiet', 'counts': self.counts()}
+        messages = [{'role': 'system', 'content': system}, {'role': 'user',
+            'content': [{'type': 'text', 'text': data}, *attachments] if attachments else data}]
+        pages = [page for event in events for page in event.get('linked_pages', [])] if self.images else []
+        # A single owner card can only request a reply. Resume any already frozen routing.
+        direct_article = (bool(pages) and len(events) == 1 and 'article_url' in events[0]
+                          and not self.model.has_original_input(identities))
         try:
-            result = self.model.complete([{'role': 'system', 'content': system}, {'role': 'user',
-                'content': [{'type': 'text', 'text': data}, *attachments] if attachments else data}], json_output=True)
+            if direct_article:
+                decision = {'speak': True, 'text': self.model.read_pages(pages, messages)}
+            else:
+                result = self.model.complete(messages, json_output=True)
+                decision = json.loads(result['message']['content'])
         except OriginalReview:
-            # Initial chat admission has no native send or engineering effect.
+            # This chat request has no native send or engineering effect.
             with self.db:
                 self.db.executemany("UPDATE inbox SET state='model_review' WHERE id=? AND state='new'",
                                     [(row['id'],) for row in rows])
                 self.db.execute("DELETE FROM participation WHERE k='model_batch'")
             return {'state': 'model_review', 'counts': self.counts()}
-        decision = json.loads(result['message']['content'])
-        expected = {'speak', 'text', 'work_index'} if engineering else {'speak', 'text'}
         work = decision.get('work_index')
-        if (set(decision) != expected or type(decision['speak']) is not bool
-                or not isinstance(decision['text'], str) or '\0' in decision['text']
-                or len(decision['text'].encode()) > 6000
-                or (decision['speak'] and work is None and not decision['text'].strip())):
-            raise ValueError('Invalid text-only participation decision.')
+        if not direct_article:
+            expected = {'speak', 'text', 'work_index'} if engineering else {'speak', 'text'}
+            if (set(decision) != expected or type(decision['speak']) is not bool
+                    or not isinstance(decision['text'], str) or '\0' in decision['text']
+                    or len(decision['text'].encode()) > 6000
+                    or (decision['speak'] and work is None and not decision['text'].strip())):
+                raise ValueError('Invalid text-only participation decision.')
         if work is not None:
             if (type(work) is not int or not 0 <= work < len(events)
                     or not events[work]['owner'] or events[work]['kind'] != 1):
@@ -247,13 +256,11 @@ class GroupLoop(ReplyLoop):
             if not isinstance(reply, str) or not reply.strip() or '\0' in reply or len(reply.encode()) > 6000:
                 raise ValueError('Bounded completed owner work result required.')
             decision.update(speak=True, text=reply)
-        elif self.images:
-            pages = [page for event in events for page in event.get('linked_pages', [])]
-            if pages:
-                reply = self.model.read_pages(pages)
-                if not isinstance(reply, str) or not reply.strip() or '\0' in reply or len(reply.encode()) > 6000:
-                    raise ValueError('Bounded completed page-reading result required.')
-                decision.update(speak=True, text=reply)
+        elif pages:
+            reply = decision['text'] if direct_article else self.model.read_pages(pages)
+            if not isinstance(reply, str) or not reply.strip() or '\0' in reply or len(reply.encode()) > 6000:
+                raise ValueError('Bounded completed page-reading result required.')
+            decision.update(speak=True, text=reply)
         with self.db:
             self.db.executemany("UPDATE inbox SET state='quiet' WHERE id=?", [(r['id'],) for r in rows])
             if decision['speak']:
