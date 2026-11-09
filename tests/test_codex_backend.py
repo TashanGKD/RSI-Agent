@@ -329,6 +329,78 @@ class CodexBackendTests(unittest.TestCase):
         self.assertEqual(self.jobs.get(original_key)['body'], original_packet)
         self.assertEqual(self.jobs.get(original_key)['state'], 'review')
 
+    def test_single_owner_article_keeps_its_original_route_and_replies_once(self):
+        from trigger.group_reply import GroupLoop
+        group = {'account': 'self', 'peer': 'group@chatroom', 'owner_peer': 'owner',
+                 'name': 'Fixture group', 'scope': {'mode': 'invited-group-text', 'since': 100, 'introduction': False}}
+        url = 'https://mp.weixin.qq.com/s/article'
+        page = {'state': 'ready', 'url': url, 'text': 'Observed public article.'}
+        answer = '基于已读取的正文给出答复'
+        for native_id, already_routed in (('45', True), ('44', False)):
+            with self.subTest(already_routed=already_routed):
+                event = {'account': 'self', 'peer': group['peer'], 'sender': 'owner',
+                         'sender_name': 'Owner', 'mentioned': False, 'kind': 49, 'created': 120,
+                         'server_id': native_id, 'link': {'url': url, 'text': 'Original article card'}}
+                sends = []
+
+                def native(value):
+                    if value['op'] == 'read':
+                        return {'events': [event]}
+                    if value['op'] == 'submit':
+                        sends.append((value['server_id'], value['text']))
+                        return {'state': 'succeeded', 'outcome': 'sent'}
+                    raise AssertionError('Unexpected native action')
+
+                path = self.root / (native_id + '.sqlite')
+                loop = GroupLoop(path, group, self.backend, native)
+                self.addCleanup(loop.close)
+                identity = [['self', group['peer']], [native_id], 'chat']
+                route_key = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
+                article_key = hashlib.sha256(json.dumps([*identity, 'link-reading'], sort_keys=True).encode()).hexdigest()
+                with patch('trigger.group_reply.linked_pages', return_value=[page]):
+                    if already_routed:
+                        # An original request frozen by the prior implementation.
+                        self.backend.use_request([native_id])
+                        with self.assertRaises(PublicationPending):
+                            self.backend.complete([{'role': 'user', 'content': 'Frozen route'}], json_output=True)
+                        with loop.db:
+                            loop.save('model_batch', json.dumps([native_id]))
+                        frozen = self.jobs.get(route_key)['body']
+                        with self.assertRaises(PublicationPending):
+                            loop.cycle()
+                        self.assertFalse((Path(self.config['state']) / 'inputs' / (article_key + '.json')).exists())
+                        self.jobs.update(route_key, state='completed',
+                            result='{"speak":false,"text":"","work_index":null}')
+                    with self.assertRaises(PublicationPending):
+                        loop.cycle()
+                    self.assertEqual(self.backend.last_input_key, article_key)
+                    if already_routed:
+                        self.assertEqual(self.jobs.get(route_key)['body'], frozen)
+                    else:
+                        self.assertFalse(self.backend.has_original_input([native_id]))
+
+                    with patch('receiver.codex_worker.subprocess.run', return_value=queued()) as cli:
+                        notify_desktop({'codex': 'existing-codex', 'desktop_thread_id': THREAD,
+                                        'desktop_all_requests': True}, self.jobs, self.jobs.claim('chat'))
+                    cli.assert_called_once()
+                    loop.close()
+                    restarted = GroupLoop(path, group, load_model(self.root / 'backend.json'), native)
+                    self.addCleanup(restarted.close)
+                    with self.assertRaises(PublicationPending):
+                        restarted.cycle()
+                    self.assertIsNone(self.jobs.claim('chat'))
+                    _, task = self.backend.exchange('/desktop-requests/' + article_key)
+                    self.assertEqual(task['body']['request'], [native_id])
+                    self.assertIsNone(task['body']['schema'])
+                    self.assertEqual(json.loads(task['body']['messages'][-1]['content']), {'linked_pages': [page]})
+                    self.assertEqual(sends, [])
+                    self.backend.exchange('/desktop-completions', {'id': article_key, 'input_sha256': task['input_sha256'],
+                        'thread_id': THREAD, 'turn_id': 'article-turn-' + native_id, 'text': answer})
+                    self.assertEqual(restarted.cycle()['state'], 'pending')
+                    self.assertEqual(restarted.cycle()['state'], 'sent')
+                    self.assertEqual(restarted.cycle()['state'], 'idle')
+                    self.assertEqual(sends, [(native_id, answer)])
+
     def test_native_group_schema_keeps_original_work_index_and_image(self):
         self.backend.bind('self', 'group@chatroom');self.backend.use_request(['44', '45'])
         image = 'data:image/png;base64,' + base64.b64encode(b'fixture').decode()
