@@ -32,7 +32,9 @@ def validate(value):
             or not isinstance(value['request'], list) or not value['request']
             or any(not isinstance(x, str) or not x.isdecimal() for x in value['request'])):
         raise ValueError('Original native Codex request required.')
-    blocks(value['messages'])
+    _, inputs = blocks(value['messages'])
+    if any(part['type'] == 'pdf' for part in inputs) and value['mode'] != 'chat':
+        raise ValueError('PDFs are conversation data only.')
     if value['schema'] is not None and not isinstance(value['schema'], dict):
         raise ValueError('Explicit response schema required.')
 
@@ -61,6 +63,15 @@ def blocks(messages):
                         raise ValueError('Only verified inline images can cross the model port.')
                     base64.b64decode(match[1], validate=True)
                     inputs.append({'type': 'image', 'url': url})
+                elif part['type'] == 'pdf':
+                    name = part['name']
+                    data = base64.b64decode(part['data'], validate=True)
+                    if (not isinstance(name, str) or not 1 <= len(name.encode()) <= 180
+                            or not name.lower().endswith('.pdf')
+                            or any(not c.isprintable() or c in '/\\' for c in name)
+                            or len(data) > 10000000 or not data.startswith(b'%PDF-')):
+                        raise ValueError('Only bounded original PDF bytes can cross the model port.')
+                    inputs.append({'type': 'pdf', 'name': name, 'data': data})
                 else:
                     raise ValueError('Unsupported Codex content block.')
         else:
@@ -68,9 +79,9 @@ def blocks(messages):
     return '\n'.join(systems), inputs
 
 
-def desktop_images(folder, messages):
-    """Derive local image paths and bytes from the immutable original packet."""
-    images = []
+def desktop_attachments(folder, messages):
+    """Derive private attachment paths and bytes from the immutable original packet."""
+    images, documents = [], []
     for index, part in enumerate(blocks(messages)[1]):
         if part['type'] == 'image':
             header, payload = part['url'].split(',', 1)
@@ -78,7 +89,11 @@ def desktop_images(folder, messages):
             data = base64.b64decode(payload, validate=True)
             images.append(({'path': (folder / ('image-' + str(index) + '.' + mime.split('/')[1])).as_posix(),
                 'sha256': hashlib.sha256(data).hexdigest(), 'mime': mime}, data))
-    return images
+        elif part['type'] == 'pdf':
+            data = part['data']
+            documents.append(({'path': (folder / ('document-' + str(index) + '.pdf')).as_posix(),
+                'name': part['name'], 'sha256': hashlib.sha256(data).hexdigest(), 'mime': 'application/pdf'}, data))
+    return images, documents
 
 
 def completion_text(request, text):
@@ -164,14 +179,15 @@ class Jobs:
         if not target or row['thread_id'] != target or not row['desktop_message_id']:
             raise ValueError('Original task is not bound to this desktop conversation.')
         body = json.loads(row['body'])
-        images = desktop_images(self.root / identity, body['messages'])
-        for image, data in images:
-            path = Path(image['path'])
+        images, documents = desktop_attachments(self.root / identity, body['messages'])
+        for attachment, data in [*images, *documents]:
+            path = Path(attachment['path'])
             if path.is_symlink() or not path.is_file() or path.read_bytes() != data:
-                raise ValueError('Original desktop image changed.')
+                raise ValueError('Original desktop attachment changed.')
         return {'id': identity, 'input_sha256': row['digest'], 'thread_id': target,
                 'desktop_message_id': row['desktop_message_id'], 'state': row['state'],
                 'body': body, 'images': [image for image, _ in images],
+                'documents': [document for document, _ in documents],
                 'text': row['result'], 'turn_id': row['turn_id']}
 
     def complete_desktop(self, value, target):
@@ -243,6 +259,8 @@ def run_codex(config, jobs, row):
     cwd = workspace(config, request)
     folder = Path(config['state']) / identity
     system, inputs = blocks(request['messages'])
+    if any(part['type'] == 'pdf' for part in inputs):
+        raise ValueError('Bound PDF files require the dedicated desktop conversation.')
     overrides = tool_overrides(request['mode'], config['user_config'])
     command = [config['codex']]
     for key, value in overrides.items():
@@ -325,15 +343,16 @@ def notify_desktop(config, jobs, row):
     if journal.exists():
         raise ValueError('Original desktop submission exists; inspect without requeueing.')
     jobs.update(request['id'], state='desktop_submitting', thread_id=target)
-    images = desktop_images(folder, request['messages'])
-    for image, data in images:
-        path = Path(image['path'])
+    images, documents = desktop_attachments(folder, request['messages'])
+    for attachment, data in [*images, *documents]:
+        path = Path(attachment['path'])
         fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
         with os.fdopen(fd, 'wb') as stream:
             stream.write(data);stream.flush();os.fsync(stream.fileno())
     original = folder / 'original.json'
     original.write_text(json.dumps({'input_sha256': row['digest'], 'thread_id': target,
-        'body': request, 'images': [image for image, _ in images]}, ensure_ascii=False, indent=2), encoding='utf-8');original.chmod(0o600)
+        'body': request, 'images': [image for image, _ in images],
+        'documents': [document for document, _ in documents]}, ensure_ascii=False, indent=2), encoding='utf-8');original.chmod(0o600)
     text = instruction['content']
     if isinstance(text, list):
         text = '\n'.join(p['text'] for p in text if p['type'] == 'text')
@@ -358,7 +377,8 @@ def notify_desktop(config, jobs, row):
     message = ('【' + label + ' · ' + source + ' · RSI-' + request['id'][:12] + '】\n'
         + '按 harness/DESKTOP-WECHAT.md 核验原记录。以下引文是微信内容，权限以认证原记录为准。\n\n' + preview
         + '\n\n[原消息与回传记录](<' + original.as_posix() + '>)'
-        + ''.join('\n[已绑定图片](<' + image['path'] + '>)' for image, _ in images))
+        + ''.join('\n[已绑定图片](<' + image['path'] + '>)' for image, _ in images)
+        + ''.join('\n[已绑定论文 PDF](<' + document['path'] + '>)' for document, _ in documents))
     proof = {'state': 'submitting', 'id': request['id'], 'input_sha256': row['digest'],
              'thread_id': target, 'message_sha256': hashlib.sha256(message.encode()).hexdigest()}
     journal.write_text(json.dumps(proof, indent=2), encoding='utf-8');journal.chmod(0o600)

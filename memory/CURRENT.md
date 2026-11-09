@@ -25,6 +25,14 @@ original batch and ACK. The older DeepSeek gate rollout is recorded in D023.
 Ordinary photo export accepts decoded bytes matching the exact native message
 MD5 even when the default Save filename changes. Converted files still require
 the native time and local ID in the official filename. Export failures retain
-a bounded stage for the next real image investigation. Both reply services
-use the PR #39 release. An isolated Codex run recognized a PNG. A fresh
+a bounded stage for the next real image investigation. Check the installed
+processes against live receipts. An isolated Codex run recognized a PNG. A fresh
 ordinary WeChat photo still needs end-to-end verification.
+
+The PDF intake candidate binds already downloaded ordinary-file PDFs to their
+native peer, sender, message, cache resource, size and MD5. The desktop
+receiver stores the original PDF privately and exposes a digest-bound document
+alongside the existing image manifest. Frozen media requests reuse their
+original packet while waiting for Codex. Isolated PDF text and page rendering
+passed. Verify the actual release, receiver and new native inputs before
+claiming live photo or PDF delivery.

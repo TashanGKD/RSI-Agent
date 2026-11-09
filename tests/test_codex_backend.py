@@ -1,4 +1,5 @@
 import base64
+import hashlib
 import json
 from pathlib import Path
 import subprocess
@@ -83,6 +84,36 @@ for line in sys.stdin:
 
 
 class DesktopRelayTests(unittest.TestCase):
+    def test_pdf_stays_bound_to_its_original_desktop_chat_and_rejects_changed_files(self):
+        with tempfile.TemporaryDirectory() as td:
+            jobs = Jobs(td)
+            data = b'%PDF-1.7\noriginal document fixture\n%%EOF'
+            attachment = {'type': 'pdf', 'name': '论文.pdf', 'data': base64.b64encode(data).decode()}
+            request = dict(packet(), messages=[{'role': 'user', 'content': [
+                {'type': 'text', 'text': '看一下这篇论文'}, attachment]}])
+            with self.assertRaises(ValueError):
+                jobs.accept(dict(request, mode='engineering'))
+            for invalid in (dict(attachment, name='../论文.pdf'), dict(attachment, data='YQ==')):
+                with self.assertRaises(ValueError):
+                    jobs.accept(dict(request, messages=[{'role': 'user', 'content': [invalid]}]))
+            jobs.accept(request)
+            with patch('rsi_agent.codex_worker.subprocess.run', return_value=queued()) as command:
+                notify_desktop({'codex': 'existing-codex', 'desktop_thread_id': THREAD,
+                    'desktop_all_requests': True}, jobs, jobs.claim('chat'))
+            task = jobs.desktop_task(request['id'], THREAD)
+            document, = task['documents']
+            path = Path(document['path'])
+            self.assertEqual(task['body'], request)
+            self.assertEqual(task['images'], [])
+            self.assertEqual(document['name'], '论文.pdf')
+            self.assertEqual(document['sha256'], hashlib.sha256(data).hexdigest())
+            self.assertEqual(path.read_bytes(), data)
+            self.assertIn('已绑定论文 PDF', command.call_args.args[0][-1])
+            self.assertNotIn(attachment['data'], command.call_args.args[0][-1])
+            path.write_bytes(data + b'changed')
+            with self.assertRaises(ValueError):
+                jobs.desktop_task(request['id'], THREAD)
+
     def test_unified_route_never_falls_back_when_its_target_is_missing(self):
         from rsi_agent.codex_worker import process_job
         with tempfile.TemporaryDirectory() as td:
