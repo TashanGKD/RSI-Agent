@@ -11,6 +11,7 @@ from rsi_agent.config import WECHAT_LINUX, load
 from rsi_agent.wechat import environment, private_file
 
 CLIENT = 'rsi-owner'
+FRIEND_CLIENT = 'rsi-friend'
 FRIEND_MODE = 'friend-private-chat'
 
 
@@ -133,6 +134,37 @@ def status(job):
                 ('postActionPending', 'draftRecoveryPending', 'navigationRecoveryPending'))}
 
 
+def original_status(api, job, client):
+    """Read the existing receipt without claiming or advancing its send."""
+    return dict(status(api.view(job)), recoverable_preinput_failure=failed_before_input(api.s, job, client),
+                reply_sha256=hashlib.sha256(job['payload']['text'].encode()).hexdigest())
+
+
+def failed_before_input(store, job, client):
+    from operations import navigation
+    result = job.get('result') or {}
+    if (job['state'] != 'failed' or job['client'] != client or job['action'] != 'send_text'
+            or job.get('preview') is not None or result.get('noSend') is not True
+            or result.get('sideEffectStarted') is not False
+            or any(result.get(k) for k in ('postActionPending', 'draftRecoveryPending', 'navigationRecoveryPending'))):
+        return False
+    events = [row[0] for row in store.c.execute('SELECT state FROM events WHERE job_id=? ORDER BY seq', (job['id'],))]
+    if events != ['queued', 'preparing', 'failed']:
+        if (events != ['queued', 'preparing', 'needs_attention', 'failed']
+                or result.get('code') != 'NAVIGATION_PREPARATION_FAILED'
+                or result.get('navigationRestored') is not True or result.get('automaticReplay') is not False):
+            return False
+    journal = navigation.path(store.root, job)
+    if any(path != journal for path in store.root.glob(job['id'] + '-*')):
+        return False
+    original = navigation.load(store.root, job)
+    if not original or original.get('state') != 'settled':
+        return False
+    if client == FRIEND_CLIENT and result.get('code') == 'DRAFT_PROTECTED':
+        return original.get('protectedDraft') is True and original.get('priorDraftWindowRetained') is True
+    return True
+
+
 def advance(api, job, policy):
     """Run only this immutable job through the original executor and display locks."""
     import fcntl
@@ -206,13 +238,15 @@ def handle(installation, owner, request):
     fields = {'read': {'op'}, 'image': {'op', 'server_id'}, 'pdf': {'op', 'server_id'},
               'ack': {'op', 'batch_id', 'batch_hash', 'ack_ids'},
               'submit': {'op', 'server_id', 'text'}, 'advance': {'op', 'server_id'}}
+    if 'friend_peer' in owner:
+        fields['status'] = {'op', 'server_id'}
     if op not in fields or set(request) != fields[op]:
         raise ValueError('Unsupported owner reply transport fields.')
     peer = owner.get('friend_peer', owner['owner_peer'])
     client = CLIENT
     if 'friend_peer' in owner:
         require_friend(peer)
-        client = 'rsi-friend'
+        client = FRIEND_CLIENT
     if op in ('read', 'ack'):
         return source(root, owner, request)
     if op == 'image':
@@ -232,7 +266,10 @@ def handle(installation, owner, request):
     policy = load_config(root / 'operations-state/config.json')
     if policy['account'] != owner['account']:
         raise ValueError('Native sender account differs from confirmed binding.')
-    api = PublicAPI(root / 'operations-state', policy)
+    state = root / 'operations-state'
+    if op == 'status' and not (state / 'queue.sqlite').is_file():
+        raise ValueError('Original friend queue is missing.')
+    api = PublicAPI(state, policy)
     try:
         if op == 'submit':
             text = request['text']
@@ -245,6 +282,8 @@ def handle(installation, owner, request):
         job = api.s.get(client, rid)
         if job['peer'] != peer or job['action'] != 'send_text':
             raise ValueError('Original reply request binding changed.')
+        if op == 'status':
+            return original_status(api, job, client)
         return advance(api, job, policy)
     finally:
         api.close()

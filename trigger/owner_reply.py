@@ -1,4 +1,5 @@
 """One confirmed private conversation, a durable inbox, and the existing V2 sender."""
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -96,8 +97,21 @@ class ReplyLoop:
     def counts(self):
         return dict(self.db.execute('SELECT state,count(*) FROM inbox GROUP BY state').fetchall())
 
+    def reconcile_attention(self, stopped):
+        outcome = self.io({'op': 'status', 'server_id': stopped['id']})
+        if (outcome['state'] != 'failed' or outcome.get('recoverable_preinput_failure') is not True
+                or outcome.get('outcome') != 'not_sent' or not isinstance(stopped['reply'], str)
+                or outcome.get('reply_sha256') != hashlib.sha256(stopped['reply'].encode()).hexdigest()):
+            return {'state': 'attention', 'counts': self.counts()}
+        with self.db:
+            self.db.execute("UPDATE inbox SET state='failed' WHERE id=? AND state='attention'", (stopped['id'],))
+        return {'state': 'failed', 'counts': self.counts()}
+
     def cycle(self):
-        if self.db.execute("SELECT 1 FROM inbox WHERE state='attention'").fetchone():
+        stopped = self.db.execute("SELECT id,reply FROM inbox WHERE state='attention' ORDER BY created,id LIMIT 1").fetchone()
+        if stopped:
+            if self.friend:
+                return self.reconcile_attention(stopped)
             return {'state': 'attention', 'counts': self.counts()}
         batch = self.io({'op': 'read'})
         scope = self.owner['scope']
