@@ -58,14 +58,7 @@ class GroupLoop(ReplyLoop):
             return {'state': 'attention', 'counts': self.counts()}
         stopped = self.db.execute("SELECT id,reply FROM inbox WHERE state='attention' ORDER BY created,id LIMIT 1").fetchone()
         if stopped:
-            outcome = self.io({'op': 'status', 'server_id': stopped['id']})
-            if (outcome['state'] == 'failed' and outcome.get('recoverable_preinput_failure') is True
-                    and outcome.get('outcome') == 'not_sent' and isinstance(stopped['reply'], str)
-                    and outcome.get('reply_sha256') == hashlib.sha256(stopped['reply'].encode()).hexdigest()):
-                with self.db:
-                    self.db.execute("UPDATE inbox SET state='failed' WHERE id=? AND state='attention'", (stopped['id'],))
-                return {'state': 'failed', 'counts': self.counts()}
-            return {'state': 'attention', 'counts': self.counts()}
+            return self.reconcile_attention(stopped)
         if self.value('introduction') not in ('sent', 'not_requested'):
             # Stable original request even after a lost response or worker restart.
             state = self.deliver('introduction', INTRODUCTION)

@@ -9,7 +9,7 @@ import time
 from xml.etree import ElementTree as ET
 
 from rsi_agent.config import WECHAT_LINUX, load
-from .reply_io import advance, status
+from .reply_io import advance, original_status, status
 from rsi_agent.wechat import environment, private_file
 
 CLIENT = 'rsi-group'
@@ -178,29 +178,6 @@ def read_group(root, value, request, members):
             inbox.close()
 
 
-def failed_before_input(store, job):
-    """Read only the original failed request's evidence; never retry its navigation."""
-    from operations import navigation
-    result = job.get('result') or {}
-    if (job['state'] != 'failed' or job['client'] != CLIENT or job['action'] != 'send_text'
-            or job.get('preview') is not None or result.get('noSend') is not True
-            or result.get('sideEffectStarted') is not False
-            or any(result.get(k) for k in ('postActionPending', 'draftRecoveryPending', 'navigationRecoveryPending'))):
-        return False
-    events = [row[0] for row in store.c.execute('SELECT state FROM events WHERE job_id=? ORDER BY seq', (job['id'],))]
-    if events != ['queued', 'preparing', 'failed']:
-        if (events != ['queued', 'preparing', 'needs_attention', 'failed']
-                or result.get('code') != 'NAVIGATION_PREPARATION_FAILED'
-                or result.get('navigationRestored') is not True
-                or result.get('automaticReplay') is not False):
-            return False
-    journal = navigation.path(store.root, job)
-    if any(path != journal for path in store.root.glob(job['id'] + '-*')):
-        return False
-    original = navigation.load(store.root, job)
-    return bool(original and original.get('state') == 'settled')
-
-
 def handle(installation, value, request):
     if request.get('_binding') != token(value):
         raise ValueError('Invited group scope changed.')
@@ -251,8 +228,7 @@ def handle(installation, value, request):
         if job['peer'] != value['group_peer'] or job['action'] != 'send_text':
             raise ValueError('Original group request changed.')
         if op == 'status':
-            return dict(status(api.view(job)), recoverable_preinput_failure=failed_before_input(api.s, job),
-                        reply_sha256=hashlib.sha256(job['payload']['text'].encode()).hexdigest())
+            return original_status(api, job, CLIENT)
         return advance(api, job, policy)
     finally:
         api.close()

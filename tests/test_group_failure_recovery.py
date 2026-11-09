@@ -10,6 +10,8 @@ from unittest.mock import Mock, patch
 from rsi_agent.config import WECHAT_LINUX
 from trigger.group_io import CLIENT, handle, token
 from trigger.group_reply import GroupLoop
+from trigger.owner_reply import ReplyLoop
+from trigger import reply_io
 
 
 @unittest.skipUnless(sys.platform == 'linux', 'requires native private Linux state')
@@ -169,6 +171,51 @@ class GroupFailureRecoveryTests(unittest.TestCase):
                 handle(self.installation, self.binding,
                     {'op': 'status', 'server_id': '99', '_binding': token(self.binding)})
         self.assertEqual(snapshot(), before)
+
+    def test_friend_draft_is_retained_and_only_next_original_can_send(self):
+        from operations import navigation
+        peer = 'wxid_fixture_friend'
+        scope = {'mode': reply_io.FRIEND_MODE, 'since': 100}
+        binding = dict(self.binding, friend_peer=peer, send_scope=scope)
+        request_id = reply_io.request_id(binding['account'], peer, '1', 'rsi-friend')
+        job = self.api.s.submit({'client': 'rsi-friend', 'request_id': request_id, 'peer': peer,
+            'action': 'send_text', 'payload': {'text': self.reply}, 'execution_mode': 'verified_fast'})
+        self.api.s.set_state(job['id'], 'preparing')
+        self.api.s.set_state(job['id'], 'failed', dict(self.failure, code='DRAFT_PROTECTED'))
+        original = self.api.s.by_id(job['id'])
+        navigation.save(self.state, original, {'state': 'settled', 'protectedDraft': True})
+        calls = []
+
+        def transport(request):
+            calls.append(request)
+            if request['op'] == 'status':
+                with patch('trigger.reply_io.require_friend'):
+                    return reply_io.handle(self.installation, binding, dict(request, _binding=reply_io.binding_token(binding)))
+            if request['op'] == 'read':
+                return {'events': [{'account': binding['account'], 'peer': peer, 'sender': peer,
+                    'kind': 1, 'text': 'New message', 'created': 150, 'server_id': '2'}]}
+            self.assertEqual(request['op'], 'submit')
+            self.assertEqual(request['server_id'], '2')
+            return {'state': 'succeeded', 'outcome': 'sent'}
+
+        model = Mock()
+        model.reply.return_value = 'New reply'
+        loop = ReplyLoop(self.root / 'friend-inbox.sqlite', {'account': binding['account'], 'peer': peer, 'scope': scope},
+                         model, transport)
+        self.addCleanup(loop.close)
+        with loop.db:
+            loop.db.execute('INSERT INTO inbox(id,created,text,reply,state) VALUES(?,?,?,?,?)',
+                            ('1', 120, 'Original body', self.reply, 'attention'))
+        self.assertEqual(loop.cycle()['state'], 'attention')
+        model.reply.assert_not_called()
+        navigation.save(self.state, original, {'state': 'settled', 'protectedDraft': True, 'priorDraftWindowRetained': True})
+        journal = navigation.path(self.state, original).read_bytes()
+        self.assertEqual(loop.cycle()['state'], 'failed')
+        self.assertEqual(loop.cycle()['state'], 'sent')
+        self.assertEqual(loop.db.execute("SELECT reply,state FROM inbox WHERE id='1'").fetchone()[:], (self.reply, 'failed'))
+        self.assertEqual([request['server_id'] for request in calls if request['op'] == 'submit'], ['2'])
+        self.assertEqual(self.api.s.by_id(job['id']), original)
+        self.assertEqual(navigation.path(self.state, original).read_bytes(), journal)
 
 
 if __name__ == '__main__':
