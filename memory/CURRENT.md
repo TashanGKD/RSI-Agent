@@ -1,104 +1,60 @@
 # Current checkpoint
 
-## Delivered baseline
+## Latest actual delivery
 
-PR #23's compact official search popup support is merged, published and
-resident-active. The same exact two known shapes are shared by navigation and
-modal admission, retaining native ownership/new-window and final-recipient
-proof. Recognition support alone is not proof of actual group delivery.
-Read current/release metadata, resident cwd and the latest PR receipt for versions.
-PR #22 local Codex handoff and #21 links/preferences remain delivered. Scheduled
-wake and one fresh native /codex delivery are verified. Do not repeat
-the nonce or failed Dot probes. No open old PR is inferred from candidate text.
+PR #28 is merged, fixed-source published and resident-active in its live receipt.
+Its installed native-only image navigation/restoration fixture passes. The old
+owned search navigation and the failed image read were settled failed/noSend
+under the owner's explicit automatic-execution instruction. No cached old reply,
+image or completed model result was replayed. A genuine fresh /codex owner reply
+succeeded exactly once in the existing desktop conversation. This active-turn
+acceptance is distinct from immediate unattended activation or phone acceptance.
 
-## Current increment: two separately accepted event-trigger experiments
+The later group text failed cleanly with SEARCH_SELECTION_UNPROVEN, its original
+navigation is settled, global V2 is free, and that group consumer retains attention.
+Its original native record/cache is indexed in private operator metadata. This
+recipient problem remains separate from model selection and is not group recovery.
 
-PR #25 offline readiness and #24 publication recovery are merged, published and
-resident-active according to their live receipts. Do not reopen their candidates.
-The real local Codex queue was empty. GIF carrier evidence is retained in Issue
-#26: the current Pixbuf path loses animation. Do not repeat that probe or claim
-native GIF delivery; its original-reply asset/native-carrier work is independent.
+## Current task: prefix-free Codex takeover
 
-PR #27's named private memory is merged, published and resident-active in the
-live receipt. Its native save/correct/forget acceptance still requires fresh
-owner input; do not reopen the delivered implementation.
+The owner explicitly requested all future messages in the existing owner/group
+scopes to use Codex without /codex. The candidate adds an authenticated loopback
+SSH model port and a persistent consumer on this computer, preserving native
+identity, bounded peer context, notes, images/links, original inputs and V2.
+No Codex installation is performed on the native-client host; no DSH fallback
+runs when the local computer/tunnel is offline. The earlier prefix switch will
+stop new admission while retaining all original claims/completions/receipts.
 
-The owner now explicitly requested separate trials of MCP Events -> Dot and a
-remote event -> local Codex App Server. In a private fixture, a remote HTTP event
-through a temporary SSH reverse forward started a local ephemeral read-only
-App Server turn, actually read the challenge file and returned the exact result.
-An identical duplicate used the frozen completion; changed input was rejected.
-This is independent of the desktop heartbeat, but it neither awakened this
-existing desktop conversation nor consumed/sent a native WeChat request.
+Chat and verified-owner engineering have separate local consumers. Ordinary chat
+uses ephemeral peer-bounded input with execution/plugin/MCP/browser tools disabled
+through child settings. Owner tasks retain native identity/kind checks and use
+an isolated Git worktree and reviewable draft PR. Existing PRs delay engineering
+only. Completed results freeze before shutdown/HTTP response; uncertain interrupted
+work becomes review rather than a new generation. Original events/threads remain
+private. Current maintenance continues as coordinator, not ordinary message worker.
 
-The Dot fixture implements the official event/subscription/callback/receipt
-contract in experiments/triggers. Offline contract and independent HTTPS
-discovery checks passed. Its isolated preview uses fixed source, a separate
-restricted unit, private state, a narrow bridge rule and its own proxy prefix;
-production source/resident PIDs were preserved. The initial gateway reachability
-failure rolled back cleanly before that narrow rule resolved the path.
-
-The owner then pointed to direct Codex installation. The supported plugin CLI
-installed and enabled RSI Trigger Lab from its own local marketplace, preserving
-prior plugins/marketplaces and other config. A fresh App Server actually loaded
-its MCP tool without a tools error or model turn. The earlier external-browser
-login request is superseded for local installation; do not keep asking it.
-An actual Dot event subscription/result remains unproven. Installed tools do
-not prove an event receiver exists. Read the same draft PR's live receipt for
-the exact hosted source, final-head CI and private connection/acceptance state.
-
-## Native handoff and authorized recovery
-
-A fresh native owner /codex message was identity-checked, claimed and completed
-once in this same existing desktop conversation. After the owner's explicit
-instruction to execute routine recovery automatically, the old group's exact
-owned search navigation was verified, restored and settled failed/noSend. Its
-cached reply was preserved and never replayed. The new owner completion then
-received native status 2 with one Send click, matching text, restored draft and
-navigation. Phone acceptance is not established. This is real native delivery
-through an active desktop turn, not proof of unattended immediate Dot activation.
-
-The resumed image read exposed a different defect: an automatically admitted
-named group has a valid native-only registration, while uncached image prepare
-entered legacy static header calibration without starting native navigation.
-The frozen Linux fixture reproduces the exact header_box KeyError on deployed
-source. The candidate uses the existing guarded native navigation, derives the
-selected binding and restores its owned navigation before returning image bytes.
-Source/recipient proof and cached-image fast paths are retained. The original
-failed read was verified to have no preview/journal/execution, then settled
-failed/noSend under the original driver guards without replay or UI input.
-
-A later cached group text reply failed cleanly before opening a chat because
-the selected conversation did not stabilize. It is a separate remaining
-recipient-path failure, not successful group recovery. Its cache/IDs remain;
-global V2 is free, and the affected group's consumer retains attention.
+The real local Codex consumer correctly identified an inline image and returned
+the exact structured group shape without execution items. Global Codex config
+was preserved. Linux prefix-free native-loop/HTTP/IPC/dedup fixtures and the
+complete regression gate passed; final exact-head CI and deployment remain due.
+This isolated image is not a fresh native WeChat end-to-end acceptance.
 
 ## Unique next step
 
-Review and gate the native-only image navigation fix in this same PR, then
-publish fixed source and activate residents reversibly. Verify the installed
-fixture, original requests and actual process versions; positive new-image
-acceptance still requires genuine fresh input. Do not replay the old image or
-regenerate its frozen model batch. Actual group recipient recovery remains
-unproven; retain its original failure for the next bounded investigation.
+Review/gate and reversibly install this same candidate: fixed local source,
+hidden per-user logon worker and SSH tunnel, then fixed host source and both
+resident model ports. Preserve private state/old code, rehearse pointer rollback,
+validate actual worker/source/backend and original records. Any genuine unhandled
+inbound may supply native acceptance; do not manufacture a probe or replay old
+images/replies. This computer must remain awake and its Codex user signed in.
+Read the live PR receipt for actual merge/publication/task/activation status.
 
-## Separate trigger experiment boundary
+## Other retained boundaries
 
-Obtain one real supported Dot event subscription and send its one
-operator-authorized fixture. Local installation and MCP loading are done; do
-not reinstall or manufacture another local probe. Accept only the
-original probe's completion tool receipt as processing evidence; webhook 2xx is
-only transport evidence. Do not replace the production handoff worker or repeat
-the completed local event/old socket/nonce experiments to manufacture progress.
-Keep capability URLs, signing secrets, raw events and journals private.
-
-The former one-off cleanup is complete under the latest owner authorization.
-Keep its original history and private recovery receipts; do not repeat it.
-
-## Remaining boundaries
-
-Ordinary owner/group replies are resident DSH, independent of maintenance. The
-sticker library/native search/GIF and separate Node 24/autoloop CLI are installed;
-native WeChat sticker output and task-event binding remain incomplete. Group/semantic memory retrieval, fixed-runtime Penguin evaluation/Formal Baseline,
-client persistence, folded albums and whole-video understanding remain separate.
-Secrets, raw chats and private assets stay outside Git. No RSI gain is claimed.
+Dot MCP tool installation/loading is verified; genuine event subscription/complete
+activation remains unproven and is not needed for the local consumer above.
+The standalone local App Server remote-event fixture passed earlier and is not
+repeated. Named owner-private memory is delivered; group/semantic memory, native
+animated sticker output, task autoloop binding, client/X startup persistence,
+folded albums/whole videos and fixed-model Penguin Formal Baseline remain distinct.
+Secrets, raw chats, private pictures and full logs stay outside Git. No RSI gain.

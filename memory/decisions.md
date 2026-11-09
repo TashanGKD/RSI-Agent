@@ -193,3 +193,17 @@ native-only groups must use the same guarded recipient navigation as text and
 restore that owned navigation before exposing bytes. Native owner delivery,
 group recipient recovery and immediate desktop/Dot awakening remain separate
 acceptance claims. Read the live PR/private receipt for actual delivery state.
+
+## D019 — Default Codex generation preserves the native transport contract
+
+The owner explicitly selected Codex for future owner/group messages, with no
+prefix. A local persistent consumer replaces generation, not native identity,
+notes/context or V2 delivery. The native host forwards only; no target Codex or
+model key is installed. Original bounded inputs and completions persist before
+ACK/response; changed input is rejected and uncertain running work is review,
+not a second model run or DSH fallback. Separate chat/engineering queues keep
+ordinary replies available during owner tasks. Ordinary tools/plugins/MCP are
+disabled only in child configuration, leaving global Codex settings intact.
+Native owner/kind checks remain the sole engineering admission. Code publication,
+local logon-task start, resident model switch and genuine native acceptance are
+separate facts; local uptime/login is now an explicit dependency.

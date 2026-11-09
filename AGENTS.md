@@ -77,3 +77,13 @@ pending one-off navigation-cleanup question. Verify the original effects first;
 this is not permission to regenerate completed work, replay uncertain sends or
 discard private state. The original old navigation has now been restored and
 settled failed/noSend, and the fresh native /codex reply succeeded once.
+
+The owner subsequently requested Codex takeover for all future messages in the
+existing owner/group scopes, without a /codex prefix. Use the local-codex model
+port and persistent local consumer; retain native reception, identity, memory,
+image/link context and the original V2 sender. Disable future legacy prefix
+admission without rewinding its completed claims. Do not fall back to DSH when
+this computer is offline. Ordinary chat has execution tools disabled; only the
+existing verified-owner task gate can select an isolated engineering worktree.
+The maintenance conversation remains the coordinator, not the ordinary chat
+consumer. Follow the live rollout receipt for actual activation and limitations.
