@@ -3,32 +3,14 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-1. **Selected group opening: current WIP.** Fresh native failure and actual
-   control geometry show the scan samples the message pane beyond the sidebar.
-   Correct its calibrated boundary; retain stable selection and final native
-   recipient proof. Frozen main fails and candidate passes; normal CI/release
-   precede native fresh-send acceptance. Never replay the failed reply as a test.
-   All currently joined groups (two in native inventory) are already enabled;
-   the owner's latest instruction includes every joined group.
-   **Rejected image viewer -> queue recovery is delivered in PR #32.** The original
-   read rejected an uncalibrated Save toolbar and left its own viewer open,
-   blocking both groups. Keep source validation; close only the same original
-   viewer with guarded Escape, then prove owned navigation cleanup. Normal CI,
-   reversible release and original recovery precede resumed native delivery.
-   No image re-export, old reply regeneration or client restart. Preserve all
-   original queued requests. The first queued group reply succeeded once; the
-   second group's separate pre-input opening failure remains the current task.
-   **Clean native failure -> future intake is delivered in PR #31.** Freeze the
-   original failed/noSend pre-input record and settled navigation. Read only
-   that original; retain its body/cache/ACK/failure while allowing future intake,
-   without replaying the old selection or send. Unknown/input/cleanup evidence
-   stays attention. Baseline/candidate, release and installed original-path
-   recovery are verified in its live receipt; do not reopen the old candidate.
-   A separate image-export attention cannot use this proof or be silently cleared.
-   **Visible owner task handoff is delivered in PR #30.** Its original local CLI
-   fixture became one real user item; genuine new owner task -> visible execution
-   -> original V2 remains unobserved. Ordinary background group replies have
-   separate native acceptance. Do not repeat the fixture or completed chat cases.
+1. **One dedicated visible conversation: current WIP.** All admitted WeChat chat
+   and native-owner tasks share the new fixed thread. Maintenance stays here.
+   Preserve original IDs/schema/images/completions, use original V2 only and do
+   not run another background model turn. Finish actual-head gates and reversible
+   native/local activation before claiming routing. The owner's completed test
+   record can be displayed read-only once; it is not fresh-route/send acceptance.
+   PR #31/32/33 are delivered according to live receipts; do not reopen them.
+   The pending article-reader path waits behind this explicit owner request.
 2. **Completed task publication recovery: delivered.** A private
    post-shutdown journal binds the frozen result to its original Git effects.
    Branch-update/push SIGKILL replay resumes one original result without another

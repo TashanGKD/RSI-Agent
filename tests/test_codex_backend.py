@@ -82,6 +82,74 @@ for line in sys.stdin:
 
 
 class DesktopRelayTests(unittest.TestCase):
+    def test_unified_route_never_falls_back_when_its_target_is_missing(self):
+        from rsi_agent.codex_worker import process_job
+        with tempfile.TemporaryDirectory() as td:
+            jobs = Jobs(td);jobs.accept(packet())
+            with patch('rsi_agent.codex_worker.run_codex') as background:
+                with self.assertRaises(ValueError):
+                    process_job({'desktop_all_requests': True}, jobs, jobs.claim('chat'))
+                background.assert_not_called()
+
+    def test_chat_and_task_share_one_visible_target_without_background_generation(self):
+        from rsi_agent.codex_worker import process_job
+        with tempfile.TemporaryDirectory() as td:
+            jobs = Jobs(td)
+            config = {'codex': 'existing-codex', 'desktop_thread_id': THREAD, 'desktop_all_requests': True}
+            with patch('rsi_agent.codex_worker.run_codex', side_effect=AssertionError('No parallel background turn')), \
+                    patch('rsi_agent.codex_worker.subprocess.run', return_value=queued()) as command:
+                for mode, key in [('chat', 'a'), ('engineering', 'b')]:
+                    request = dict(packet(), id=key * 64, mode=mode)
+                    jobs.accept(request);process_job(config, jobs, jobs.claim(mode))
+                    result = jobs.get(request['id'])
+                    self.assertEqual((result['state'], result['thread_id']), ('desktop_queued', THREAD))
+                self.assertEqual(command.call_count, 2)
+                for call in command.call_args_list:
+                    self.assertEqual(call.args[0][2:4], ['--thread', THREAD])
+
+    def test_chat_images_are_original_bound_local_files_and_tampering_is_rejected(self):
+        with tempfile.TemporaryDirectory() as td:
+            jobs = Jobs(td)
+            data = b'original verified image bytes'
+            request = dict(packet(), scope=['self', 'group@chatroom'], messages=[{'role': 'user', 'content': [
+                {'type': 'text', 'text': '{"group":"Fixture group","new_messages":[{"sender_name":"Member","text":"看看这张"}]}'},
+                {'type': 'image_url', 'image_url': {'url': 'data:image/png;base64,' + base64.b64encode(data).decode()}}]}])
+            jobs.accept(request)
+            with patch('rsi_agent.codex_worker.subprocess.run', return_value=queued()) as command:
+                notify_desktop({'codex': 'existing-codex', 'desktop_thread_id': THREAD, 'desktop_all_requests': True},
+                               jobs, jobs.claim('chat'))
+            task = jobs.desktop_task(request['id'], THREAD)
+            image = task['images'][0];path = Path(image['path'])
+            self.assertEqual(path.read_bytes(), data);self.assertEqual(task['body'], request)
+            self.assertIn('Fixture group', command.call_args.args[0][-1])
+            self.assertIn('> Member：看看这张', command.call_args.args[0][-1])
+            self.assertNotIn('base64,', command.call_args.args[0][-1])
+            path.write_bytes(b'changed')
+            with self.assertRaises(ValueError):jobs.desktop_task(request['id'], THREAD)
+
+    def test_chat_completion_preserves_schema_native_text_limit_and_original_result(self):
+        with tempfile.TemporaryDirectory() as td:
+            jobs = Jobs(td)
+            schema = {'properties': {'speak': {'type': 'boolean'}, 'text': {'type': 'string'},
+                                     'work_index': {'type': ['integer', 'null']}}}
+            request = dict(packet(), scope=['self', 'group@chatroom'], schema=schema)
+            jobs.accept(request)
+            with patch('rsi_agent.codex_worker.subprocess.run', return_value=queued()):
+                notify_desktop({'codex': 'existing-codex', 'desktop_thread_id': THREAD, 'desktop_all_requests': True},
+                               jobs, jobs.claim('chat'))
+            task = jobs.desktop_task(request['id'], THREAD)
+            result = {'id': request['id'], 'input_sha256': task['input_sha256'], 'thread_id': THREAD,
+                      'turn_id': 'dedicated-turn', 'text': ''}
+            for text in ['not JSON', '{"speak":true,"text":"","work_index":null}',
+                         '{"speak":true,"text":"reply","work_index":true}', '{"text":"missing decision"}',
+                         json.dumps({'speak': True, 'text': '汉' * 2001, 'work_index': None})]:
+                with self.assertRaises(ValueError):jobs.complete_desktop(dict(result, text=text), THREAD)
+            result['text'] = json.dumps({'speak': True, 'text': '汉' * 2000, 'work_index': None}, ensure_ascii=False)
+            self.assertEqual(jobs.complete_desktop(result, THREAD)['state'], 'completed')
+            self.assertEqual(jobs.complete_desktop(result, THREAD)['state'], 'completed')
+            self.assertEqual(jobs.get(request['id'])['result'], result['text'])
+            with self.assertRaises(ValueError):jobs.complete_desktop(dict(result, turn_id='replacement-turn'), THREAD)
+
     def test_task_queues_once_without_a_model_turn_and_completion_is_immutable(self):
         with tempfile.TemporaryDirectory() as td:
             jobs = Jobs(td);request = dict(packet(), mode='engineering');jobs.accept(request)
@@ -141,6 +209,33 @@ class CodexBackendTests(unittest.TestCase):
             self.assertEqual(self.backend.reply('later changed live context'), '自然接话')
             self.assertEqual(self.jobs.get(key)['body'], frozen)
             self.assertNotIn('provider_config', self.config)
+
+    def test_native_plain_chat_waits_for_new_desktop_completion_and_sends_once(self):
+        from rsi_agent.owner_reply import ReplyLoop
+        owner = {'account': 'self', 'peer': 'owner', 'scope': {'mode': 'owner-private-text', 'since': 100}}
+        event = {'account': 'self', 'peer': 'owner', 'sender': 'owner', 'kind': 1,
+                 'created': 120, 'server_id': 42, 'text': '现在都进专用会话'}
+        sends = []
+        def native(value):
+            if value['op'] == 'read':return {'events': [event]}
+            if value['op'] == 'submit':
+                sends.append(value);return {'state': 'succeeded', 'outcome': 'sent'}
+            raise AssertionError('No additional sender')
+        loop = ReplyLoop(self.root / 'desktop-chat.sqlite', owner, self.backend, native);self.addCleanup(loop.close)
+        with self.assertRaises(PublicationPending):loop.cycle()
+        key = self.backend.last_input_key
+        with patch('rsi_agent.codex_worker.subprocess.run', return_value=queued()):
+            notify_desktop({'codex': 'existing-codex', 'desktop_thread_id': THREAD, 'desktop_all_requests': True},
+                           self.jobs, self.jobs.claim('chat'))
+        with self.assertRaises(PublicationPending):loop.cycle()
+        _, task = self.backend.exchange('/desktop-requests/' + key)
+        self.assertEqual(task['body']['messages'][-1]['content'], event['text'])
+        self.assertEqual(sends, [])
+        result = {'id': key, 'input_sha256': task['input_sha256'], 'thread_id': THREAD,
+                  'turn_id': 'dedicated-chat-turn', 'text': '{"engineering":false,"text":"这条从专用会话回复"}'}
+        self.backend.exchange('/desktop-completions', result)
+        self.assertEqual(loop.cycle()['state'], 'sent');self.assertEqual(loop.cycle()['state'], 'idle')
+        self.assertEqual([s['text'] for s in sends], ['这条从专用会话回复'])
 
     def test_native_group_schema_keeps_original_work_index_and_image(self):
         self.backend.bind('self', 'group@chatroom');self.backend.use_request(['44', '45'])

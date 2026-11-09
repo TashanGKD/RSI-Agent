@@ -231,3 +231,15 @@ uncertain proof remains attention. Transition the consumer to failed; a later
 cycle reads new input, never resubmits the old reply. This lifecycle recovery is
 not a fix or acceptance of the original recipient selector, and says nothing
 about another active request's cleanup or send result.
+
+## D022 — One dedicated visible thread for chat and native-owner tasks
+
+The owner explicitly chose all WeChat chat and tasks sharing one newly created
+conversation. Replace future background chat/maintenance-thread task admission,
+not completed originals. Preserve each authenticated native scope/id/digest,
+original schema, verified image bytes and one frozen completion. Chat classifies
+owner work; only the separately native-admitted engineering packet permits tools.
+The shared UI uses the current packet's peer material for its reply; transport
+continues binding the original recipient. A created thread, a completed migration
+record display, enabled routing and genuine new native visible/send acceptance
+are different facts. Serialize work rather than creating a second executor.
