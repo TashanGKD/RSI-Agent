@@ -8,7 +8,7 @@ from urllib.parse import urlsplit
 from urllib.request import ProxyHandler, Request, build_opener
 
 from .config import ROOT
-from .model import ModelError, PublicationPending
+from .model import ModelError, OriginalReview, PublicationPending
 from .wechat import private_file
 
 
@@ -103,6 +103,8 @@ class CodexBackend:
         status, value = self.exchange('/requests', json.loads(path.read_text()))
         if status == 202:
             raise PublicationPending('Original local Codex generation is queued or running.')
+        if status == 200 and value == {'state': 'review'}:
+            raise OriginalReview('Original local Codex request is in review.')
         if value.get('state') != 'completed' or not isinstance(value.get('text'), str):
             raise ModelError('Original local Codex result needs inspection; do not regenerate it.')
         return {'model': self.model, 'message': {'role': 'assistant', 'content': value['text']},
