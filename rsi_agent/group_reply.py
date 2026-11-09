@@ -147,7 +147,10 @@ class GroupLoop(ReplyLoop):
             return {'state': 'idle', 'counts': self.counts()}
         events = [dict(json.loads(row['text']), follows_self=bool(row['follows_self'])) for row in rows]
         attachments = []
-        frozen = self.images and self.model.has_original_input([row['id'] for row in rows]) is True
+        frozen = (active and self.images and any(
+            row['kind'] == 3 or event.get('image_kind') == 'finder_cover' or event.get('pdf_name')
+            for row, event in zip(rows, events))
+            and self.model.has_original_input([row['id'] for row in rows]) is True)
         for row, event in zip(rows, events):
             event['kind'] = row['kind']
             if (event['sender'] == self.owner.get('owner_peer')
