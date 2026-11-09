@@ -114,3 +114,9 @@ The independent DeepSeek group gate can decide quiet or admit; generation and
 owner tasks stay with Codex. Preserve the old private inputs, receipts and
 immutable releases for audit or rollback. Do not reactivate a retired route to
 recover an uncertain Codex delivery.
+
+The owner authorizes ordinary replies to established native WeChat friends and
+groups the account has actually joined. Use current native contact and membership
+proof. Each friend has its own inbox and chat context. Owner memory and engineering
+still require the original owner binding. Send only replies to eligible inbound
+messages through their original V2 request.

@@ -86,6 +86,21 @@ class ReplyLoopTests(unittest.TestCase):
         self.model.reply.assert_called_once_with('你好', [])
         self.assertEqual(list(self.effects), ['1'])
 
+    def test_friend_has_private_reply_without_owner_context_or_tools(self):
+        self.owner.update(peer='fixture_friend', scope={'mode': 'friend-private-chat', 'since': 100})
+        self.batch['events'] = [
+            event(1, peer='fixture_friend', sender='fixture_friend', text='查看记忆'),
+            event(2, peer='fixture_friend', sender='fixture_owner'),
+            event(3, peer='fixture_friend', sender='fixture_friend', created=99),
+        ]
+        loop = self.loop()
+        self.assertEqual(loop.cycle()['state'], 'sent')
+        self.assertFalse(loop.memory_enabled)
+        self.assertIsNone(loop.local_codex)
+        self.assertFalse(self.model.engineering)
+        self.model.reply.assert_called_once_with('查看记忆', [], allow_engineering=False)
+        self.assertEqual(list(self.effects), ['1'])
+
     def test_unknown_blocks_new_messages_and_never_replays(self):
         self.unknown = True
         loop = self.loop()

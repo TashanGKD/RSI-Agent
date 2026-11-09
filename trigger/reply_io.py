@@ -11,41 +11,62 @@ from rsi_agent.config import WECHAT_LINUX, load
 from rsi_agent.wechat import environment, private_file
 
 CLIENT = 'rsi-owner'
+FRIEND_MODE = 'friend-private-chat'
 
 
 def binding_token(owner):
-    return hashlib.sha256(json.dumps([owner['account'], owner['owner_peer'], owner.get('send_scope'),
-        owner.get('reply_model_binding')], sort_keys=True).encode()).hexdigest()
+    identity = [owner['account'], owner['owner_peer'], owner.get('send_scope'), owner.get('reply_model_binding')]
+    if 'friend_peer' in owner:
+        identity.append(owner['friend_peer'])
+    return hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
 
 
-def request_id(account, peer, server):
-    return CLIENT + '-' + hashlib.sha256((account + '\0' + peer + '\0' + str(server)).encode()).hexdigest()
+def request_id(account, peer, server, client=CLIENT):
+    return client + '-' + hashlib.sha256((account + '\0' + peer + '\0' + str(server)).encode()).hexdigest()
 
 
 def binding(path, installation, enabled=True):
     if not private_file(path):
         raise ValueError('Private owner binding required.')
     value = json.loads(Path(path).read_text())
+    scope = value.get('send_scope') or {}
     if (value.get('confirmed_by_user') is not True or value.get('account') != installation['wechat']['account']
             or not isinstance(value.get('owner_peer'), str) or value['owner_peer'].endswith('@chatroom')
             or value['owner_peer'] == value['account']):
         raise ValueError('Confirmed private owner identity required.')
+    if 'friend_peer' in value or scope.get('mode') == FRIEND_MODE:
+        import re
+        peer = value.get('friend_peer')
+        if (scope.get('mode') != FRIEND_MODE or not isinstance(peer, str)
+                or not re.fullmatch(r'[A-Za-z0-9_.-]{1,120}', peer)
+                or '..' in peer or peer in (value['account'], value['owner_peer'])):
+            raise ValueError('Distinct native friend required.')
     if enabled:
-        scope = value.get('send_scope') or {}
         if (value.get('auto_reply_enabled') is not True
-                or scope.get('mode') not in ('owner-private-text', 'one-message')
+                or scope.get('mode') not in ('owner-private-text', 'one-message', FRIEND_MODE)
                 or type(scope.get('since')) is not int or scope['since'] <= 0):
             raise ValueError('Explicit owner reply scope is not enabled.')
     return value
+
+
+def require_friend(peer):
+    from linux_tool import native
+    from operations.proof import friend
+    with native('contact/contact.db') as (db, receipt):
+        if receipt.get('consistency') != 'committed' or receipt.get('gap'):
+            raise ValueError('Committed native friendship required.')
+        rows = db.execute('SELECT local_type,flag,delete_flag FROM contact WHERE username=? LIMIT 2', (peer,)).fetchall()
+        if len(rows) != 1 or not friend(dict(rows[0])):
+            raise ValueError('Current native friendship required.')
 
 
 def source(root, owner, request):
     from linux_tool import native, decode
     from receive_source import SourceInbox, sid
     scope = owner['send_scope']
-    peer = owner['owner_peer']
+    peer = owner.get('friend_peer', owner['owner_peer'])
     table = 'Msg_' + hashlib.md5(peer.encode()).hexdigest()
-    path = root / 'owner-reply-source.sqlite'
+    path = root / (table + '-friend-source.sqlite' if 'friend_peer' in owner else 'owner-reply-source.sqlite')
     if request['op'] == 'ack':
         inbox = SourceInbox(path, None, table, owner['account'], peer, decode,
                             str(scope['since']), only_incoming=True)
@@ -56,6 +77,9 @@ def source(root, owner, request):
     with native('message/message_0.db') as (db, receipt):
         if receipt.get('consistency') != 'committed' or receipt.get('gap'):
             raise ValueError('Committed native source required.')
+        if 'friend_peer' in owner and not db.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,)).fetchone():
+            return {'events': []}
 
         def context(row, event):
             if event['kind'] != 49:
@@ -184,22 +208,27 @@ def handle(installation, owner, request):
               'submit': {'op', 'server_id', 'text'}, 'advance': {'op', 'server_id'}}
     if op not in fields or set(request) != fields[op]:
         raise ValueError('Unsupported owner reply transport fields.')
+    peer = owner.get('friend_peer', owner['owner_peer'])
+    client = CLIENT
+    if 'friend_peer' in owner:
+        require_friend(peer)
+        client = 'rsi-friend'
     if op in ('read', 'ack'):
         return source(root, owner, request)
     if op == 'image':
         from .media_io import image
-        return image(root, owner['account'], owner['owner_peer'], request['server_id'], {owner['owner_peer']})
+        return image(root, owner['account'], peer, request['server_id'], {peer})
     if op == 'pdf':
         from .media_io import pdf
         scope = owner['send_scope']
-        if scope['mode'] != 'owner-private-text':
-            raise ValueError('PDFs require the continuous owner private scope.')
-        return pdf(owner['account'], owner['owner_peer'], request['server_id'], {owner['owner_peer']}, scope['since'])
+        if scope['mode'] not in ('owner-private-text', FRIEND_MODE):
+            raise ValueError('PDFs require a continuous private scope.')
+        return pdf(owner['account'], peer, request['server_id'], {peer}, scope['since'])
     from operations.cli import load_config
     from operations.public_api import PublicAPI
     from receive_source import sid
     server = sid(request['server_id'])
-    rid = request_id(owner['account'], owner['owner_peer'], server)
+    rid = request_id(owner['account'], peer, server, client)
     policy = load_config(root / 'operations-state/config.json')
     if policy['account'] != owner['account']:
         raise ValueError('Native sender account differs from confirmed binding.')
@@ -209,12 +238,12 @@ def handle(installation, owner, request):
             text = request['text']
             if not isinstance(text, str) or not text.strip() or '\0' in text or len(text.encode()) > 16384:
                 raise ValueError('Bounded nonempty reply text required.')
-            job = api.call({'op': 'submit', 'job': {'client': CLIENT, 'request_id': rid,
-                'peer': owner['owner_peer'], 'action': 'send_text', 'payload': {'text': text},
+            job = api.call({'op': 'submit', 'job': {'client': client, 'request_id': rid,
+                'peer': peer, 'action': 'send_text', 'payload': {'text': text},
                 'execution_mode': 'verified_fast'}})
             return status(job)
-        job = api.s.get(CLIENT, rid)
-        if job['peer'] != owner['owner_peer'] or job['action'] != 'send_text':
+        job = api.s.get(client, rid)
+        if job['peer'] != peer or job['action'] != 'send_text':
             raise ValueError('Original reply request binding changed.')
         return advance(api, job, policy)
     finally:
@@ -231,7 +260,7 @@ def main():
     installation = load(args.installation)
     owner = binding(args.binding, installation, enabled=not args.check)
     if args.check:
-        print(json.dumps({'state': 'ready', 'account': owner['account'], 'peer': owner['owner_peer'],
+        print(json.dumps({'state': 'ready', 'account': owner['account'], 'peer': owner.get('friend_peer', owner['owner_peer']),
                           'scope': owner.get('send_scope'), 'binding_token': binding_token(owner),
                           'enabled': owner.get('auto_reply_enabled') is True}))
         return

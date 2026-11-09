@@ -80,6 +80,39 @@ class AdmissionTests(unittest.TestCase):
             native.assert_not_called()
         self.assertEqual(before, self.registry.read_bytes())
 
+    def test_expanded_policy_admits_native_groups_and_isolates_friend_registry(self):
+        self.policy.update(conversation_since=115, friend_bootstrap={'peer': 'friend', 'server_id': '42'})
+        put(self.root / 'admission.json', self.policy)
+        self.snapshot['friends'] = [{'peer': 'friend', 'display_name': 'Native remark'}]
+        result = self.refresh()
+        self.assertEqual((result['added'], result['friends_added']), (3, 1))
+        self.assertEqual(len(group_configs(self.registry)), 3)
+        [config] = group_configs(self.registry.with_name('friends.json'), 'friends')
+        binding = json.loads(Path(config['binding']).read_text())
+        self.assertEqual((binding['owner_peer'], binding['friend_peer']), ('owner', 'friend'))
+        self.assertEqual(binding['send_scope'],
+                         {'mode': 'friend-private-chat', 'since': 115, 'bootstrap_server_id': '42'})
+        self.assertEqual(self.refresh()['friends_added'], 0)
+
+    def test_native_friend_catalog_rejects_pending_deleted_and_ambiguous_contacts(self):
+        from trigger.group_admission import friend_catalog
+        sys.path.insert(0, str(WECHAT_LINUX))
+        db = sqlite3.connect(':memory:')
+        self.addCleanup(db.close)
+        db.row_factory = sqlite3.Row
+        db.execute('CREATE TABLE contact(username,nick_name,remark,alias,local_type,flag,delete_flag)')
+        db.executemany('INSERT INTO contact VALUES(?,?,?,?,?,?,?)', [
+            ('friend', 'Teacher', '', '', 1, 1, 0),
+            ('pending', 'Pending', '', '', 1, 0, 0),
+            ('deleted', 'Deleted', '', '', 1, 1, 1),
+            ('ambiguous', 'Duplicate', '', '', 1, 1, 0),
+            ('other', 'Duplicate', '', '', 1, 0, 0),
+            ('room@chatroom', 'Room', '', '', 1, 1, 0),
+            ('owner', 'Owner', '', '', 1, 1, 0),
+        ])
+        self.assertEqual(friend_catalog(db, {'account': 'self', 'owner_peer': 'owner'}),
+                         [{'peer': 'friend', 'display_name': 'Teacher'}])
+
     def test_owner_identity_change_cannot_admit_a_group(self):
         self.snapshot['owner_peer'] = 'same-nickname-different-native-id'
         before = self.registry.read_bytes()

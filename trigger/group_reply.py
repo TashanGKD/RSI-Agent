@@ -11,7 +11,8 @@ import time
 from .group_context import FACTS, GroupTransport, group_configs
 from .group_io import INTRODUCTION
 from rsi_agent.model import ModelError, OriginalReview, PublicationPending
-from .owner_reply import ReplyLoop
+from .owner_reply import ReplyLoop, Transport
+from .reply_io import FRIEND_MODE
 from .media import image_part, pdf_part, MediaPending, MediaUnavailable
 from .link_reader import linked_pages
 
@@ -269,10 +270,11 @@ class GroupLoop(ReplyLoop):
         return {'state': 'pending' if decision['speak'] else 'quiet', 'counts': self.counts()}
 
 
-def sync_groups(workers, configs, reply_gate=None):
+def sync_groups(workers, configs, reply_gate=None, friends=()):
     """Reload membership scopes without recreating other groups' cached loops."""
     import fcntl
-    wanted = {config['state']: config for config in configs}
+    wanted = {config['state']: config for config in (*configs, *friends)}
+    friend_states = {config['state'] for config in friends}
     for state in list(workers):
         config, loop, fd = workers[state]
         if wanted.get(state) != config:
@@ -291,12 +293,21 @@ def sync_groups(workers, configs, reply_gate=None):
             fd = os.open(directory / 'worker.lock', os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
             fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
             from .backend import load_model
-            model, io = load_model(config['model']), GroupTransport(config)
+            friend = state in friend_states
+            model = load_model(config['model'])
+            io = Transport(config) if friend else GroupTransport(config)
             group = io()
             if not group['enabled']:
-                raise ValueError('Group disabled.')
-            loop = GroupLoop(directory / 'inbox.sqlite', group, model, io)
-            loop.reply_gate = reply_gate
+                raise ValueError('Conversation disabled.')
+            if friend:
+                if group['scope']['mode'] != FRIEND_MODE or model.backend != 'local-codex':
+                    raise ValueError('Friends require native private chat with local Codex.')
+                loop = ReplyLoop(directory / 'inbox.sqlite', group, model, io,
+                    context=lambda _: [{'role': 'system', 'content': FACTS
+                        + ' 这是好友私聊。直接回应对方，只用当前好友私聊中的信息。'}])
+            else:
+                loop = GroupLoop(directory / 'inbox.sqlite', group, model, io)
+                loop.reply_gate = reply_gate
             workers[state] = (config, loop, fd)
         except (OSError, ValueError, KeyError, TypeError, ModelError, subprocess.SubprocessError):
             if loop is not None:
@@ -324,6 +335,7 @@ def run(path, mode):
             if mode == 'check':
                 raise
     gate_model = reply_gate.model if reply_gate is not None else None
+    friend_registry = Path(path).with_name('friends.json')
 
     def stop(*_):
         nonlocal stopped
@@ -350,7 +362,8 @@ def run(path, mode):
                     put(Path(path).with_name('admission-status.json'),
                         {'state': 'unavailable', 'checked_at': time.time()})
                 next_admission = time.monotonic() + 15
-            sync_groups(workers, group_configs(path), reply_gate)
+            friends = group_configs(friend_registry, 'friends') if friend_registry.exists() else ()
+            sync_groups(workers, group_configs(path), reply_gate, friends)
             result = {'state': 'idle', 'counts': {}}
             for config, loop, _ in list(workers.values()):
                 if stopped:
