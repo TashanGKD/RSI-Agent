@@ -13,7 +13,7 @@ class ModelError(ValueError):
 
 
 class PublicationPending(ModelError):
-    """The original SDK result exists; retry only its bounded publisher."""
+    """The original Codex request is waiting for completion or transport."""
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):

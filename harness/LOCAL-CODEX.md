@@ -74,7 +74,7 @@ reverse tunnel carries frozen requests; no Codex binary or model key is installe
 on the native-client host. Chat and engineering have separate local consumers.
 One original input digest can have only one generation/completion; completed
 output is frozen before shutdown/response. After uncertain interruption the
-original becomes review, never a second generation. DSH is not an offline fallback.
+original becomes review. The resident reply loader requires `local-codex`.
 
 Ordinary Codex sessions are ephemeral and receive only that peer's bounded
 context and curated preferences; child-process settings disable shell, apps,
@@ -89,7 +89,7 @@ this computer to be awake and its Codex user signed in. A per-user logon task
 starts it hidden and restarts failures. `/health` reports state/count/version;
 authenticated `/drain` stops new claims and waits for original running work.
 Before upgrading, inspect local queued/running/review work and original V2 state.
-Do not kill uncertain execution or roll native inputs back to DSH. Code release,
+Keep uncertain execution and native inputs attached to their original request. Code release,
 local task start, resident model activation and native delivery are distinct.
 
 The earlier prefix handoff below is retained for original unfinished claims;
@@ -99,7 +99,7 @@ the actual installed source and acceptance, rather than treating this plan as
 activation. The maintenance conversation coordinates work; it does not need to
 receive every ordinary WeChat message in its sidebar.
 
-## Earlier prefix handoff experiment
+## Historical prefix handoff experiment
 
 The owner requested a second route alongside DSH: the native client host only
 queues and delivers; this computer's existing Codex conversation answers or
@@ -115,11 +115,11 @@ and the original resident V2 sender delivers it once after completion is cached.
 Ordinary DSH chat continues while local work waits. Compare this path against the
 deployed baseline, which treats the prefix as ordinary DSH text.
 
-## Current trigger boundary
+## Historical heartbeat consumer boundary
 
-The existing desktop heartbeat is the supported local consumer: every 30 minutes
-it checks one queued request in this same conversation. This is polling with up
-to one interval of delay; it is not an immediate message-driven Dot activation.
+The first consumer used the desktop heartbeat to check one queued prefix request
+every 30 minutes. Today the local worker and dedicated conversation handle new
+chat and tasks; the maintenance heartbeat only audits them.
 The local bundled CLI's documented `app-server proxy`/daemon version probes fail
 to connect to the desktop control socket (Windows error 10050). Only the probe's
 own process was stopped. This does not prove that every possible desktop entry
@@ -144,7 +144,7 @@ reads this setting at startup. Native account/peer/sender/scope checks precede
 handoff; cards, quotes, nicknames and linked pages cannot choose it. The inbox and
 codex_jobs records commit together before SourceInbox ACK. Native input/binding
 has a fixed digest, and `local_codex`/`waiting_codex` are visible waiting states.
-No automatic DSH fallback occurs while local Codex is offline or uncertain.
+The original input stays pending while local Codex is offline or uncertain.
 
 The private operator port is SSH/stdin:
 
@@ -193,6 +193,6 @@ with no WeChat sender; it cannot be called native message-to-reply acceptance.
 Keep the prior immutable release, private switch and DB backup. Disable future
 admission without rewinding queued/claimed/completed work. Before a code/worker
 rollback, inspect both native V2 and local claims; an active or uncertain local
-task cannot be killed or silently moved back to DSH. Pending cached replies can
+task remains attached to its original consumer. Pending cached replies can
 still use their original sender. Keep this release available to inspect/complete
 held records if older code is selected. Client/X/noVNC remains unchanged.

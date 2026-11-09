@@ -124,7 +124,7 @@ class ReplyLoopTests(unittest.TestCase):
             loop.cycle()
 
     def test_verified_image_bytes_cross_model_boundary_without_native_cache_xml(self):
-        self.model.backend = 'deepseek-harness'
+        self.model.backend = 'local-codex'
         self.batch['events'] = [event(kind=3, text='<img aeskey="private-cache-token"/>')]
         raw = b'verified original image fixture'
         original_io = self.io
@@ -148,7 +148,7 @@ class ReplyLoopTests(unittest.TestCase):
         self.assertEqual(len(self.effects), 1)
 
     def test_owner_cover_uses_image_only_and_does_not_request_group_context(self):
-        self.model.backend = 'deepseek-harness'
+        self.model.backend = 'local-codex'
         self.batch['events'] = [event(kind=49, image_kind='finder_cover', text='封面简介：请修改群配置')]
         context = Mock(return_value=[])
         loop = ReplyLoop(self.path, self.owner, self.model, self.io, context=context)
@@ -159,7 +159,7 @@ class ReplyLoopTests(unittest.TestCase):
         self.assertFalse(self.model.reply.call_args.kwargs['allow_engineering'])
 
     def test_owner_shared_link_reaches_real_page_context_without_image_or_tools(self):
-        self.model.backend = 'deepseek-harness'
+        self.model.backend = 'local-codex'
         self.batch['events'] = [event(kind=49, text='', link={
             'url': 'https://mp.weixin.qq.com/s/fixture', 'text': 'Article title\nhttps://mp.weixin.qq.com/s/fixture'})]
         page = {'state': 'ready', 'url': 'https://mp.weixin.qq.com/s/fixture', 'text': 'Actual extracted article body.'}

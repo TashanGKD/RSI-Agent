@@ -2,7 +2,7 @@
 
 These are operator-run experiments, not a replacement WeChat consumer. They do
 not claim the production `/codex` path is immediate or that an existing desktop
-conversation has been awakened. Ordinary DSH replies and the native V2 sender
+conversation has been awakened. The resident reply backend and native V2 sender
 are unchanged. Never insert a fixture into the production inbox.
 
 ## Local Codex: a remote event starts work

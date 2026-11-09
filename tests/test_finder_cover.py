@@ -7,7 +7,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from rsi_agent.finder_cover import annotate, descriptor, read
-from rsi_agent.backend import DshBackend
+from rsi_agent.codex_backend import CodexBackend
 from rsi_agent.config import WORKBENCH
 
 
@@ -37,7 +37,7 @@ class FinderDescriptorTests(unittest.TestCase):
         self.assertIsNone(descriptor(card().replace('<mediaList>', '<mediaList><media/>')))
 
     def test_image_caption_cannot_enter_owner_engineering_classifier(self):
-        model = DshBackend.__new__(DshBackend)
+        model = CodexBackend.__new__(CodexBackend)
         model.engineering = True
         model.complete = Mock(return_value={'message': {'content': '封面识别结果'}})
         model.engineer = Mock()

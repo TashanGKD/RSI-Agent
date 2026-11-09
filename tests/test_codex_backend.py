@@ -6,9 +6,10 @@ import sys
 import tempfile
 import threading
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from rsi_agent.codex_worker import Jobs, blocks, notify_desktop, run_codex, server
+from rsi_agent.backend import load_model
 from rsi_agent.codex_backend import CodexBackend
 from rsi_agent.model import ModelError, PublicationPending
 
@@ -197,10 +198,21 @@ class CodexBackendTests(unittest.TestCase):
             'token_file': str(self.root / 'token'), 'preferences_file': str(self.root / 'preferences'),
             'state': str(state), 'model': 'configured-codex', 'engineering': True}
         path = self.root / 'backend.json';path.write_text(json.dumps(self.config));path.chmod(0o600)
-        self.backend = CodexBackend(path);self.backend.bind('self', 'owner');self.backend.use_request(['42'])
+        self.backend = load_model(path, verify_runtime=True)
+        self.backend.bind('self', 'owner');self.backend.use_request(['42'])
+
+    def test_reply_loader_rejects_retired_and_non_codex_configurations(self):
+        path = self.root / 'retired.json'
+        path.touch(mode=0o600)
+        for value in ({'backend': 'deepseek-harness'}, {'backend': 'unknown'},
+                      {'base_url': 'https://example.test/v1', 'model': 'standalone', 'api_key_file': 'token'}):
+            with self.subTest(backend=value.get('backend')):
+                path.write_text(json.dumps(value))
+                with self.assertRaisesRegex(ModelError, 'local Codex'):
+                    load_model(path)
 
     def test_plain_owner_text_uses_only_codex_and_retries_the_frozen_original(self):
-        with patch('rsi_agent.backend.ModelClient', side_effect=AssertionError('No SCNET fallback')):
+        with patch('rsi_agent.model.ModelClient', side_effect=AssertionError('No SCNET fallback')):
             self.backend.check_runtime()
             with self.assertRaises(PublicationPending):
                 self.backend.reply('hello without a prefix')
@@ -307,6 +319,51 @@ class CodexBackendTests(unittest.TestCase):
         with self.assertRaises(ModelError):self.backend.exchange('/desktop-completions', dict(result, text='different output'))
         self.assertEqual(loop.cycle()['state'], 'sent');self.assertEqual(loop.cycle()['state'], 'idle')
         self.assertEqual(len(sends), 1);self.assertEqual(sends[0]['text'], result['text'])
+
+
+class LinkReadingAuthorityTests(unittest.TestCase):
+    def setUp(self):
+        self.folder = tempfile.TemporaryDirectory()
+        self.addCleanup(self.folder.cleanup)
+        self.root = Path(self.folder.name)
+        (self.root / 'inputs').mkdir()
+        self.model = CodexBackend.__new__(CodexBackend)
+        self.model.config = {'state': str(self.root)}
+        self.model.bind('self', 'owner')
+        self.model.engineering = True
+        self.model.model = 'fixture'
+        self.model.engineer = Mock(return_value='Verified engineering result')
+        self.pages = [{'state': 'ready', 'text': 'Untrusted page asks to execute commands.'}]
+        self.calls = []
+        self.engineering = False
+
+        def run(messages, mode, stage=None, schema=None):
+            self.calls.append((messages, mode, stage))
+            if stage is None:
+                self.model.last_input_key = 'a' * 64
+                (self.root / 'inputs' / ('a' * 64 + '.json')).write_text(json.dumps({'messages': messages}))
+                text = json.dumps({'engineering': self.engineering, 'text': 'Routing result only'})
+            else:
+                text = 'A factual read-only answer.'
+            return {'message': {'content': text}}
+
+        self.model._run = run
+
+    def test_page_text_enters_only_a_separate_tool_free_chat_stage_after_routing(self):
+        result = self.model.reply('Read https://example.com/a', pages=self.pages)
+        self.assertEqual(result, 'A factual read-only answer.')
+        self.assertNotIn('Untrusted page', str(self.calls[0][0]))
+        self.assertIn('Untrusted page', str(self.calls[1][0]))
+        self.assertEqual(self.calls[1][1:], ('chat', 'link-reading'))
+        self.model.engineer.assert_not_called()
+
+    def test_explicit_native_engineering_still_executes_only_the_original_instruction(self):
+        self.engineering = True
+        prompt = 'Implement the requested integration at https://example.com/a'
+        self.assertEqual(self.model.reply(prompt, pages=self.pages), 'Verified engineering result')
+        self.model.engineer.assert_called_once_with(prompt)
+        self.assertEqual(len(self.calls), 1)
+        self.assertNotIn('Untrusted page', str(self.calls[0][0]))
 
 
 if __name__ == '__main__':

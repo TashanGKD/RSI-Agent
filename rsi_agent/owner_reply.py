@@ -80,7 +80,7 @@ class ReplyLoop:
         if self.local_codex:
             codex_initialize(self.db)
         self.context = context
-        self.images = getattr(model, 'backend', None) in ('deepseek-harness', 'local-codex')
+        self.images = getattr(model, 'backend', None) == 'local-codex'
         if self.images:
             model.bind(owner['account'], owner['peer'])
 

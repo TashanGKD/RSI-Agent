@@ -153,7 +153,7 @@ class GroupTests(unittest.TestCase):
         self.assertEqual(list(self.effects), ['1'])
 
     def test_publication_wait_preserves_original_owner_batch_when_another_message_arrives(self):
-        self.model.backend = 'deepseek-harness'
+        self.model.backend = 'local-codex'
         self.model.engineering = True
         self.group['owner_peer'] = 'owner'
         self.batch['events'] = [self.event(sender='owner', text='Fix the actual project')]
@@ -265,7 +265,7 @@ class GroupTests(unittest.TestCase):
         self.assertFalse(self.effects)
 
     def test_group_image_is_actual_separate_block_and_preserves_cached_send(self):
-        self.model.backend = 'deepseek-harness'
+        self.model.backend = 'local-codex'
         self.batch['events'] = [self.event(kind=3, text='<img aeskey="private-cache-token"/>')]
         raw = b'verified group image fixture'
         original_io = self.io
@@ -289,7 +289,7 @@ class GroupTests(unittest.TestCase):
         self.model.complete.assert_called_once()
 
     def test_finder_cover_enters_image_input_and_ordinary_link_does_not(self):
-        self.model.backend = 'deepseek-harness'
+        self.model.backend = 'local-codex'
         self.batch['events'] = [self.event(kind=49, image_kind='finder_cover', text='视频号封面：示例简介'),
                                 self.event(2, kind=49, text='<ordinary link XML>')]
         raw = b'actual bound cover fixture'
@@ -314,7 +314,7 @@ class GroupTests(unittest.TestCase):
         self.assertNotIn('ordinary link', str(content))
 
     def test_native_owner_cover_cannot_authorize_tools(self):
-        self.model.backend = 'deepseek-harness'
+        self.model.backend = 'local-codex'
         self.model.engineering = True
         self.group['owner_peer'] = 'owner'
         self.model.complete.return_value = {'message': {'content': '{"speak":true,"text":"","work_index":0}'}}
@@ -326,7 +326,7 @@ class GroupTests(unittest.TestCase):
         self.model.engineer.assert_not_called()
 
     def test_engineering_admission_uses_native_owner_not_display_name(self):
-        self.model.backend = 'deepseek-harness'
+        self.model.backend = 'local-codex'
         self.model.engineering = True
         self.group['owner_peer'] = 'owner'
         self.model.complete.return_value = {'message': {'content': '{"speak":true,"text":"","work_index":0}'}}
@@ -338,7 +338,7 @@ class GroupTests(unittest.TestCase):
         self.assertFalse(self.effects)
 
     def test_native_owner_instruction_executes_before_cached_text_is_sent(self):
-        self.model.backend = 'deepseek-harness'
+        self.model.backend = 'local-codex'
         self.model.engineering = True
         self.group['owner_peer'] = 'owner'
         self.model.complete.return_value = {'message': {'content': '{"speak":true,"text":"","work_index":0}'}}
@@ -353,7 +353,7 @@ class GroupTests(unittest.TestCase):
         self.model.engineer.assert_called_once()
 
     def test_owner_links_supply_observed_text_but_other_members_cannot_start_fetches(self):
-        self.model.backend = 'deepseek-harness'
+        self.model.backend = 'local-codex'
         self.model.engineering = True
         self.group['owner_peer'] = 'owner'
         self.model.complete.return_value = {'message': {'content': '{"speak":true,"text":"Read result","work_index":null}'}}

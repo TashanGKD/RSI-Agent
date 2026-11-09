@@ -1,25 +1,23 @@
-import json
 from pathlib import Path
 import sqlite3
 import sys
 import tempfile
-import types
 import unittest
 from unittest.mock import Mock, patch
 
-from rsi_agent.backend import DshBackend
+from rsi_agent.codex_backend import CodexBackend
 from rsi_agent.owner_reply import ReplyLoop
 from rsi_agent.group_reply import GroupLoop
 
 
-@unittest.skipUnless(sys.platform == 'linux', 'private native-bound inbox and SDK inputs')
+@unittest.skipUnless(sys.platform == 'linux', 'private native-bound inbox and Codex inputs')
 class OwnerMemoryTests(unittest.TestCase):
     def setUp(self):
         self.folder = tempfile.TemporaryDirectory()
         self.addCleanup(self.folder.cleanup)
         self.root = Path(self.folder.name)
         self.owner = {'account': 'self', 'peer': 'owner', 'scope': {'mode': 'owner-private-text', 'since': 100}}
-        self.model = Mock(backend='deepseek-harness')
+        self.model = Mock(backend='local-codex')
         self.model.has_original_input.return_value = False
         self.model.reply.return_value = 'ordinary reply'
         self.events, self.effects, self.io_calls = [], {}, []
@@ -119,7 +117,7 @@ class OwnerMemoryTests(unittest.TestCase):
     def test_group_scope_never_opens_private_notes_or_receives_the_private_context(self):
         self.message('记住 风格：PRIVATE_OWNER_ONLY')
         self.message('问个问题')
-        backend = DshBackend.__new__(DshBackend)
+        backend = CodexBackend.__new__(CodexBackend)
         backend.scope = ['self', 'owner']
         backend.memory_epoch = 1
         backend.complete = Mock(return_value={'message': {'content': '{"speak":false,"text":""}'}})
@@ -136,23 +134,25 @@ class OwnerMemoryTests(unittest.TestCase):
         self.assertNotIn('PRIVATE_OWNER_ONLY', str(backend.complete.call_args))
         self.assertFalse(loop.db.execute("select 1 from sqlite_master where name='owner_notes'").fetchone())
 
-    def test_new_memory_epoch_selects_new_chat_session_without_replacing_original_inputs(self):
-        backend = DshBackend.__new__(DshBackend)
-        backend.config = {'state': str(self.root), 'python': 'fixture'}
-        backend.path, backend.model = 'fixture', 'fixture'
+    def test_changed_memory_context_only_reaches_new_codex_inputs(self):
+        backend = CodexBackend.__new__(CodexBackend)
+        preferences = self.root / 'preferences.md'
+        preferences.write_text('Fixture preferences')
+        backend.config = {'state': str(self.root), 'preferences_file': str(preferences)}
+        backend.model = 'fixture'
+        backend.exchange = Mock(return_value=(200, {'state': 'completed', 'text': 'reply'}))
         backend.bind('self', 'owner')
         backend.use_request(['native-1'])
-        result = types.SimpleNamespace(returncode=0, stdout=json.dumps({'state': 'completed', 'response': 'reply'}), stderr='')
-        with patch('rsi_agent.backend.subprocess.run', return_value=result) as run:
-            backend._run([{'role': 'user', 'content': 'original'}], 'chat')
-            first = json.loads(run.call_args.kwargs['input'])
-            self.assertTrue(backend.has_original_input(['native-1']))
-            self.assertFalse(backend.has_original_input(['other']))
-            backend.memory_epoch = 2
-            backend._run([{'role': 'user', 'content': 'must not replace'}], 'chat')
-            self.assertEqual(json.loads(run.call_args.kwargs['input']), first)
-            backend.use_request(['native-2'])
-            backend._run([{'role': 'user', 'content': 'new original'}], 'chat')
-            second = json.loads(run.call_args.kwargs['input'])
-        self.assertNotEqual(first['session'], second['session'])
+        backend._run([{'role': 'user', 'content': 'original'}], 'chat')
+        first = backend.exchange.call_args.args[1]
+        self.assertTrue(backend.has_original_input(['native-1']))
+        self.assertFalse(backend.has_original_input(['other']))
+        backend.memory_epoch = 2
+        revised = [{'role': 'system', 'content': 'corrected note'}, {'role': 'user', 'content': 'new context'}]
+        backend._run(revised, 'chat')
+        self.assertEqual(backend.exchange.call_args.args[1], first)
+        backend.use_request(['native-2'])
+        backend._run(revised, 'chat')
+        second = backend.exchange.call_args.args[1]
+        self.assertEqual(second['messages'][1:], revised)
         self.assertNotEqual(first['id'], second['id'])

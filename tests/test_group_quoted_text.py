@@ -50,7 +50,7 @@ class QuotedTextTests(unittest.TestCase):
 
         self.enterContext(patch.object(linux_tool, 'native', opened))
         self.enterContext(patch.object(linux_tool, 'decode', lambda text: text or ''))
-        self.model = Mock(backend='deepseek-harness', engineering=False)
+        self.model = Mock(backend='local-codex', engineering=False)
         self.model.complete.return_value = {'message': {'content': '{"speak":true,"text":"Retrieval can select relevant memories."}'}}
         self.effects, self.calls, self.ack_commits = {}, [], []
         self.lose_result = False

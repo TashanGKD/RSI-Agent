@@ -1,5 +1,12 @@
 # Current checkpoint
 
+The owner retired DSH in favor of Codex for all resident replies and owner
+tasks. Codex owns the existing frozen-input, routing and page-reading methods.
+The independent SCNET group trigger still decides quiet/admit. Use the actual
+PR receipt to check publication/activation. Legacy runtime records and original
+Codex jobs remain intact. The unreceived share-card delivery remains a separate
+original-queue reconciliation problem.
+
 PR #34 is merged and activated. The dedicated desktop target has completed real
 private and group turns with matching original V2 sends. Other completed group
 turns have pending native effects. Check the private `unified_wechat_thread`

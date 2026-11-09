@@ -24,7 +24,7 @@ class LocalCodexTests(unittest.TestCase):
         self.owner = {'account': 'self', 'peer': 'owner', 'enabled': True,
                       'scope': {'mode': 'owner-private-text', 'since': 100}}
         self.model = Mock()
-        self.model.reply.return_value = 'An ordinary DSH reply'
+        self.model.reply.return_value = 'An ordinary Codex reply'
         self.events = [self.event(1, '/codex Inspect the project and return the actual result')]
         self.calls, self.effects = [], {}
         self.fail_after_effect = False
@@ -68,7 +68,7 @@ class LocalCodexTests(unittest.TestCase):
         return self.call('complete', claim_id=claim['claim_id'], thread_id=claim['thread_id'],
                          id=claim['id'], input_sha256=claim['input_sha256'], text=text)
 
-    def test_owner_prefix_is_durable_before_ack_without_dsh_or_send(self):
+    def test_owner_prefix_is_durable_before_ack_without_generation_or_send(self):
         self.assertEqual(self.loop.cycle()['state'], 'waiting_codex')
         self.assertEqual(self.call('check')['jobs'], {'queued': 1})
         self.model.reply.assert_not_called()
@@ -104,7 +104,7 @@ class LocalCodexTests(unittest.TestCase):
         self.assertEqual(self.call('check')['jobs'], {})
         self.model.reply.assert_called_once_with('/codex Old request', [])
 
-    def test_ordinary_owner_chat_still_uses_dsh_while_codex_waits(self):
+    def test_ordinary_owner_chat_still_uses_codex_while_codex_waits(self):
         self.loop.cycle()
         self.events = [self.event(2, 'How are things going?')]
         self.assertEqual(self.loop.cycle()['state'], 'sent')
