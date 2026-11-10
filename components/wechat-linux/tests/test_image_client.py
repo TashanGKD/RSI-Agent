@@ -62,6 +62,41 @@ class ClientImageTests(unittest.TestCase):
         self.assertEqual(control.keys,[0xff1b])
         self.assertEqual(control.clicks,[(200,250),(200,250)])
 
+    def test_gallery_arrows_and_viewer_edges_do_not_obscure_the_exact_save_control(self):
+        from unittest.mock import Mock, patch
+        from PIL import Image
+        viewer={'id':'0x4000d0','title':'Photos and Videos','x':0,'y':0,'width':827,'height':500}
+        main={'id':'0x400011','title':'Weixin'}
+        identity={'class':['wechat','wechat'],'pid':1234,'leader':'0x400009','transientFor':None,
+                  'types':['_NET_WM_WINDOW_TYPE_NORMAL']}
+        known=Image.new('RGB',(827,500),(230,230,232))
+        known.paste((45,45,45),(513,15,527,28))
+        masked=known.crop((0,0,640,42))
+        masked.paste((0,0,0),(73,16,87,28))
+        masked.paste((0,0,0),(113,16,127,28))
+        masked.paste((0,0,0),(635,19,639,23))
+        expected=hashlib.sha256(masked.tobytes()).hexdigest()
+        active=known.copy()
+        active.paste((70,70,70),(73,16,87,28))
+        both=active.copy()
+        both.paste((70,70,70),(113,16,127,28))
+        both.paste((100,100,100),(0,42,640,44))
+        both.paste((120,120,120),(635,19,639,23))
+        wrong_save=both.copy()
+        wrong_save.putpixel((520,21),(0,0,0))
+        control=Mock()
+        control.one.side_effect=lambda title,optional=False: {'Photos and Videos':viewer,'Weixin':main}.get(title)
+        with patch.object(image_client,'GALLERY_SAVE_TOOLBAR',expected,create=True), \
+                patch('operations.windows.window_identity',return_value=identity), \
+                patch('operations.lease.birth',return_value='fixture-birth'):
+            opened=image_client.viewer_save_proof(viewer,both)
+            self.assertEqual(opened['point'],[520,21])
+            with self.assertRaisesRegex(ValueError,'not a calibrated inactive layout'):
+                image_client.viewer_save_proof(viewer,wrong_save)
+            with self.assertRaisesRegex(ValueError,'full current toolbar changed'):
+                image_client.prove_viewer_save_input(control,viewer,Mock(side_effect=[active,both]),Mock())
+            control.click.assert_not_called()
+
     def test_changed_viewer_process_is_left_protected(self):
         control=self.rejected_viewer(changed=True)
         self.assertTrue(control.open)

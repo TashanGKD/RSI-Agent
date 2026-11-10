@@ -160,6 +160,7 @@ def export(driver,j):
  if (j.get('preview') or {}).get('verifiedImageSourceRecipe'):
   from .image_verified import export as qualified_export
   return qualified_export(driver,j)
+ from . import navigation
  from .recipes import screen
  p=j['preview'];context=load_context(driver,j)
  if digest(context)!=p['context'] or context['peer']!=j['peer']:raise ImageReadError('IMAGE_CONTEXT_CHANGED','Native image context differs from the frozen request.')
@@ -179,6 +180,11 @@ def export(driver,j):
   def config(self,target):
    if target['username']!=j['peer']:raise ValueError('Exact selected image peer required.')
    return p['uiBinding']
+  def preflight(self,request,target):
+   binding=self.config(target)
+   if binding.get('nativeTargetProof'):
+    return navigation.verify_session(driver,binding,target['username'])
+   return super().preflight(request,target)
  try:
   try:result=image_client.dispatch(driver.tool(),{'action':'image','peer':j['peer'],'server_id':context['sourceId'],'point':p['imagePoint'],'context_sha256':p['imagePaneSHA256'],'representation':j['payload'].get('representation','original')},ui=SelectedImageUI(driver.root))
   except ValueError as exc:
@@ -210,7 +216,6 @@ def export(driver,j):
   proof.update(nativeSourceIdentityVerified=True,nativeSourceMD5=context['nativeMD5'],sourceLocalId=context['localId'],sourceCreateTime=context['time'])
   if matched:proof.update(sourceIdentityMethod='native-message-md5',representation='original')
   else:proof.update(officialDefaultFilename=result['officialDefaultFilename'],sourceIdentityMethod='official-save-as-native-time-and-local-id',representation='official-visible-variant')
- from . import navigation
  if navigation.load(driver.root,j):
   if not navigation.finish(driver,j):raise ImageReadError('IMAGE_CLEANUP_UNPROVEN','Original image navigation did not return to its verified baseline.',clean=False)
   proof['navigationRestored']=True
