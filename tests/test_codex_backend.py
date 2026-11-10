@@ -194,13 +194,15 @@ class DesktopRelayTests(unittest.TestCase):
                     f'Queued message {MESSAGE} for thread {target}.\n', '')
 
             cases = [
-                ('a', ['self', 'friend'], 'chat', THREAD),  # Already queued under the prior route.
+                ('a', ['self', 'legacy@chatroom'], 'engineering', THREAD),  # Already queued under the prior route.
                 ('b', ['self', 'owner'], 'chat', THREAD),
                 ('c', ['self', 'friend'], 'chat', OTHER_THREAD),
                 ('d', ['self', 'group@chatroom'], 'chat', OTHER_THREAD),
-                ('e', ['self', 'group@chatroom'], 'engineering', THREAD),
-                ('f', ['self', 'formal@chatroom'], 'chat', THREAD),
+                ('e', ['self', 'group@chatroom'], 'engineering', OTHER_THREAD),
+                ('f', ['self', 'formal@chatroom'], 'chat', OTHER_THREAD),
                 ('1', ['other-account', 'formal@chatroom'], 'chat', OTHER_THREAD),
+                ('2', ['self', 'owner'], 'engineering', THREAD),
+                ('3', ['self', 'formal@chatroom'], 'engineering', OTHER_THREAD),
             ]
             originals = {}
             with patch('receiver.codex_worker.subprocess.run', side_effect=queue_reply) as cli:
