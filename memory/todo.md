@@ -5,7 +5,10 @@ as candidates rather than silently expanding the active task.
 
 1. **WeChat input through the trigger and receiver.** Follow a new ordinary
    photo from native export through the dedicated Codex conversation to its
-   original V2 reply. For the share card, reconcile the original admission,
+   original V2 reply. A group image stopped before export with
+   `IMAGE_CANDIDATE_CLIPPED`. Verify the locator can recover a complete card
+   cut by its horizontal inset, then validate a fresh native image, attachment
+   bytes and the corresponding reply separately. For the share card, reconcile the original admission,
    desktop turn and V2 outcome. Keep original IDs and the owner-only article
    scope. Track sticker search and saving separately in Issue #26.
 2. **Retired DSH runtime.** PR #24 records the historical publication recovery.
