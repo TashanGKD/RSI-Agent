@@ -4,10 +4,10 @@
 
 ## 从 GitHub 安装
 
-用可访问 [RSI Agent](https://github.com/Yu-Yang-Li/RSI-Agent) 的 GitHub 账号下载已审查的版本。已有工作副本时从该副本运行。新安装可以用已登录的 GitHub CLI 克隆：
+用可访问 [RSI Agent](https://github.com/TashanGKD/RSI-Agent) 的 GitHub 账号下载已审查的版本。已有工作副本时从该副本运行。新安装可以用已登录的 GitHub CLI 克隆：
 
 ```powershell
-gh repo clone Yu-Yang-Li/RSI-Agent
+gh repo clone TashanGKD/RSI-Agent
 Set-Location RSI-Agent
 .\deploy\wechat-wsl\Install-WeChat.ps1 -Action Check
 .\deploy\wechat-wsl\Install-WeChat.ps1 -Action Install

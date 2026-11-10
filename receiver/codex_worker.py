@@ -241,7 +241,7 @@ def workspace(config, request):
         return root
     repo = Path(config['repository'])
     # One runtime engineering task or reviewable PR at a time; ordinary chat is independent.
-    opened = subprocess.check_output([config['gh'], 'pr', 'list', '--repo', 'Yu-Yang-Li/RSI-Agent',
+    opened = subprocess.check_output([config['gh'], 'pr', 'list', '--repo', 'TashanGKD/RSI-Agent',
         '--state', 'open', '--json', 'number'], text=True, timeout=40)
     if json.loads(opened):
         raise BlockingIOError('An existing PR must be delivered/reviewed first.')
