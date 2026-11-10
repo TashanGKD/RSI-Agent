@@ -81,6 +81,9 @@ SAVE_TOOLBARS={
     '493d6f3fd6fd6dc75030dc9c4d544f5d0ed50dabefefdd58275a61f06add63cf':('with-qr',520),
     '26febe08f2ad144705227e7e11f4a48a0a60eaa11df06dc4bdd8b489e5951962':('with-qr',520),
 }
+# The proved with-QR layout at x+520 after excluding the variable gallery
+# glyphs and the captured edge pixels outside the Save control.
+GALLERY_SAVE_TOOLBAR='c7bcb9e2b4967307370c6107eb3d86c1bc67e6a26f3330501f2c8fa640facd79'
 
 def viewer_save_proof(viewer,image):
     if (not isinstance(viewer,dict) or viewer.get('title')!='Photos and Videos'
@@ -91,8 +94,17 @@ def viewer_save_proof(viewer,image):
     if (not 700<=w<=8192 or not 44<h<=8192 or min(x,y)<0 or image.mode!='RGB'
         or x+w>image.width or y+h>image.height):
         raise ValueError('unsupported complete viewer geometry/rendering; no toolbar input')
-    prefix=hashlib.sha256(image.crop((x,y,x+640,y+44)).tobytes()).hexdigest()
+    toolbar=image.crop((x,y,x+640,y+44))
+    prefix=hashlib.sha256(toolbar.tobytes()).hexdigest()
     layout=SAVE_TOOLBARS.get(prefix)
+    if layout is None:
+        # The bottom two rows and the cropped menu glyph changed across
+        # real captures. Keep the full unmasked stability check before input.
+        controls=toolbar.crop((0,0,640,42))
+        for box in ((73,16,87,28),(113,16,127,28),(635,19,639,23)):
+            controls.paste((0,0,0),box)
+        if hashlib.sha256(controls.tobytes()).hexdigest()==GALLERY_SAVE_TOOLBAR:
+            layout=('with-qr',520)
     if layout is None:
         error=ValueError('current Save/QR toolbar is not a calibrated inactive layout')
         error.image_toolbar_fingerprint=prefix
