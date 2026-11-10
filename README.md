@@ -1,6 +1,6 @@
 # RSI Agent
 
-RSI Agent 把微信消息交给本机 Codex 处理，再由原微信发送队列回传结果。项目在同一个仓库维护两个核心模块。[触发器](trigger/)负责从微信接入，[接收器](receiver/)负责接单并交给专用 Codex 会话。
+RSI Agent 把微信消息交给本机 Codex 处理，再由原微信发送队列回传结果。[触发器](trigger/)核对并接入微信原消息，[发送器](components/wechat-linux/operations/sending.py)核对收件人并记录原生回执。[本机接收器](receiver/)把这两端接到一个专用 Codex 会话。
 
 ```text
 微信消息 → Linux 触发器 → SSH 回环通道 → 本机接收器 → 专用 Codex 会话
@@ -8,6 +8,10 @@ RSI Agent 把微信消息交给本机 Codex 处理，再由原微信发送队列
 ```
 
 本人私聊、已确认好友私聊和已核实加入的群聊走同一个专用 Codex 会话，普通文字无需加前缀。好友私聊各用自己的上下文，工程任务必须经本人原生身份和消息类型检查。独立的 DeepSeek 群聊筛选已在当前部署关闭。
+
+## Windows 小号接入
+
+把[安装技能](.agents/skills/rsi-wechat-setup/SKILL.md)或本仓库链接交给你电脑上的 Codex，按 [WSL 安装和配对](deploy/wechat-wsl/README.md)操作。安装器在首次运行时下载并校验 Ubuntu Base 和官方 Linux 微信。扫码后为小号建立一个可见的专用回复会话，再验证触发器接入和发送器回执。
 
 ## 触发器
 
