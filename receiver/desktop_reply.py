@@ -66,11 +66,16 @@ def chat_reply(config, identity, thread, turn, reply=None):
     binding = chat_binding(original, identity, thread, turn)
     if json.loads(checkpoint.read_bytes()) != dict(binding, phase='running', workspace=None, artifacts=[]):
         raise ValueError('Use the checkpoint from this actual chat turn.')
+    completion_path = folder / 'desktop-completion.json'
+    completion = dict(binding, text=reply)
+    if not completion_path.exists() or json.loads(completion_path.read_bytes()) != completion:
+        # Windows pipelines add CRLF framing. Keep an exact legacy retry intact.
+        reply = reply.replace('\r\n', '\n').removesuffix('\n')
+        completion['text'] = reply
     if not reply.strip() or '\0' in reply or len(reply.encode()) > 65536:
         raise ValueError('Bounded original chat reply required.')
     completion_text(original['body'], reply)
-    completion = dict(binding, text=reply)
-    save_once(folder / 'desktop-completion.json', completion)
+    save_once(completion_path, completion)
     return exchange('/desktop-completions', completion)
 
 

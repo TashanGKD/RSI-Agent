@@ -105,10 +105,9 @@ class DesktopRelayTests(unittest.TestCase):
                     path = root / 'config.json'
                     path.write_text(json.dumps(dict(config, port=http.server_port)))
 
-                    def command(action, thread=THREAD, turn=MESSAGE, reply=''):
+                    def command(action, thread=THREAD, turn=MESSAGE, reply='', identity=request['id']):
                         return subprocess.run([sys.executable, '-B', '-m', 'receiver.desktop_reply', action,
-                            str(path), request['id'], thread, turn],
-                            input=reply, capture_output=True, encoding='utf-8', timeout=5)
+                            str(path), identity, thread, turn], input=reply.encode(), capture_output=True, timeout=5)
 
                     rejected = command('read', thread=OTHER_THREAD)
                     self.assertNotEqual(rejected.returncode, 0)
@@ -117,17 +116,34 @@ class DesktopRelayTests(unittest.TestCase):
                     self.assertEqual(read.returncode, 0, read.stderr)
                     original = json.loads(read.stdout)
                     self.assertEqual(original['body']['messages'][0]['content'][0]['text'], '看看这张图')
-                    self.assertNotIn('base64', read.stdout)
+                    self.assertNotIn(b'base64', read.stdout)
                     self.assertEqual(Path(original['images'][0]['path']).read_bytes(), b'a')
                     self.assertNotEqual(command('complete', turn=OTHER_THREAD, reply='wrong turn').returncode, 0)
                     self.assertFalse((folder / 'desktop-completion.json').exists())
                     for _ in range(2):
-                        result = command('complete', reply='原回复')
+                        result = command('complete', reply='原回复\r\n第二行\r\n')
                         self.assertEqual(result.returncode, 0, result.stderr)
                         self.assertEqual(json.loads(result.stdout)['state'], 'completed')
                     self.assertNotEqual(command('complete', reply='另一个回复').returncode, 0)
-                    self.assertEqual(jobs.get(request['id'])['result'], '原回复')
+                    self.assertEqual(jobs.get(request['id'])['result'], '原回复\n第二行')
                     self.assertEqual(json.loads(command('read').stdout)['state'], 'completed')
+
+                    legacy = dict(request, id='b' * 64)
+                    jobs.accept(legacy)
+                    with patch('receiver.codex_worker.subprocess.run', return_value=queued()):
+                        notify_desktop(config, jobs, jobs.claim('chat'))
+                    legacy_read = command('read', identity=legacy['id'])
+                    self.assertEqual(legacy_read.returncode, 0, legacy_read.stderr)
+                    old_reply = '旧回执\r\n'
+                    old_completion = dict(id=legacy['id'], input_sha256=json.loads(legacy_read.stdout)['input_sha256'],
+                                          thread_id=THREAD, turn_id=MESSAGE, text=old_reply)
+                    legacy_receipt = root / legacy['id'] / 'desktop-completion.json'
+                    old_bytes = json.dumps(old_completion).encode()
+                    legacy_receipt.write_bytes(old_bytes)
+                    result = command('complete', reply=old_reply, identity=legacy['id'])
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertEqual(jobs.get(legacy['id'])['result'], old_reply)
+                    self.assertEqual(legacy_receipt.read_bytes(), old_bytes)
                 finally:
                     http.shutdown()
                     worker.join()
