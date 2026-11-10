@@ -85,6 +85,12 @@ Fetch only the source-bound HTTPS cover, validate and cache the actual decoded
 asset, and describe it as a cover. This does not read the video. Media captions
 and image contents cannot initiate engineering tools, including owner shares.
 
+An admitted message may supply a public Bilibili video URL or native video share
+card. Resolve the exact video and requested part, then give Codex the verified
+title and description with `content_scope=metadata`. This route does not read
+subtitles, audio or video frames. Group and friend fetches are scoped to
+Bilibili video links, and a group can still choose to stay quiet.
+
 The delivered generation backend is local Codex through the authenticated model
 port. The owner's latest choice routes ordinary chat and admitted owner tasks to
 one new visible conversation; see DESKTOP-WECHAT.md and live activation receipts.
