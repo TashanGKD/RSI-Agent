@@ -22,6 +22,7 @@ def packet():
 
 THREAD = '00000000-0000-4000-8000-000000000001'
 MESSAGE = '00000000-0000-4000-8000-000000000002'
+OTHER_THREAD = '00000000-0000-4000-8000-000000000003'
 
 
 def queued():
@@ -84,6 +85,69 @@ for line in sys.stdin:
 
 
 class DesktopRelayTests(unittest.TestCase):
+    def test_split_routes_keep_original_target_through_authenticated_completion(self):
+        from urllib.error import HTTPError
+        from urllib.request import ProxyHandler, Request, build_opener
+        from receiver.codex_worker import process_job
+
+        with tempfile.TemporaryDirectory() as td:
+            jobs = Jobs(td)
+            config = {'codex': sys.executable, 'port': 0, 'token': 'a' * 64,
+                      'desktop_thread_id': THREAD, 'desktop_all_requests': True}
+
+            def queue_reply(command, **_):
+                target = command[3]
+                return subprocess.CompletedProcess(command, 0,
+                    f'Queued message {MESSAGE} for thread {target}.\n', '')
+
+            cases = [
+                ('a', ['self', 'friend'], 'chat', THREAD),  # Already queued under the prior route.
+                ('b', ['self', 'owner'], 'chat', THREAD),
+                ('c', ['self', 'friend'], 'chat', OTHER_THREAD),
+                ('d', ['self', 'group@chatroom'], 'chat', OTHER_THREAD),
+                ('e', ['self', 'group@chatroom'], 'engineering', THREAD),
+            ]
+            originals = {}
+            with patch('receiver.codex_worker.subprocess.run', side_effect=queue_reply) as cli:
+                for key, scope, mode, target in cases:
+                    if key == 'b':
+                        config.update(desktop_other_thread_id=OTHER_THREAD,
+                                      desktop_owner_scope=['self', 'owner'])
+                    request = dict(packet(), id=key * 64, scope=scope, mode=mode)
+                    originals[key] = jobs.accept(request)
+                    process_job(config, jobs, jobs.claim(mode))
+                    self.assertEqual(cli.call_args.args[0][2:4], ['--thread', target])
+                    self.assertEqual(jobs.get(request['id'])['thread_id'], target)
+                self.assertEqual(cli.call_count, len(cases))
+
+            with server(config, Jobs(td), threading.Event()) as http:
+                worker = threading.Thread(target=http.serve_forever)
+                worker.start()
+                self.addCleanup(worker.join)
+                try:
+                    client = build_opener(ProxyHandler({}))
+
+                    def exchange(path, payload=None):
+                        data = json.dumps(payload).encode() if payload is not None else None
+                        request = Request(f'http://127.0.0.1:{http.server_port}{path}', data=data,
+                                          headers={'Authorization': 'Bearer ' + config['token']})
+                        with client.open(request, timeout=3) as response:
+                            return json.load(response)
+
+                    for key, scope, _, target in cases:
+                        original = originals[key]
+                        result = exchange('/desktop-requests/' + original['id'])
+                        self.assertEqual((result['thread_id'], result['body']['scope']), (target, scope))
+                        output = {'id': original['id'], 'input_sha256': original['digest'],
+                                  'thread_id': target, 'turn_id': 'turn-' + key, 'text': 'original reply'}
+                        wrong = OTHER_THREAD if target == THREAD else THREAD
+                        with self.assertRaises(HTTPError) as rejection:
+                            exchange('/desktop-completions', dict(output, thread_id=wrong))
+                        self.assertEqual(rejection.exception.code, 409)
+                        self.assertEqual(exchange('/desktop-completions', output)['state'], 'completed')
+                finally:
+                    http.shutdown()
+
     def test_pdf_stays_bound_to_its_original_desktop_chat_and_rejects_changed_files(self):
         with tempfile.TemporaryDirectory() as td:
             jobs = Jobs(td)

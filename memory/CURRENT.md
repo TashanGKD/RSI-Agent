@@ -1,7 +1,8 @@
 # Current checkpoint
 
 RSI Agent uses one repository for the Linux WeChat trigger and the local Codex
-receiver. New private and group requests share the dedicated Codex conversation.
+receiver. The receiver can split owner-private chat and admitted engineering
+from friend and group chat. Each job keeps the target recorded at handoff.
 The trigger retains the native inbox and V2 delivery, and the receiver retains
 the original job and result. See the [repository entrypoint](../README.md) for
 code and operator commands. The independent SCNET group gate is disabled on the
