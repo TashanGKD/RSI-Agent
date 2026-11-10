@@ -139,12 +139,13 @@ class ImageExecutionTests(unittest.TestCase):
   from unittest.mock import patch,Mock
   with tempfile.TemporaryDirectory() as td:
    d,j,c,im,r=self.fixture(td);locked=object()
-   failure=ValueError('do not expose raw XML here');failure.image_export_stage='save-dialog'
+   failure=ValueError('do not expose raw XML here');failure.image_export_stage='save-control'
+   failure.image_toolbar_fingerprint='a'*64
    adapter=types.SimpleNamespace(locked=locked,dispatch=Mock(side_effect=failure))
    with patch.dict('sys.modules',{'image_client':adapter}),patch('operations.images.load_context',return_value=c),patch('operations.recipes.screen',return_value=im):
     with self.assertRaises(images.ImageReadError) as e:images.export(d,j)
    self.assertIs(adapter.locked,locked);self.assertNotIn('raw XML',str(e.exception));self.assertEqual(e.exception.code,'IMAGE_EXPORT_NOT_PROVEN')
-   self.assertIn('save-dialog',str(e.exception))
+   self.assertIn('save-control',str(e.exception));self.assertIn('a'*64,str(e.exception))
 
 class ImageRoutingTests(unittest.TestCase):
  def test_uncached_image_in_native_only_group_uses_proven_session_binding(self):

@@ -49,7 +49,11 @@ class ClientImageTests(unittest.TestCase):
                 patch('operations.lease.birth',return_value='fixture-birth'):
             with self.assertRaisesRegex(ValueError,'official viewer process' if foreign else 'not a calibrated inactive layout') as error:
                 image_client.dispatch(Mock(),request,ui=selected)
-            self.assertEqual(error.exception.image_export_stage,'save-dialog')
+            self.assertEqual(error.exception.image_export_stage,'save-control')
+            if not foreign:
+                x,y=viewer['x'],viewer['y']
+                prefix=im.crop((x,y,x+640,y+44))
+                self.assertEqual(error.exception.image_toolbar_fingerprint,hashlib.sha256(prefix.tobytes()).hexdigest())
         return control
 
     def test_unknown_save_toolbar_closes_only_original_viewer_without_toolbar_click(self):

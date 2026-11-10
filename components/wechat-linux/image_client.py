@@ -93,7 +93,10 @@ def viewer_save_proof(viewer,image):
         raise ValueError('unsupported complete viewer geometry/rendering; no toolbar input')
     prefix=hashlib.sha256(image.crop((x,y,x+640,y+44)).tobytes()).hexdigest()
     layout=SAVE_TOOLBARS.get(prefix)
-    if layout is None:raise ValueError('current Save/QR toolbar is not a calibrated inactive layout')
+    if layout is None:
+        error=ValueError('current Save/QR toolbar is not a calibrated inactive layout')
+        error.image_toolbar_fingerprint=prefix
+        raise error
     box=[x,y,x+w,y+44]
     return {'point':[x+layout[1],y+21],'layout':layout[0],'prefixSHA256':prefix,
             'toolbarBox':box,'toolbarSHA256':hashlib.sha256(image.crop(tuple(box)).tobytes()).hexdigest()}
@@ -130,8 +133,13 @@ def prove_viewer_save_input(control,viewer,capture,require_guard,point=None):
 
 def open_viewer_save(control,viewer,capture,require_guard):
     from operations.windows import window_identity
-    proof=prove_viewer_save_input(control,viewer,capture,require_guard)
-    require_guard();control.click(*proof['point']);control.wait(600);require_guard()
+    try:
+        proof=prove_viewer_save_input(control,viewer,capture,require_guard)
+        require_guard()
+    except ValueError as exc:
+        exc.image_export_stage='save-control'
+        raise
+    control.click(*proof['point']);control.wait(600);require_guard()
     dialog=control.one('Save');identity=window_identity(dialog);owner=proof['viewerIdentity']
     if (not 550<=dialog['width']<=800 or not 380<=dialog['height']<=600
         or identity.get('class')!=owner['class'] or identity.get('pid')!=owner['pid']
@@ -288,7 +296,7 @@ def dispatch(tool,r,*,ui=None):
                 result={'state':'image_ready',**metadata,**info,'origin':'official-client-save-as','messageMd5Matched':info['md5']==metadata['imageMetadata']['md5'],'contentReady':True,'wholeScreenScreenshot':False,'messageImageFileObtained':True,'rawCameraOriginalClaimed':False,'content_base64':base64.b64encode(data).decode(),'temporaryExportCleaned':True,'messagesSent':0}
             return result
         except ValueError as exc:
-            exc.image_export_stage=stage
+            exc.image_export_stage=getattr(exc,'image_export_stage',stage)
             raise
         finally:
             try:
