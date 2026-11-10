@@ -173,6 +173,40 @@ class ReplyLoopTests(unittest.TestCase):
         context.assert_called_once_with('')
         self.assertFalse(self.model.reply.call_args.kwargs['allow_engineering'])
 
+    def test_new_owner_voice_is_transcribed_once_and_keeps_original_chat_reply(self):
+        self.model.backend = 'local-codex'
+        self.model.reply.side_effect = [PublicationPending('waiting'), 'Voice reply']
+        self.batch['events'] = [event(1, kind=34, text='native-media-xml'),
+                                event(2, kind=34, text='', created=110),
+                                event(3, kind=34, text='', sender='other')]
+        voice = Mock(since=115, return_value='Explain this result')
+        loop = self.loop()
+        loop.voice = voice
+        with self.assertRaises(PublicationPending):
+            loop.cycle()
+        self.assertEqual(loop.cycle()['state'], 'sent')
+        voice.assert_called_once_with(self.io, '1', 120)
+        self.model.use_request.assert_called_with(['1'])
+        self.assertEqual(self.model.reply.call_count, 2)
+        for call in self.model.reply.call_args_list:
+            self.assertIn('Explain this result', call.args[0])
+            self.assertNotIn('native-media-xml', call.args[0])
+            self.assertFalse(call.kwargs['allow_engineering'])
+        self.assertEqual(list(self.effects), ['1'])
+
+    def test_unavailable_owner_voice_does_not_strand_later_text(self):
+        self.model.backend = 'local-codex'
+        self.batch = {'events': [event(1, kind=34, text=''), event(2, created=121)]}
+        voice = Mock(since=115, return_value='')
+        loop = self.loop()
+        loop.voice = voice
+        self.assertEqual(loop.cycle()['state'], 'sent')
+        self.model.reply.assert_not_called()
+        self.assertEqual(loop.cycle()['state'], 'sent')
+        self.assertEqual(self.model.reply.call_args.args[0], '你好')
+        self.assertEqual(self.model.reply.call_count, 1)
+        self.assertEqual(list(self.effects), ['1', '2'])
+
     def test_owner_pdf_is_bound_chat_and_frozen_completion_does_not_read_cache_again(self):
         self.model.backend = 'local-codex'
         self.model.has_original_input.return_value = False
@@ -284,6 +318,38 @@ class ReplyNativeTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.call('submit', server_id='1', text='x', peer='other')
         self.assertEqual(self.api.s.list_jobs(), [])
+
+    def test_voice_media_requires_exact_committed_owner_message(self):
+        import linux_tool
+        message = sqlite3.connect(':memory:')
+        media = sqlite3.connect(':memory:')
+        self.addCleanup(message.close)
+        self.addCleanup(media.close)
+        table = 'Msg_' + hashlib.md5(b'fixture_owner').hexdigest()
+        message.executescript("CREATE TABLE Name2Id(user_name TEXT);"
+            "INSERT INTO Name2Id VALUES('fixture_account'),('fixture_owner');"
+            f'CREATE TABLE {table}(server_id,create_time,local_type,real_sender_id);'
+            f'INSERT INTO {table} VALUES(10,120,34,2),(11,120,34,1),(12,120,34,2);')
+        media.executescript("CREATE TABLE Name2Id(user_name TEXT);"
+            "INSERT INTO Name2Id VALUES('fixture_owner'),('other');"
+            'CREATE TABLE VoiceInfo(voice_data,chat_name_id,svr_id);')
+        raw = b'\x02#!SILK_V3fixture'
+        media.executemany('INSERT INTO VoiceInfo VALUES(?,?,?)', [(raw, 1, 10), (raw, 2, 12)])
+
+        @contextlib.contextmanager
+        def opened(rel):
+            yield (media if rel.endswith('media_0.db') else message), {'consistency': 'committed'}
+
+        with patch.object(linux_tool, 'native', opened):
+            result = self.call('voice', server_id='10')
+            self.assertEqual(base64.b64decode(result['data']), raw)
+            self.assertEqual(result['sha256'], hashlib.sha256(raw).hexdigest())
+            with self.assertRaisesRegex(ValueError, 'Original inbound owner voice'):
+                self.call('voice', server_id='11')
+            self.assertEqual(self.call('voice', server_id='12'), {'state': 'audio_pending'})
+            self.owner.update(friend_peer='other', send_scope={'mode': 'friend-private-chat', 'since': 100})
+            with self.assertRaisesRegex(ValueError, 'Unsupported owner reply transport fields'):
+                self.call('voice', server_id='10')
 
     def test_source_acks_old_metadata_without_decoding_old_or_outgoing_bodies(self):
         import linux_tool

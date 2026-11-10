@@ -16,6 +16,7 @@ from .link_reader import linked_pages
 from rsi_agent.wechat import private_file
 from . import owner_memory
 from .reply_io import FRIEND_MODE
+from .voice_input import VoiceInput
 from .local_codex import settings as codex_settings, instruction as codex_instruction, initialize as codex_initialize, enqueue as codex_enqueue
 
 
@@ -34,7 +35,7 @@ class Transport:
             request = dict(request, _binding=self.config['binding_token'])
         result = subprocess.run(command, cwd=ROOT, input=json.dumps(request) if request else None,
             capture_output=True, text=True, timeout=180)
-        limit = 15000000 if request and request.get('op') in ('image', 'pdf') else 1500000
+        limit = 15000000 if request and request.get('op') in ('image', 'pdf', 'voice') else 1500000
         if result.returncode or len(result.stdout.encode()) > limit:
             raise ValueError('Owner reply transport is unavailable; preserve the original request.')
         value = json.loads(result.stdout)
@@ -46,7 +47,7 @@ class Transport:
 
 
 class ReplyLoop:
-    def __init__(self, path, owner, model, transport, context=None):
+    def __init__(self, path, owner, model, transport, context=None, voice=None):
         path = Path(path)
         if path.is_symlink():
             raise ValueError('Private owner reply state required.')
@@ -67,6 +68,8 @@ class ReplyLoop:
             self.db.execute('ALTER TABLE inbox ADD COLUMN link_url TEXT')
         if 'pdf_name' not in {r[1] for r in self.db.execute('PRAGMA table_info(inbox)')}:
             self.db.execute('ALTER TABLE inbox ADD COLUMN pdf_name TEXT')
+        if 'voice_text' not in {r[1] for r in self.db.execute('PRAGMA table_info(inbox)')}:
+            self.db.execute('ALTER TABLE inbox ADD COLUMN voice_text TEXT')
         identity = json.dumps([owner['account'], owner['peer'], owner['scope']], sort_keys=True)
         old = self.db.execute('SELECT binding FROM meta').fetchone()
         if old and old[0] != identity:
@@ -88,6 +91,7 @@ class ReplyLoop:
             codex_initialize(self.db)
         self.context = context
         self.images = getattr(model, 'backend', None) == 'local-codex'
+        self.voice = voice if self.images and self.memory_enabled else None
         if self.images:
             model.bind(owner['account'], owner['peer'])
 
@@ -122,12 +126,13 @@ class ReplyLoop:
                     event.get('kind') == 49 and event.get('image_kind') == 'finder_cover'))
                 link = event.get('kind') == 49 and isinstance(event.get('link'), dict)
                 pdf = event.get('pdf_name') if self.images and (self.memory_enabled or self.friend) and event.get('kind') == 49 else None
+                voice = self.voice is not None and event.get('kind') == 34 and event['created'] >= self.voice.since
                 if (event.get('account') != self.owner['account'] or event.get('peer') != self.owner['peer']
-                        or event.get('sender') != self.owner['peer'] or (event.get('kind') != 1 and not media and not link and not pdf)
+                        or event.get('sender') != self.owner['peer'] or (event.get('kind') != 1 and not media and not link and not pdf and not voice)
                         or (not bootstrap and (scope['mode'] == 'one-message' or event['created'] < scope['since']))):
                     continue
                 text = event['link']['text'] if link else pdf or event.get('text')
-                if event['kind'] == 3:
+                if event['kind'] in (3, 34):
                     text = ''  # Native media XML can contain cache credentials.
                 if not isinstance(text, str) or (event['kind'] == 1 and not text.strip()) or '\0' in text or len(text.encode()) > 32768:
                     continue
@@ -153,6 +158,17 @@ class ReplyLoop:
             waiting = self.db.execute("SELECT 1 FROM inbox WHERE state='local_codex'").fetchone()
             return {'state': 'waiting_codex' if waiting else 'idle', 'counts': self.counts()}
         reply = row['reply']
+        voice_text = row['voice_text']
+        if reply is None and row['kind'] == 34 and voice_text is None:
+            voice_text = self.voice(self.io, row['id'], row['created']) if self.voice is not None else ''
+            if voice_text is None:
+                return {'state': 'voice_pending', 'counts': self.counts()}
+            with self.db:
+                self.db.execute('UPDATE inbox SET voice_text=? WHERE id=?', (voice_text, row['id']))
+        if reply is None and row['kind'] == 34 and not voice_text:
+            reply = '我收到了语音，但这条没能转成文字。可以再发一条短一点的语音。'
+            with self.db:
+                self.db.execute("UPDATE inbox SET reply=?,state='pending' WHERE id=?", (reply, row['id']))
         if (reply is None and self.memory_enabled and row['kind'] == 1
                 and not (self.images and self.model.has_original_input([row['id']]))):
             with self.db:
@@ -175,7 +191,7 @@ class ReplyLoop:
                     attachment_error = ('收到论文《' + row['pdf_name'] + '》的文件消息了，目前还没拿到可核验的 PDF。'
                         if row['pdf_name'] else '这张图还没读出来。单独再发一张原图，我再看看。')
             history = []
-            query = "SELECT text,reply FROM inbox WHERE state='sent'"
+            query = "SELECT COALESCE(NULLIF(voice_text,''),text) AS text,reply FROM inbox WHERE state='sent'"
             cutoff, memory = 0, []
             if self.memory_enabled:
                 epoch, cutoff = owner_memory.position(self.db)
@@ -202,6 +218,8 @@ class ReplyLoop:
                     prompt = ('请看这份论文《' + row['pdf_name'] + '》，结合正文回答。' if row['pdf_name']
                               else row['text'] or '看看这张图，接着对话回答。')
                     reply = attachment_error or self.model.reply(prompt, history, images=attachments, allow_engineering=False)
+                elif row['kind'] == 34:
+                    reply = self.model.reply('[微信语音转写]\n' + voice_text, history, allow_engineering=False)
                 elif self.friend:
                     reply = self.model.reply(row['text'], history, allow_engineering=False)
                 else:
@@ -262,7 +280,8 @@ def run(path, mode):
         signal.signal(signal.SIGTERM, stop)
         signal.signal(signal.SIGINT, stop)
         from .group_context import owner_context
-        loop = ReplyLoop(state / 'inbox.sqlite', owner, model, transport, context=owner_context)
+        voice = VoiceInput.load(state / 'voice-intake.json', owner['scope']['since'])
+        loop = ReplyLoop(state / 'inbox.sqlite', owner, model, transport, context=owner_context, voice=voice)
         previous = None
         while not stopped:
             # The private switches can stop future input without changing identities or IDs.

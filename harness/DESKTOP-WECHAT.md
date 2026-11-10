@@ -59,6 +59,17 @@ proof. The trigger does not download or open a PDF on the WeChat desktop.
 Each new batch carries at most one image or PDF. Existing frozen requests keep
 their original attachment without re-exporting it on completion polling.
 
+The confirmed owner's continuous private chat can optionally accept new voice
+messages. Provision `pilk`, `numpy` and `sherpa-onnx` in an isolated Linux Python
+environment, and a local SenseVoice model directory containing `model.int8.onnx`
+and `tokens.txt`. Run a SILK fixture through `python -m trigger.voice_asr MODEL`
+under the WeChat runtime user before enabling it. The helper takes SILK on stdin.
+Set the owner worker's private `voice-intake.json` to `since` (activation epoch),
+`python` (absolute environment executable) and `model` (absolute model directory).
+The original native ID binds the transcript, chat request and text reply. Voice
+uses the chat path and does not select engineering. Raw audio remains on the
+Linux host. No old voice is replayed at activation.
+
 Honor body.schema in the private completion:
 
 - Private decision: {"engineering":false,"text":"reply"}. For a clear owner

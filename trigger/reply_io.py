@@ -240,6 +240,8 @@ def handle(installation, owner, request):
               'submit': {'op', 'server_id', 'text'}, 'advance': {'op', 'server_id'}}
     if 'friend_peer' in owner:
         fields['status'] = {'op', 'server_id'}
+    elif owner['send_scope']['mode'] == 'owner-private-text':
+        fields['voice'] = {'op', 'server_id'}
     if op not in fields or set(request) != fields[op]:
         raise ValueError('Unsupported owner reply transport fields.')
     peer = owner.get('friend_peer', owner['owner_peer'])
@@ -252,6 +254,9 @@ def handle(installation, owner, request):
     if op == 'image':
         from .media_io import image
         return image(root, owner['account'], peer, request['server_id'], {peer})
+    if op == 'voice':
+        from .voice_input import read_owner_voice
+        return read_owner_voice(peer, request['server_id'], owner['send_scope']['since'])
     if op == 'pdf':
         from .media_io import pdf
         scope = owner['send_scope']
