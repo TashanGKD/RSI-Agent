@@ -1,3 +1,4 @@
+import base64
 import contextlib
 import hashlib
 import json
@@ -145,6 +146,57 @@ class QuotedTextTests(unittest.TestCase):
         event = json.loads(self.model.complete.call_args.args[0][1]['content'])['new_messages'][0]
         self.assertEqual(event['text'], 'Does memory change your attention?')
         self.assertEqual(event['quote'], {'self': False})
+
+    def test_quote_fetches_only_its_exact_already_acknowledged_image(self):
+        png = ('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8'
+               '/x8AAwMCAO+jR1sAAAAASUVORK5CYII=')
+        with sqlite3.connect(self.native) as db:
+            db.execute('DELETE FROM ' + self.table + ' WHERE local_id=3')
+            db.execute('INSERT INTO ' + self.table + ' VALUES(?,?,?,?,?,?,?,?)',
+                       (4, 4, 3, 2, 138, 4, 'member:\n<native-image/>', ''))
+        first = read_group(self.root, self.binding, {'op': 'read'}, self.members)
+        read_group(self.root, self.binding, {'op': 'ack',
+            **{key: first[key] for key in ('batch_id', 'batch_hash', 'ack_ids')}}, self.members)
+        with sqlite3.connect(self.native) as db:
+            db.execute('INSERT INTO ' + self.table + ' VALUES(?,?,?,?,?,?,?,?)',
+                       (5, 5, (57 << 32) | 49, 2, 140, 5, self.card(reference='4'), ''))
+        reads = []
+        available = True
+
+        def transport(request):
+            if request['op'] == 'image':
+                reads.append(request['server_id'])
+                if not available:
+                    return {'state': 'media_attention', 'code': 'IMAGE_EXPORT_NOT_PROVEN'}
+                return {'state': 'image_ready', 'source_verified': True, 'mime': 'image/png', 'data': png,
+                        'sha256': hashlib.sha256(base64.b64decode(png)).hexdigest()}
+            return self.io(request)
+
+        loop = self.loop()
+        loop.io = transport
+        with loop.db:
+            loop.save('last_spoken', '0')
+        self.assertEqual(loop.cycle()['state'], 'pending')
+        self.assertEqual(reads, ['4'])
+        parts = self.model.complete.call_args.args[0][-1]['content']
+        current = json.loads(parts[0]['text'])['new_messages'][0]
+        self.assertEqual((current['kind'], current['image_kind'], current['image_index']), (49, 'quoted_image', 0))
+        self.assertEqual(current['quote']['sender_name'], 'Member')
+        self.assertNotIn('quote_image_id', current)
+        self.assertEqual(parts[1]['image_url']['url'], 'data:image/png;base64,' + png)
+        self.assertEqual(loop.cycle()['state'], 'sent')
+        self.assertEqual(list(self.effects), ['5'], 'the original quote remains the reply anchor')
+        with sqlite3.connect(self.native) as db:
+            db.execute('INSERT INTO ' + self.table + ' VALUES(?,?,?,?,?,?,?,?)',
+                       (6, 6, (57 << 32) | 49, 2, 141, 6, self.card(reference='4'), ''))
+        with loop.db:
+            loop.save('last_spoken', '0')
+        available = False
+        self.assertEqual(loop.cycle()['state'], 'pending')
+        current = json.loads(self.model.complete.call_args.args[0][-1]['content'])['new_messages'][0]
+        self.assertEqual(current['image_kind'], 'quoted_image')
+        self.assertEqual(current['image_status'], 'unavailable')
+        self.assertNotIn('image_index', current)
 
     def test_ordinary_card_unsafe_xml_and_empty_title_remain_nontext(self):
         from trigger.group_io import quoted_reply

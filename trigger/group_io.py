@@ -108,17 +108,26 @@ def read_group(root, value, request, members):
                     reference = signed(current['reference'])
                 except ValueError:
                     reference = None
-                originals = db.execute('SELECT real_sender_id,local_type,message_content FROM ' + table +
+                originals = db.execute('SELECT real_sender_id,local_type,message_content,create_time,sort_seq,local_id FROM ' + table +
                     ' WHERE server_id=?', (reference,)).fetchall() if reference is not None else []
-                if len(originals) == 1 and int(originals[0]['local_type']) & 0xffffffff == 1:
-                    sender = names.get(originals[0]['real_sender_id'])
-                    if sender in members:
-                        text = decode(originals[0]['message_content'])
+                quoted = {'text': current['text'], 'quote': quote}
+                if len(originals) == 1:
+                    source = originals[0]
+                    sender = names.get(source['real_sender_id'])
+                    kind = int(source['local_type']) & 0xffffffff
+                    if sender in members and kind == 1:
+                        text = decode(source['message_content'])
                         if text.startswith(sender + ':\n'):
                             text = text[len(sender) + 2:]
-                        quote = {'self': sender == value['account'], 'text': text[:2000],
+                        quoted['quote'] = {'self': sender == value['account'], 'text': text[:2000],
                                  'sender_name': members[sender] or '群成员'}
-                extra['quoted_reply'] = {'text': current['text'], 'quote': quote}
+                    elif (kind == 3 and sender in members and sender != value['account']
+                            and source['create_time'] >= scope['since']
+                            and (source['create_time'], source['sort_seq'] or 0, source['local_id'])
+                            < (row['create_time'], row['sort_seq'] or 0, row['local_id'])):
+                        quoted['quote'] = {'self': False, 'kind': 3, 'sender_name': members[sender] or '群成员'}
+                        quoted['image_source_id'] = sid(reference)
+                extra['quoted_reply'] = quoted
             else:
                 from .link_reader import shared_link
                 from .media import pdf_name
