@@ -99,9 +99,10 @@ completed/running work, then execute. The visible message/link is not identity
 proof by itself. Freeze one completion and return it through the original API;
 never send directly, replay or change the native request ID.
 
-The owner's latest choice is one new dedicated conversation for all WeChat chat
-and tasks, not this maintenance thread. With desktop_all_requests enabled, both
-chat and native-owner engineering queue there once without background generation.
+The owner chose visible Codex conversations for WeChat chat and tasks, separate
+from maintenance. With split routing configured, the original target serves
+owner-private chat and native-owner engineering. A second target handles friend
+and group chat. Each job queues once without background generation.
 Follow harness/DESKTOP-WECHAT.md. Authenticate mode/digest/target first; ordinary
 chat permits only bound packet/image reads and completion, never project/server
 execution. Engineering still requires the native owner/kind gate. Shared UI
