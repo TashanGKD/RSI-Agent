@@ -55,6 +55,28 @@ class VisibleImageTests(unittest.TestCase):
  def test_clipped_candidate_not_accepted(self):
   with self.assertRaises(images.ImageReadError):images.locate_visible(scene(clipped=True),[0,0,500,400],self.rows(),context())
 
+ def test_inbound_inset_recovers_same_component_inside_calibrated_pane(self):
+  source=dict(context(),sourceMode='inbound',thumbnailWidth=172,thumbnailHeight=100)
+  pane=[0,0,500,400];body=[60,0,425,400]
+  for left,right,top in ((48,220,100),(265,437,100)):
+   im=Image.new('RGB',(500,400),(249,249,249))
+   ImageDraw.Draw(im).rectangle((left,top,right,top+100),fill='white')
+   with self.assertRaisesRegex(images.ImageReadError,'not fully within'):
+    images.locate_visible(im,body,[],source)
+   self.assertEqual(images.locate_visible(im,body,[],source,message_pane=pane),[(left+right)//2,top+50])
+
+ def test_inbound_inset_still_refuses_true_clipping_or_a_different_card(self):
+  source=dict(context(),sourceMode='inbound',thumbnailWidth=172,thumbnailHeight=100)
+  pane=[0,0,500,400];body=[60,0,425,400]
+  for primary,other in (((0,100,220,200),None),((48,0,220,100),None),
+                        ((48,100,220,200),(240,220,412,320)),
+                        ((12,100,232,200),(240,220,412,320))):
+   im=Image.new('RGB',(500,400),(249,249,249));draw=ImageDraw.Draw(im)
+   draw.rectangle(primary,fill='white')
+   if other:draw.rectangle(other,fill='white')
+   with self.assertRaises(images.ImageReadError):
+    images.locate_visible(im,body,[],source,message_pane=pane)
+
 class ImageExecutionTests(unittest.TestCase):
  def fixture(self,td):
   import types
