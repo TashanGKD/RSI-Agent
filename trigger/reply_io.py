@@ -127,17 +127,19 @@ def source(root, owner, request):
 
 def status(job):
     result = job.get('result') or {}
-    return {'state': job['state'], 'request_id': job['request_id'],
+    value = {'state': job['state'], 'request_id': job['request_id'],
             'outcome': job.get('outcome', {}).get('status'),
             'code': result.get('code'),
             'cleanup_pending': any(result.get(k) for k in
                 ('postActionPending', 'draftRecoveryPending', 'navigationRecoveryPending'))}
+    if job.get('action') == 'send_text':
+        value['reply_sha256'] = hashlib.sha256(job['payload']['text'].encode()).hexdigest()
+    return value
 
 
 def original_status(api, job, client):
     """Read the existing receipt without claiming or advancing its send."""
-    return dict(status(api.view(job)), recoverable_preinput_failure=failed_before_input(api.s, job, client),
-                reply_sha256=hashlib.sha256(job['payload']['text'].encode()).hexdigest())
+    return dict(status(api.view(job)), recoverable_preinput_failure=failed_before_input(api.s, job, client))
 
 
 def failed_before_input(store, job, client):

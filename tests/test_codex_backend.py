@@ -86,6 +86,9 @@ for line in sys.stdin:
 
 class DesktopRelayTests(unittest.TestCase):
     def test_chat_cli_checks_the_binding_and_reuses_only_the_frozen_completion(self):
+        from urllib.error import HTTPError
+        from urllib.request import ProxyHandler, Request, build_opener
+
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             jobs = Jobs(root)
@@ -127,6 +130,33 @@ class DesktopRelayTests(unittest.TestCase):
                     self.assertNotEqual(command('complete', reply='另一个回复').returncode, 0)
                     self.assertEqual(jobs.get(request['id'])['result'], '原回复\n第二行')
                     self.assertEqual(json.loads(command('read').stdout)['state'], 'completed')
+                    self.assertEqual(json.loads(command('status').stdout)['state'], 'pending')
+                    self.assertNotEqual(command('status', thread=OTHER_THREAD).returncode, 0)
+                    self.assertNotEqual(command('status', turn=OTHER_THREAD).returncode, 0)
+                    native_id = hashlib.sha256('\0'.join(('self', 'owner', '42')).encode()).hexdigest()
+                    receipt = {'id': request['id'], 'state': 'unknown', 'native_request_id': 'rsi-owner-' + native_id,
+                               'reply_sha256': hashlib.sha256('原回复\n第二行'.encode()).hexdigest(), 'code': None}
+
+                    def report(value):
+                        req = Request(f'http://127.0.0.1:{http.server_port}/delivery-receipts',
+                                      data=json.dumps(value).encode(),
+                                      headers={'Authorization': 'Bearer ' + config['token']})
+                        with build_opener(ProxyHandler({})).open(req, timeout=3) as response:
+                            return json.load(response)
+
+                    with self.assertRaises(HTTPError):
+                        report(dict(receipt, reply_sha256='0' * 64))
+                    report(receipt)
+                    unknown = json.loads(command('status').stdout)
+                    self.assertEqual(unknown['state'], 'unknown')
+                    self.assertNotIn('text', unknown)
+                    sent = dict(receipt, state='sent')
+                    report(sent)
+                    report(sent)
+                    with self.assertRaises(HTTPError):
+                        report(dict(receipt, state='not_sent'))
+                    delivered = json.loads(command('status').stdout)
+                    self.assertEqual((delivered['state'], delivered['text']), ('sent', '原回复\n第二行'))
 
                     legacy = dict(request, id='b' * 64)
                     jobs.accept(legacy)
@@ -268,7 +298,7 @@ class DesktopRelayTests(unittest.TestCase):
                     self.assertEqual(call.args[0][2:4], ['--thread', THREAD])
                 self.assertTrue(chat.startswith('【微信输入 · 微信私聊 · '))
                 self.assertTrue(engineering.startswith('【微信任务 · 微信私聊 · '))
-                self.assertIn('完成接口确认接收后，用一句话结束本轮', chat.split('\n\n', 1)[0])
+                self.assertIn('发送状态和已发送的原文', chat.split('\n\n', 1)[0])
                 self.assertNotIn('用一句话结束本轮', engineering)
 
     def test_chat_images_are_original_bound_local_files_and_tampering_is_rejected(self):
@@ -406,6 +436,7 @@ class CodexBackendTests(unittest.TestCase):
 
     def test_native_plain_chat_waits_for_new_desktop_completion_and_sends_once(self):
         from trigger.owner_reply import ReplyLoop
+        from trigger.reply_io import request_id
         owner = {'account': 'self', 'peer': 'owner', 'scope': {'mode': 'owner-private-text', 'since': 100}}
         event = {'account': 'self', 'peer': 'owner', 'sender': 'owner', 'kind': 1,
                  'created': 120, 'server_id': 42, 'text': '现在都进专用会话'}
@@ -413,7 +444,9 @@ class CodexBackendTests(unittest.TestCase):
         def native(value):
             if value['op'] == 'read':return {'events': [event]}
             if value['op'] == 'submit':
-                sends.append(value);return {'state': 'succeeded', 'outcome': 'sent'}
+                sends.append(value)
+                return {'state': 'succeeded', 'outcome': 'sent', 'request_id': request_id('self', 'owner', 42),
+                        'reply_sha256': hashlib.sha256(value['text'].encode()).hexdigest()}
             raise AssertionError('No additional sender')
         loop = ReplyLoop(self.root / 'desktop-chat.sqlite', owner, self.backend, native);self.addCleanup(loop.close)
         with self.assertRaises(PublicationPending):loop.cycle()
@@ -428,7 +461,18 @@ class CodexBackendTests(unittest.TestCase):
         result = {'id': key, 'input_sha256': task['input_sha256'], 'thread_id': THREAD,
                   'turn_id': 'dedicated-chat-turn', 'text': '{"engineering":false,"text":"这条从专用会话回复"}'}
         self.backend.exchange('/desktop-completions', result)
-        self.assertEqual(loop.cycle()['state'], 'sent');self.assertEqual(loop.cycle()['state'], 'idle')
+        route = f"/desktop-deliveries/{key}/{THREAD}/{result['turn_id']}"
+        self.assertEqual(self.backend.exchange(route)[1]['state'], 'pending')
+        self.assertEqual(loop.cycle()['state'], 'sent')
+        with patch.object(self.backend, 'publish_delivery', side_effect=PublicationPending('offline')):
+            self.assertEqual(loop.cycle()['state'], 'idle')
+        self.assertEqual(self.backend.exchange(route)[1]['state'], 'pending')
+        loop.close()
+        restarted = ReplyLoop(self.root / 'desktop-chat.sqlite', owner, self.backend, native)
+        self.addCleanup(restarted.close)
+        self.assertEqual(restarted.cycle()['state'], 'idle')
+        receipt = self.backend.exchange(route)[1]
+        self.assertEqual((receipt['state'], receipt['text']), ('sent', '这条从专用会话回复'))
         self.assertEqual([s['text'] for s in sends], ['这条从专用会话回复'])
 
     def test_group_model_review_releases_only_the_original_batch(self):
@@ -474,6 +518,22 @@ class CodexBackendTests(unittest.TestCase):
         self.assertEqual(sends, ['45'])
         self.assertEqual(self.jobs.get(original_key)['body'], original_packet)
         self.assertEqual(self.jobs.get(original_key)['state'], 'review')
+        events.append(dict(event, server_id=46, created=122, text='A message that needs no reply'))
+        with self.assertRaises(PublicationPending):
+            loop.cycle()
+        quiet_key = self.backend.last_input_key
+        with patch('receiver.codex_worker.subprocess.run', return_value=queued()):
+            notify_desktop({'codex': 'existing-codex', 'desktop_thread_id': THREAD, 'desktop_all_requests': True},
+                           self.jobs, self.jobs.claim('chat'))
+        _, task = self.backend.exchange('/desktop-requests/' + quiet_key)
+        self.backend.exchange('/desktop-completions', {'id': quiet_key, 'input_sha256': task['input_sha256'],
+            'thread_id': THREAD, 'turn_id': 'quiet-turn', 'text': '{"speak":false,"text":"","work_index":null}'})
+        self.assertEqual(loop.cycle()['state'], 'quiet')
+        self.assertEqual(loop.cycle()['state'], 'idle')
+        receipt = self.backend.exchange(f'/desktop-deliveries/{quiet_key}/{THREAD}/quiet-turn')[1]
+        self.assertEqual(receipt['state'], 'quiet')
+        self.assertNotIn('text', receipt)
+        self.assertEqual(sends, ['45'])
 
     def test_single_owner_article_keeps_its_original_route_and_replies_once(self):
         from trigger.group_reply import GroupLoop

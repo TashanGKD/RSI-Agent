@@ -59,12 +59,12 @@ class CodexBackend:
         path = Path(self.config['state']) / 'inputs' / (key + '.json')
         return path.exists() or path.is_symlink()
 
-    def exchange(self, route, value=None):
+    def exchange(self, route, value=None, *, timeout=8):
         data = None if value is None else json.dumps(value, ensure_ascii=False).encode()
         request = Request(self.config['endpoint'].rstrip('/') + route, data=data,
             headers={'Authorization': 'Bearer ' + self.token, 'Content-Type': 'application/json'})
         try:
-            with self.http.open(request, timeout=8) as response:
+            with self.http.open(request, timeout=timeout) as response:
                 body = json.loads(response.read(1000001))
                 return response.status, body
         except HTTPError as error:
@@ -77,6 +77,11 @@ class CodexBackend:
         _, result = self.exchange('/health')
         if result.get('backend') != self.backend or result.get('ready') is not True:
             raise ModelError('Local Codex worker is not ready.')
+
+    def publish_delivery(self, receipt):
+        _, value = self.exchange('/delivery-receipts', receipt, timeout=1.5)
+        if value.get('state') not in ('recorded', 'not_bound'):
+            raise ModelError('Original delivery receipt was not accepted.')
 
     def _run(self, messages, mode, stage=None, schema=None):
         if not self.scope or not self.request:
@@ -107,6 +112,7 @@ class CodexBackend:
             raise OriginalReview('Original local Codex request is in review.')
         if value.get('state') != 'completed' or not isinstance(value.get('text'), str):
             raise ModelError('Original local Codex result needs inspection; do not regenerate it.')
+        self.last_delivery_key = key if mode == 'chat' else None
         return {'model': self.model, 'message': {'role': 'assistant', 'content': value['text']},
                 'finish_reason': 'stop', 'usage': {}}
 
