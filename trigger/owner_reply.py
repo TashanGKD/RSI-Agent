@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import signal
 import sqlite3
 import subprocess
@@ -105,6 +106,10 @@ class ReplyLoop:
 
     def counts(self):
         return dict(self.db.execute('SELECT state,count(*) FROM inbox GROUP BY state').fetchall())
+
+    def desktop_job(self):
+        key = getattr(self.model, 'last_delivery_key', None)
+        return key if isinstance(key, str) and re.fullmatch('[a-f0-9]{64}', key) else None
 
     def flush_delivery(self):
         if not self.images or time.monotonic() < self.report_retry:
@@ -279,7 +284,7 @@ class ReplyLoop:
             if not isinstance(reply, str) or not reply.strip() or '\0' in reply or len(reply.encode()) > 16384:
                 raise ValueError('Model reply does not satisfy the text-only sender contract.')
             with self.db:
-                job = getattr(self.model, 'last_delivery_key', None) if not attachment_error else None
+                job = self.desktop_job() if not attachment_error else None
                 self.db.execute("UPDATE inbox SET reply=?,state='pending',desktop_job=? WHERE id=?",
                                 (reply, job, row['id']))
             row = self.db.execute('SELECT * FROM inbox WHERE id=?', (row['id'],)).fetchone()

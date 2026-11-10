@@ -257,7 +257,7 @@ class GroupLoop(ReplyLoop):
             decision.update(speak=True, text=reply)
         with self.db:
             self.db.executemany("UPDATE inbox SET state='quiet' WHERE id=?", [(r['id'],) for r in rows])
-            job = getattr(self.model, 'last_delivery_key', None)
+            job = self.desktop_job()
             if decision['speak']:
                 self.db.execute("UPDATE inbox SET reply=?,state='pending',desktop_job=? WHERE id=?",
                                 (decision['text'], job, rows[-1]['id']))
