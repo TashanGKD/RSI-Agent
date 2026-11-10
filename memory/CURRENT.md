@@ -7,6 +7,12 @@ the original job and result. See the [repository entrypoint](../README.md) for
 code and operator commands. The independent SCNET group gate is disabled on the
 current deployment. Use the live release and process records to verify activation.
 
+The [Windows setup skill](../.agents/skills/rsi-wechat-setup/SKILL.md) points
+to the [repository installer](../deploy/wechat-wsl/README.md). Keep Ubuntu and
+the official client as verified first-run downloads. For a new installation,
+verify login, native trigger intake, the dedicated Codex turn and original V2
+delivery separately.
+
 Native confirmed friends can have ordinary private replies, and a joined group
 can participate when native membership confirms the signed-in account. The
 private conversation admission cutoff controls the new scopes. Friend inboxes
