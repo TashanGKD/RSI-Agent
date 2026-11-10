@@ -184,8 +184,11 @@ def export(driver,j):
   except ValueError as exc:
    stage=getattr(exc,'image_export_stage',None)
    reason='Official image export did not prove the expected source.'
-   if stage in ('viewer','save-dialog','filename','export','verification'):
+   if stage in ('viewer','save-control','save-dialog','filename','export','verification'):
     reason='Official image export failed at '+stage+'.'
+   fingerprint=getattr(exc,'image_toolbar_fingerprint',None)
+   if stage=='save-control' and isinstance(fingerprint,str) and re.fullmatch('[a-f0-9]{64}',fingerprint):
+    reason='Unrecognized save-control toolbar '+fingerprint+'.'
    raise ImageReadError('IMAGE_EXPORT_NOT_PROVEN',reason+' No bytes returned.',clean=clean(driver,j)) from None
  finally:image_client.locked=old
  if not clean(driver,j):raise ImageReadError('IMAGE_CLEANUP_UNPROVEN','Image export windows did not return to the verified initial state.',clean=False)
