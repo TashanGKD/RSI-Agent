@@ -105,9 +105,10 @@ execution checkpoint. Compare the displayed message with the returned body and
 inspect any bound attachment before replying. The output includes attachment
 paths and hashes and omits inline bytes. Only `desktop_queued` permits a reply.
 `complete` reads UTF-8 reply text on stdin, checks the same checkpoint and
-schema, freezes the result and submits it. If a POST is uncertain, reconcile
-and use the exact frozen completion below. An older checkpoint from the manual
-flow stays with its original turn.
+schema, freezes the result and submits it. For new results it normalizes CRLF
+and removes one final newline added by the shell pipe. If a POST is uncertain,
+reconcile and use the exact frozen completion below. An older checkpoint from
+the manual flow stays with its original turn.
 
 After the completion API confirms acceptance, finish with a one-line desktop
 status. The native bridge owns delivery and maintenance checks its V2 receipt.
