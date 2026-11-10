@@ -30,6 +30,32 @@ class HostInstallationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             module.require_empty_editor(ui)
 
+    def test_reused_chat_window_keeps_the_editor_inset_when_it_moves(self):
+        from PIL import Image, ImageDraw
+        from host_support.file_transport import require_empty_editor
+        from operations import recipes
+
+        peer = 'fixture@chatroom'
+        window = {'id': '0x2', 'title': 'Fixture group', 'x': 0, 'y': 90, 'width': 623, 'height': 667}
+        original = {'peer': peer, 'observedTitle': window['title'], 'editor': [280, 614],
+                    'editor_content_top': 592}
+        target = {'username': peer, 'displayName': window['title']}
+        driver = SimpleNamespace(tool=lambda: SimpleNamespace(resolve=lambda _: target),
+                                 binding=lambda _: original, app_windows=lambda: [window],
+                                 session_bindings={})
+        image = Image.new('RGB', (623, 757), 'white')
+        draw = ImageDraw.Draw(image)
+        draw.line((21, 616, 581, 616), fill=(229, 229, 229))
+        with patch.object(recipes, 'main_window', return_value=window), patch.object(recipes, 'controls'), \
+             patch.object(recipes, 'activate'), patch.object(recipes, 'screen', return_value=image):
+            recipes.selected(driver, {'peer': peer})
+        ui = SimpleNamespace(cfg=driver.session_bindings[peer], ui=SimpleNamespace(screenshot=lambda: image))
+        require_empty_editor(ui)
+        self.assertEqual(original['editor_content_top'], 592)
+        draw.rectangle((50, 634, 70, 654), fill='black')
+        with self.assertRaisesRegex(ValueError, 'existing contents retained'):
+            require_empty_editor(ui)
+
     def test_reparented_window_uses_absolute_screen_coordinates(self):
         raw = '  0x400019 "File Transfer": ("wechat" "wechat") 600x642+0+0  +393+300\n'
         window = parse_app_windows(raw)[0]
