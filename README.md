@@ -1,13 +1,17 @@
 # RSI Agent
 
-RSI Agent 把微信消息交给本机 Codex 处理，再由原微信发送队列回传结果。[触发器](trigger/)核对并接入微信原消息，[发送器](components/wechat-linux/operations/sending.py)核对收件人并记录原生回执。[本机接收器](receiver/)把这两端接到一个专用 Codex 会话。
+RSI Agent 用可见的 Codex 会话分工。任务按范围进入对应会话，由该会话在自己的上下文里执行、验证并改进做法。经用户授权的会话间调用负责交办和反馈。维护会话核对结果，把能复用的改进纳入 skill、Harness 或代码，并通过 GitHub PR 审查。
 
 ```text
-微信消息 → Linux 触发器 → SSH 回环通道 → 本机接收器 → 专用 Codex 会话
-微信回执 ← 原 V2 发送队列 ← Linux 触发器 ← 本机接收器保存的完成结果
+微信消息 → 触发器 → 接收器 → 本人及工程任务会话 / 好友和群聊回复会话
+微信回执 ← 原 V2 发送队列 ← 接收器保存的完成结果
+
+维护会话 → 按范围交办 → 对应 Codex 会话
+维护会话 ← 脱敏结果与证据 ← 对应 Codex 会话
+维护会话 → 提炼可复用改进 → skill / Harness / 代码 → GitHub PR
 ```
 
-本人私聊、已确认好友私聊和已核实加入的群聊走同一个专用 Codex 会话，普通文字无需加前缀。好友私聊各用自己的上下文，工程任务必须经本人原生身份和消息类型检查。独立的 DeepSeek 群聊筛选已在当前部署关闭。
+[触发器](trigger/)绑定微信原消息和来源，[本机接收器](receiver/)绑定目标会话和原结果，[发送器](components/wechat-linux/operations/sending.py)核对收件人和原生回执。单会话安装也能收发。启用分流后，本人私聊及经认证的工程任务和好友、群聊使用各自的执行会话。每条微信请求只用它的认证原包和对应会话资料。
 
 ## Windows 小号接入
 
@@ -51,6 +55,10 @@ python -B -m receiver.codex_worker --config /private/local-codex.json
 | 请求已入队，专用会话未显示 | 核对固定目标和原入队回执。结果不确定时按原 ID 对账 |
 | Codex 已完成，微信未收到 | 核对触发器保存的结果和原 V2 回执。实际投递以微信回执为准 |
 | 图片未出现在 Codex | 查原图导出阶段、来源校验和接收器的附件摘要 |
+
+## RSI
+
+执行会话按[会话侧 skill](.agents/skills/rsi-wechat-learn/SKILL.md)在自己的任务范围内验证新做法，并将能复用的结果报给维护会话。[维护侧 skill](.agents/skills/rsi-agent-maintenance/SKILL.md)负责核证据、归到触发或接收的改动，以及 RSI 的规则与私有素材索引。跨会话只传交办所需的信息和可复核的结果，原聊天与附件留在原范围。
 
 ## 诊断与验证
 

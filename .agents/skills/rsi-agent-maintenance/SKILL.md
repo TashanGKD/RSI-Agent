@@ -41,6 +41,23 @@ delta. Git history and PRs retain the history; do not append repeated timestamps
 or duplicate progress logs. Preserve rejected hypotheses and unresolved failures
 when they change the next decision. No material delta means no commit or PR.
 
+## RSI 经验分层
+
+维护会话按角色分配有明确结果的协作任务，让执行会话保留自己的上下文、
+验收和范围内的迭代。核对按[会话侧 skill](../rsi-wechat-learn/SKILL.md)返回的
+脱敏报备与实际产物或原回执。共享改进进入同一个可审查的 GitHub PR，
+原聊天、图片和素材留在私有存储。
+
+- **触发**：身份、原生入站、媒体来源和 ACK 的重复问题，落到触发器或 Linux
+  微信适配的代码与回归。 若要用公开控件接口代替 OCR，按[现有验证路径](../../../memory/lessons.md#微信控件识别)先核对已登录客户端的目标控件。
+- **接收**：原请求、目标轮次、附件、完成结果和 V2 对账，落到相应协议或实现。
+  Codex 已完成、桌面显示和微信送达分别核证据。
+- **RSI**：把可泛化的做法写到下次会读的 skill 或规则。单次成功、失败假设和
+  适用范围只留一条[脱敏经验](../../../memory/lessons.md)。用户认可可复用的素材用私有索引按场景检索。
+
+收束时指出下一次从哪个入口命中这条经验，并用新的适用案例验证是否实际复用。
+一条报备可以作为候选。反复遇到的问题用定向前后对照验证，再固化到代码。
+
 If a local detail is stuck, move through the user path, cross-module workflow,
 architecture and external alternatives while keeping the same user outcome.
 Spend at most two rounds on one stalled capability before recording its specific
