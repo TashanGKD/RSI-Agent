@@ -12,6 +12,10 @@ to the [repository installer](../deploy/wechat-wsl/README.md). Keep Ubuntu and
 the official client as verified first-run downloads. For a new installation,
 verify login, native trigger intake, the dedicated Codex turn and original V2
 delivery separately.
+The repository is public at TashanGKD/RSI-Agent. Public setup and extension
+instructions use the full repository and an instance-specific private config.
+The installer covers client preparation/login checks; generic post-scan account
+binding and a fully automated fresh-install reply path remain unverified.
 
 Native confirmed friends can have ordinary private replies, and a joined group
 can participate when native membership confirms the signed-in account. The
