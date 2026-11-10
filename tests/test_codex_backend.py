@@ -199,17 +199,24 @@ class DesktopRelayTests(unittest.TestCase):
                 ('c', ['self', 'friend'], 'chat', OTHER_THREAD),
                 ('d', ['self', 'group@chatroom'], 'chat', OTHER_THREAD),
                 ('e', ['self', 'group@chatroom'], 'engineering', THREAD),
+                ('f', ['self', 'formal@chatroom'], 'chat', THREAD),
+                ('1', ['other-account', 'formal@chatroom'], 'chat', OTHER_THREAD),
             ]
             originals = {}
             with patch('receiver.codex_worker.subprocess.run', side_effect=queue_reply) as cli:
                 for key, scope, mode, target in cases:
                     if key == 'b':
                         config.update(desktop_other_thread_id=OTHER_THREAD,
-                                      desktop_owner_scope=['self', 'owner'])
+                                      desktop_owner_scope=['self', 'owner'],
+                                      desktop_formal_group_scope=['self', 'formal@chatroom'])
                     request = dict(packet(), id=key * 64, scope=scope, mode=mode)
+                    if mode == 'chat' and scope[1].endswith('@chatroom'):
+                        request['messages'][-1]['content'] = json.dumps({'group': 'Same group title', 'new_messages': []})
                     originals[key] = jobs.accept(request)
                     process_job(config, jobs, jobs.claim(mode))
-                    self.assertEqual(cli.call_args.args[0][2:4], ['--thread', target])
+                    command = cli.call_args.args[0]
+                    self.assertEqual(command[2:4], ['--thread', target])
+                    self.assertEqual('正式工作群' in command[-1], key == 'f')
                     self.assertEqual(jobs.get(request['id'])['thread_id'], target)
                 self.assertEqual(cli.call_count, len(cases))
 
@@ -231,6 +238,7 @@ class DesktopRelayTests(unittest.TestCase):
                         original = originals[key]
                         result = exchange('/desktop-requests/' + original['id'])
                         self.assertEqual((result['thread_id'], result['body']['scope']), (target, scope))
+                        self.assertEqual(result['input_sha256'], original['digest'])
                         output = {'id': original['id'], 'input_sha256': original['digest'],
                                   'thread_id': target, 'turn_id': 'turn-' + key, 'text': 'original reply'}
                         wrong = OTHER_THREAD if target == THREAD else THREAD
