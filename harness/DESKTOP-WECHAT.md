@@ -145,6 +145,15 @@ to check the original later, with its original thread and turn IDs. Status never
 submits a send. A classification that delegates to engineering or link reading
 ends after `complete` without `--wait`; the next turn needs the same queue.
 
+For operator reconciliation, run
+`python -B -m receiver.desktop_reconcile $config $requestId --rollout $sessionFile`.
+The command checks the original queue acknowledgement, execution checkpoint,
+completion and V2 status. Turn evidence requires the full queued text hash to
+match a user item inside a turn in the supplied Codex history for that target.
+`not_observed` is limited to the supplied history. Omit `--rollout` when that
+history is unavailable. The command only reads the original records and reports
+metadata.
+
 ## Engineering
 
 Only authenticated mode=engineering permits the already native-verified owner's
