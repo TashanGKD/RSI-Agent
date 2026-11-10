@@ -15,6 +15,46 @@ from rsi_agent.config import WECHAT_LINUX
 
 
 class LinkReaderTests(unittest.TestCase):
+    def test_bilibili_card_fetches_only_verified_metadata_for_the_exact_part(self):
+        url = 'https://www.bilibili.com/video/BV1zJiGBREPB/?p=2&share_source=fixture'
+        card = '<msg><appmsg><type>4</type><title>Video</title><url>' + url.replace('&', '&amp;') + '</url></appmsg></msg>'
+        self.assertEqual(shared_link(card)['url'], url)
+        self.assertIsNone(shared_link(card.replace('www.bilibili.com', 'example.com')))
+        connection = Mock()
+        headers = Message()
+        headers['Content-Type'] = 'application/json'
+        payload = {'code': 0, 'data': {'bvid': 'BV1zJiGBREPB', 'title': 'Video', 'desc': 'Description',
+            'pages': [{'page': 1, 'cid': 4, 'part': 'First'}, {'page': 2, 'cid': 5, 'part': 'Second'}]}}
+        connection.getresponse.return_value = Mock(status=200, headers=headers, read=Mock(
+            return_value=json.dumps(payload).encode()))
+        with patch('trigger.link_reader.socket.getaddrinfo', return_value=[(2, 1, 6, '', ('93.184.216.34', 443))]), \
+                patch('trigger.link_reader.http.client.HTTPSConnection', return_value=connection), \
+                patch('trigger.link_reader.ssl.create_default_context'), \
+                patch('trigger.link_reader.socket.create_connection'):
+            result = fetch(url)
+        self.assertEqual((result['kind'], result['part'], result['part_title']), ('bilibili_video', 2, 'Second'))
+        self.assertEqual(result['description'], 'Description')
+        self.assertEqual(result['content_scope'], 'metadata')
+        self.assertNotIn('subtitle_text', result)
+        self.assertEqual(result['canonical_url'], 'https://www.bilibili.com/video/BV1zJiGBREPB/?p=2')
+        self.assertEqual(connection.request.call_args.args, ('GET', '/x/web-interface/view?bvid=BV1zJiGBREPB'))
+        connection.request.assert_called_once()
+
+    def test_bilibili_short_link_cannot_redirect_outside_video_routes(self):
+        connection = Mock()
+        response = connection.getresponse.return_value
+        response.status = 302
+        response.getheader.return_value = 'https://example.com/video/BV1zJiGBREPB/'
+        with patch('trigger.link_reader.socket.getaddrinfo', return_value=[(2, 1, 6, '', ('93.184.216.34', 443))]), \
+                patch('trigger.link_reader.http.client.HTTPSConnection', return_value=connection), \
+                patch('trigger.link_reader.ssl.create_default_context'), \
+                patch('trigger.link_reader.socket.create_connection'):
+            result = fetch('https://b23.tv/Abc123?share_source=fixture')
+        self.assertEqual(result['code'], 'BILIBILI_SHORT_TARGET_UNSUPPORTED')
+        self.assertEqual(result['kind'], 'bilibili_video')
+        self.assertEqual(connection.request.call_args.args, ('GET', '/Abc123'))
+        connection.request.assert_called_once()
+
     def test_wechat_shared_article_preserves_query_and_accepts_large_html(self):
         url = 'https://mp.weixin.qq.com/s?__biz=fixture==&mid=1&idx=1&sn=abc&scene=1#rd'
         html = (b'<meta property="og:title" content="Article headline"><main>navigation</main>'

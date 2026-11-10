@@ -398,6 +398,20 @@ class GroupTests(unittest.TestCase):
             self.assertEqual(loop.cycle()['state'], 'pending')
         read.assert_not_called()
 
+    def test_group_member_bilibili_is_context_in_the_original_quiet_decision(self):
+        self.model.backend = 'local-codex'
+        url = 'https://www.bilibili.com/video/BV1zJiGBREPB/'
+        self.batch['events'] = [self.event(sender='member', text='Read ' + url)]
+        self.model.complete.return_value = {'message': {'content': '{"speak":false,"text":""}'}}
+        page = {'state': 'ready', 'url': url, 'kind': 'bilibili_video', 'description': 'Observed', 'content_scope': 'metadata'}
+        loop = self.loop()
+        with patch('trigger.group_reply.linked_pages', return_value=[page]) as read:
+            self.assertEqual(loop.cycle()['state'], 'quiet')
+        read.assert_called_once()
+        data = json.loads(self.model.complete.call_args.args[0][-1]['content'])
+        self.assertEqual(data['new_messages'][0]['videos'], [page])
+        self.model.read_pages.assert_not_called()
+
 
 class ContextTests(unittest.TestCase):
     def test_mentions_use_exact_native_list_and_reject_entities(self):

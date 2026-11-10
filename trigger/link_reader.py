@@ -1,4 +1,4 @@
-"""Bounded public-page observations for links supplied by the native owner."""
+"""Bounded public observations for admitted article and video links."""
 import hashlib
 from html.parser import HTMLParser
 import http.client
@@ -9,13 +9,17 @@ import socket
 import ssl
 import subprocess
 import sys
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 from xml.etree import ElementTree as ET
 
 from rsi_agent.config import ROOT
 
 
 WECHAT_HOST = 'mp.weixin.qq.com'
+BILIBILI_HOSTS = {'bilibili.com', 'www.bilibili.com', 'm.bilibili.com'}
+BILIBILI_SHORT = 'b23.tv'
+BILIBILI_ID = r'(?:BV[0-9A-Za-z]{10}|av[1-9][0-9]{0,19})'
+BILIBILI_HEADERS = {'User-Agent': 'RSI-Agent-LinkReader/0.1', 'Accept-Encoding': 'identity'}
 # Public article request headers as used by wechat-article-reader.
 # https://github.com/Rudy-114/wechat-article-reader
 WECHAT_HEADERS = {
@@ -28,9 +32,9 @@ WECHAT_HEADERS = {
 
 def address(url):
     parts = urlsplit(url)
-    if (parts.scheme == 'http' and parts.hostname == WECHAT_HOST
+    if (parts.scheme == 'http' and parts.hostname in (BILIBILI_HOSTS | {WECHAT_HOST, BILIBILI_SHORT})
             and not parts.username and not parts.password and parts.port in (None, 80)):
-        parts = parts._replace(scheme='https', netloc=WECHAT_HOST)
+        parts = parts._replace(scheme='https', netloc=parts.hostname)
     if (len(url) > 2048 or parts.scheme != 'https' or not parts.hostname
             or parts.username or parts.password or parts.port not in (None, 443)
             or any(c.isspace() for c in url)):
@@ -38,7 +42,17 @@ def address(url):
     return parts
 
 
-def urls(text):
+def bilibili_video(url):
+    try:
+        parts = address(url)
+    except ValueError:
+        return False
+    if parts.hostname in BILIBILI_HOSTS:
+        return re.fullmatch('/video/' + BILIBILI_ID + '/?', parts.path) is not None
+    return parts.hostname == BILIBILI_SHORT and re.fullmatch(r'/[0-9A-Za-z]{1,24}/?', parts.path) is not None
+
+
+def urls(text, *, video_only=False):
     found = []
     for raw in re.findall(r'https?://[^\s<>"\']+', text):
         url = raw.rstrip('。，！？；：、）)]}')
@@ -46,11 +60,17 @@ def urls(text):
             url = address(url).geturl()
         except ValueError:
             continue
-        if url not in found:
+        if (not video_only or bilibili_video(url)) and url not in found:
             found.append(url)
         if len(found) == 2:
             break
     return found
+
+
+def video_link(text, explicit):
+    if explicit:
+        return explicit if bilibili_video(explicit) else None
+    return next(iter(urls(text, video_only=True)), None)
 
 
 def shared_link(raw):
@@ -59,10 +79,13 @@ def shared_link(raw):
         return None
     try:
         apps = ET.fromstring(raw).findall('appmsg')
-        if len(apps) != 1 or apps[0].findtext('type') != '5' or len(apps[0].findall('url')) != 1:
+        if len(apps) != 1 or len(apps[0].findall('url')) != 1:
             return None
         original = apps[0].findtext('url') or ''
         url = address(original).geturl()
+        kind = apps[0].findtext('type')
+        if kind != '5' and (kind != '4' or not bilibili_video(url)):
+            return None
     except (ET.ParseError, ValueError):
         return None
     text = '\n'.join(x for x in [apps[0].findtext('title'), apps[0].findtext('des'), original] if x)
@@ -120,19 +143,85 @@ def content(url, raw, charset='utf-8'):
             'source_sha256': hashlib.sha256(raw).hexdigest()}
 
 
+def public_connection(parts, timeout):
+    host = parts.hostname.encode('idna').decode()
+    resolved = socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)
+    if not resolved or any(not ipaddress.ip_address(row[4][0]).is_global for row in resolved):
+        raise ValueError('Public destination required.')
+    # Pin the checked address; TLS still verifies the original hostname.
+    connection = http.client.HTTPSConnection(host, timeout=timeout)
+    connection.sock = ssl.create_default_context().wrap_socket(
+        socket.create_connection((resolved[0][4][0], 443), timeout=timeout), server_hostname=host)
+    return connection
+
+
+def bilibili_request(parts, *, redirect=False):
+    connection = public_connection(parts, 4)
+    try:
+        target = parts.path + ('?' + parts.query if parts.query else '')
+        connection.request('GET', target, headers=BILIBILI_HEADERS)
+        response = connection.getresponse()
+        if redirect:
+            if response.status in (301, 302, 303, 307, 308):
+                return address(response.getheader('Location', ''))
+            raise ValueError('BILIBILI_SHORT_UNRESOLVED')
+        if response.status != 200 or response.headers.get_content_type() != 'application/json':
+            raise ValueError('BILIBILI_HTTP_' + str(response.status))
+        raw = response.read(1_000_001)
+        if len(raw) > 1_000_000:
+            raise ValueError('BILIBILI_RESPONSE_TOO_LARGE')
+        return json.loads(raw), hashlib.sha256(raw).hexdigest()
+    finally:
+        connection.close()
+
+
+def fetch_bilibili(url):
+    base = {'url': url, 'kind': 'bilibili_video'}
+    try:
+        parts = address(url)
+        part_override = parse_qs(parts.query, keep_blank_values=True).get('p')
+        if parts.hostname == BILIBILI_SHORT:
+            token = parts.path.strip('/')
+            if re.fullmatch(BILIBILI_ID, token):
+                parts = parts._replace(netloc='www.bilibili.com', path='/video/' + token)
+            else:
+                # Follow at most one short redirect, only to a Bilibili video.
+                parts = bilibili_request(parts._replace(query='', fragment=''), redirect=True)
+        if parts.hostname not in BILIBILI_HOSTS or not bilibili_video(parts.geturl()):
+            raise ValueError('BILIBILI_SHORT_TARGET_UNSUPPORTED')
+        video = parts.path.split('/')[2]
+        requested_part = part_override or parse_qs(parts.query, keep_blank_values=True).get('p', ['1'])
+        if len(requested_part) != 1 or not re.fullmatch('[1-9][0-9]{0,3}', requested_part[0]):
+            raise ValueError('BILIBILI_PART_UNAVAILABLE')
+        part = int(requested_part[0])
+        query = 'bvid=' + video if video.startswith('BV') else 'aid=' + video[2:]
+        response, proof = bilibili_request(address('https://api.bilibili.com/x/web-interface/view?' + query))
+        data = response['data']
+        bvid = data['bvid']
+        if (response['code'] != 0 or not re.fullmatch(r'BV[0-9A-Za-z]{10}', bvid)
+                or video not in (bvid, 'av' + str(data.get('aid'))) or not data['title'].strip()):
+            raise ValueError('BILIBILI_VIDEO_UNVERIFIED')
+        selected = [page for page in data['pages'] if page.get('page') == part]
+        if len(selected) != 1 or type(selected[0]['cid']) is not int or selected[0]['cid'] <= 0:
+            raise ValueError('BILIBILI_PART_UNAVAILABLE')
+        return dict(base, state='ready', canonical_url=f'https://www.bilibili.com/video/{bvid}/?p={part}',
+                    title=data['title'][:200], description=(data.get('desc') or '')[:8000], part=part,
+                    part_title=(selected[0].get('part') or '')[:200], source_sha256=proof,
+                    content_scope='metadata')
+    except (OSError, ValueError, KeyError, TypeError, AttributeError, http.client.HTTPException) as error:
+        code = str(error)
+        return dict(base, state='unavailable', code=code if re.fullmatch('BILIBILI_[A-Z0-9_]+', code)
+                    else 'BILIBILI_METADATA_UNAVAILABLE')
+
+
 def fetch(url):
+    if bilibili_video(url):
+        return fetch_bilibili(url)
     connection = None
     try:
         parts = address(url)
-        host = parts.hostname.encode('idna').decode()
-        wechat = host == WECHAT_HOST
-        resolved = socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)
-        if not resolved or any(not ipaddress.ip_address(row[4][0]).is_global for row in resolved):
-            raise ValueError('Public destination required.')
-        # Pin the checked address; TLS still verifies the original hostname.
-        connection = http.client.HTTPSConnection(host, timeout=10)
-        connection.sock = ssl.create_default_context().wrap_socket(
-            socket.create_connection((resolved[0][4][0], 443), timeout=10), server_hostname=host)
+        wechat = parts.hostname == WECHAT_HOST
+        connection = public_connection(parts, 10)
         target = (parts.path or '/') + ('?' + parts.query if parts.query else '')
         headers = {'User-Agent': 'RSI-Agent-LinkReader/0.1', 'Accept': 'text/html,text/plain',
                    'Accept-Encoding': 'identity'}
@@ -179,6 +268,8 @@ def linked_pages(db, source, text, explicit=None):
             pages.append(json.loads(cached[0]))
             continue
         value = {'state': 'unavailable', 'url': url, 'code': 'PUBLIC_PAGE_UNAVAILABLE'}
+        if bilibili_video(url):
+            value['kind'] = 'bilibili_video'
         try:
             result = subprocess.run([sys.executable, '-B', '-m', 'trigger.link_reader', url], cwd=ROOT,
                                     capture_output=True, text=True, timeout=20)
