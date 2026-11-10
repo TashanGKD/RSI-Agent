@@ -4,11 +4,11 @@ The private receiver config sets desktop_thread_id and desktop_all_requests=true
 With only that target, all admitted requests share one visible Codex conversation.
 To split replies, set desktop_other_thread_id to a distinct visible conversation
 and desktop_owner_scope to the exact [native account, confirmed owner peer] from
-the owner binding. New owner private chats and authenticated engineering use
-desktop_thread_id. New friend and group chat use desktop_other_thread_id by
-default. The optional private desktop_formal_group_scope binds one admitted
-group by [native account, native group ID] to desktop_thread_id. Only new chat
-handoffs for that exact scope receive formal work-group guidance. They keep
+the owner binding. New owner private chats and authenticated private engineering
+use desktop_thread_id. Friend and group chat, including authenticated engineering
+originating in a group, use desktop_other_thread_id. The optional private
+desktop_formal_group_scope selects one admitted group by [native account, native
+group ID] for formal work-group guidance on its new chat handoffs. They keep
 their original group identity, use only their authenticated group packet, and
 retain ordinary chat permissions.
 Maintenance has its own thread. Each job keeps its original target and transfers
@@ -144,6 +144,15 @@ Use `python -B -m receiver.desktop_reply status $config $requestId $threadId $tu
 to check the original later, with its original thread and turn IDs. Status never
 submits a send. A classification that delegates to engineering or link reading
 ends after `complete` without `--wait`; the next turn needs the same queue.
+
+For operator reconciliation, run
+`python -B -m receiver.desktop_reconcile $config $requestId --rollout $sessionFile`.
+The command checks the original queue acknowledgement, execution checkpoint,
+completion and V2 status. Turn evidence requires the full queued text hash to
+match a user item inside a turn in the supplied Codex history for that target.
+`not_observed` is limited to the supplied history. Omit `--rollout` when that
+history is unavailable. The command only reads the original records and reports
+metadata.
 
 ## Engineering
 

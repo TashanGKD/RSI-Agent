@@ -392,8 +392,8 @@ def notify_desktop(config, jobs, row):
     request = json.loads(row['body']);target = config['desktop_thread_id']
     other_target = config.get('desktop_other_thread_id')
     formal_group = request['mode'] == 'chat' and request['scope'] == config.get('desktop_formal_group_scope')
-    if (other_target and request['mode'] == 'chat'
-            and request['scope'] != config['desktop_owner_scope'] and not formal_group):
+    if (other_target and (request['scope'][1].endswith('@chatroom')
+            or request['mode'] == 'chat' and request['scope'] != config['desktop_owner_scope'])):
         target = other_target
     if (not re.fullmatch('[a-f0-9-]{36}', target)
             or request['mode'] == 'chat' and config.get('desktop_all_requests') is not True):

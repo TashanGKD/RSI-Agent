@@ -41,22 +41,30 @@ delta. Git history and PRs retain the history; do not append repeated timestamps
 or duplicate progress logs. Preserve rejected hypotheses and unresolved failures
 when they change the next decision. No material delta means no commit or PR.
 
-## RSI 经验分层
+## 触发、发送与 RSI Skills
 
 维护会话按角色分配有明确结果的协作任务，让执行会话保留自己的上下文、
 验收和范围内的迭代。核对按[会话侧 skill](../rsi-wechat-learn/SKILL.md)返回的
 脱敏报备与实际产物或原回执。共享改进进入同一个可审查的 GitHub PR，
 原聊天、图片和素材留在私有存储。
 
-- **触发**：身份、原生入站、媒体来源和 ACK 的重复问题，落到触发器或 Linux
-  微信适配的代码与回归。 若要用公开控件接口代替 OCR，按[现有验证路径](../../../memory/lessons.md#微信控件识别)先核对已登录客户端的目标控件。
-- **接收**：原请求、目标轮次、附件、完成结果和 V2 对账，落到相应协议或实现。
-  Codex 已完成、桌面显示和微信送达分别核证据。
-- **RSI**：把可泛化的做法写到下次会读的 skill 或规则。单次成功、失败假设和
+- **触发**：身份、原生入站、媒体来源、持久化与 ACK，以及接收器到目标轮次的
+  问题，落到 `trigger/`、`receiver/` 或 Linux 微信适配的代码与回归。已有入队
+  回执时，从[原请求协议](../../../harness/DESKTOP-WECHAT.md)的 `desktop_reconcile`
+  入口查同一 ID。只读历史中的 `not_observed` 保留其历史范围。若要用公开控件
+  接口代替 OCR，按[现有验证路径](../../../memory/lessons.md#微信控件识别)先核对已登录客户端的目标控件。
+- **发送**：冻结结果、收件人、草稿恢复和原 V2 回执，落到 `trigger/reply_io.py`、
+  `trigger/group_io.py` 或 `components/wechat-linux/operations/`。维护查询按原 ID、
+  会话和轮次绑定；执行会话按协议的 `desktop_reply status` 确认送达与已发原文。
+  收到模型结果、微信已发出及素材载体各保留对应证据。
+- **RSI Skills**：把可泛化的做法写到下次会读的 skill 或规则。单次成功、失败假设和
   适用范围只留一条[脱敏经验](../../../memory/lessons.md)。用户认可可复用的素材用私有索引按场景检索。
 
 收束时指出下一次从哪个入口命中这条经验，并用新的适用案例验证是否实际复用。
 一条报备可以作为候选。反复遇到的问题用定向前后对照验证，再固化到代码。
+
+已知等待没有新原请求或回执时，沿用原交接。维护转到可用冻结样本推进的待办，
+一次选择触发、发送或 skill 的一个具体缺口，留前后行为与复用入口。
 
 If a local detail is stuck, move through the user path, cross-module workflow,
 architecture and external alternatives while keeping the same user outcome.
