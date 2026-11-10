@@ -97,6 +97,18 @@ def open_selected_popout(d,j,c,v):
    if found:return found
  raise PreparationError('CHAT_POPOUT_NOT_OPENED','No official chat opened after bounded stable pre-input navigation; owned scene will be settled.')
 
+def popout_binding(cfg, window, image):
+ x, y = window['x'], window['y']
+ box = [x+1, y+35, x+window['width']-1, y+82]
+ editor = [x+280, y+554]
+ bound = dict(cfg, header_box=box, header_sha256=hashlib.sha256(image.crop(tuple(box)).tobytes()).hexdigest(),
+              editor=editor, send=[x+window['width']-50, y+window['height']-32])
+ content_top = cfg.get('editor_content_top')
+ if type(content_top) is int:
+  # Keep the calibrated inset relative to the editor when its window moves.
+  bound['editor_content_top'] = content_top + editor[1] - cfg['editor'][1]
+ return bound
+
 def attach(d,j,cfg,w,identity=None):
  from .windows import window_identity
  from .lease import birth
@@ -176,8 +188,7 @@ def search_named(d,j,target,cfg,query):
   except ValueError:raise PreparationError('RECIPIENT_NOT_VERIFIED','Opened chat system title differs from the exact native target.') from None
   if {w['id'] for w in after}!={w['id'] for w in before}|{own['id']}:raise PreparationError('RECIPIENT_NOT_VERIFIED','Official window set drifted.',clean=False)
   d.fast_versions(j);d.active_window=own;activate(c,own)
-  box=[own['x']+1,own['y']+35,own['x']+own['width']-1,own['y']+82]
-  d.session_bindings[j['peer']]=attach(d,j,dict(cfg,header_box=box,header_sha256=hashlib.sha256(screen(d).crop(tuple(box)).tobytes()).hexdigest(),editor=[own['x']+280,own['y']+554],send=[own['x']+own['width']-50,own['y']+own['height']-32]),own,identity)
+  d.session_bindings[j['peer']]=attach(d,j,popout_binding(cfg,own,screen(d)),own,identity)
   v.update(state='ready');save(d.root,j,v)
   return None
  finally:c.close()

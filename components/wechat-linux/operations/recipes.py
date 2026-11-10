@@ -205,6 +205,7 @@ def selected(driver,j,force_search=False):
  popouts=[v for v in windows if v['title'] in search_names and (v['width'],v['height'])==(623,667)]
  if len(popouts)>1:raise PreparationError('RECIPIENT_NOT_VERIFIED','Multiple same-title chat windows are ambiguous.')
  if popouts:
+  from .navigation import popout_binding
   if not members and getattr(driver,'name_peer',lambda name:driver.tool().resolve(name)['username'])(target['displayName'])!=j['peer']:raise PreparationError('RECIPIENT_NOT_VERIFIED','Chat window title does not uniquely map to the native peer.')
   w=popouts[0]
   if j.get('id') and getattr(driver,'navigation_job_id',None)==j['id']:
@@ -214,10 +215,9 @@ def selected(driver,j,force_search=False):
   driver.active_window=w;main_window(driver);c=controls(driver)
   try:activate(c,w)
   finally:c.close()
-  box=[w['x']+1,w['y']+35,w['x']+w['width']-1,w['y']+82]
   # Geometry adapts to this window; keep the verified native identity for the
   # next request and for cleanup/adoption in this same long-lived driver.
-  driver.session_bindings[j['peer']]=dict(cfg,peer=j['peer'],displayName=target['displayName'],header_box=box,header_sha256=hashlib.sha256(screen(driver).crop(tuple(box)).tobytes()).hexdigest(),editor=[w['x']+280,w['y']+554],send=[w['x']+w['width']-50,w['y']+w['height']-32])
+  driver.session_bindings[j['peer']]=dict(popout_binding(cfg,w,screen(driver)),peer=j['peer'],displayName=target['displayName'])
   if j.get('id') and getattr(driver,'navigation_job_id',None)==j['id']:
    from .navigation import attach
    driver.session_bindings[j['peer']]=attach(driver,j,driver.session_bindings[j['peer']],w)
