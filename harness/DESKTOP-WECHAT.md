@@ -5,7 +5,12 @@ With only that target, all admitted requests share one visible Codex conversatio
 To split replies, set desktop_other_thread_id to a distinct visible conversation
 and desktop_owner_scope to the exact [native account, confirmed owner peer] from
 the owner binding. New owner private chats and authenticated engineering use
-desktop_thread_id. New friend and group chat use desktop_other_thread_id.
+desktop_thread_id. New friend and group chat use desktop_other_thread_id by
+default. The optional private desktop_formal_group_scope binds one admitted
+group by [native account, native group ID] to desktop_thread_id. Only new chat
+handoffs for that exact scope receive formal work-group guidance. They keep
+their original group identity, use only their authenticated group packet, and
+retain ordinary chat permissions.
 Maintenance has its own thread. Each job keeps its original target and transfers
 once. Before returning to a single-target receiver, settle every original bound
 to the other target. The running receiver and native receipts prove activation.
