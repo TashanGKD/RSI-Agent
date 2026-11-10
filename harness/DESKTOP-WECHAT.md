@@ -90,10 +90,27 @@ private chat. The API checks fields/types and actual text limits, not JSON
 overhead.
 
 A chat turn shares its queue with the next WeChat input for that target. Go
-straight to the original packet, bound attachments and completion. After the completion API
-confirms acceptance, finish with a one-line desktop status. The native bridge
-owns delivery and maintenance checks its V2 receipt. Leave uncertain completions
-to the original recovery procedure below.
+straight to the original packet, bound attachments and completion. For a new
+chat, run the helper from the repository checkout. Supply the actual thread and
+turn IDs from the supported app tool and the full request ID from the visible
+original link. In PowerShell, use the absolute private config path for `$config`.
+
+```powershell
+python -B -m receiver.desktop_reply read $config $requestId $threadId $turnId
+$reply | python -B -m receiver.desktop_reply complete $config $requestId $threadId $turnId
+```
+
+`read` authenticates the original, checks its digest and target, and saves the
+execution checkpoint. Compare the displayed message with the returned body and
+inspect any bound attachment before replying. The output includes attachment
+paths and hashes and omits inline bytes. Only `desktop_queued` permits a reply.
+`complete` reads UTF-8 reply text on stdin, checks the same checkpoint and
+schema, freezes the result and submits it. If a POST is uncertain, reconcile
+and use the exact frozen completion below. An older checkpoint from the manual
+flow stays with its original turn.
+
+After the completion API confirms acceptance, finish with a one-line desktop
+status. The native bridge owns delivery and maintenance checks its V2 receipt.
 
 ## Engineering
 

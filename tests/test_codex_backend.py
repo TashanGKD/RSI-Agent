@@ -85,6 +85,53 @@ for line in sys.stdin:
 
 
 class DesktopRelayTests(unittest.TestCase):
+    def test_chat_cli_checks_the_binding_and_reuses_only_the_frozen_completion(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            jobs = Jobs(root)
+            request = dict(packet(), messages=[{'role': 'user', 'content': [
+                {'type': 'text', 'text': '看看这张图'},
+                {'type': 'image_url', 'image_url': {'url': 'data:image/png;base64,YQ=='}}]}])
+            jobs.accept(request)
+            config = {'codex': sys.executable, 'port': 0, 'token': 'a' * 64, 'state': str(root),
+                      'desktop_thread_id': THREAD, 'desktop_all_requests': True}
+            with patch('receiver.codex_worker.subprocess.run', return_value=queued()):
+                notify_desktop(config, jobs, jobs.claim('chat'))
+            folder = root / request['id']
+            with server(config, jobs, threading.Event()) as http:
+                worker = threading.Thread(target=http.serve_forever)
+                worker.start()
+                try:
+                    path = root / 'config.json'
+                    path.write_text(json.dumps(dict(config, port=http.server_port)))
+
+                    def command(action, thread=THREAD, turn=MESSAGE, reply=''):
+                        return subprocess.run([sys.executable, '-B', '-m', 'receiver.desktop_reply', action,
+                            str(path), request['id'], thread, turn],
+                            input=reply, capture_output=True, encoding='utf-8', timeout=5)
+
+                    rejected = command('read', thread=OTHER_THREAD)
+                    self.assertNotEqual(rejected.returncode, 0)
+                    self.assertFalse((folder / 'desktop-execution.json').exists())
+                    read = command('read')
+                    self.assertEqual(read.returncode, 0, read.stderr)
+                    original = json.loads(read.stdout)
+                    self.assertEqual(original['body']['messages'][0]['content'][0]['text'], '看看这张图')
+                    self.assertNotIn('base64', read.stdout)
+                    self.assertEqual(Path(original['images'][0]['path']).read_bytes(), b'a')
+                    self.assertNotEqual(command('complete', turn=OTHER_THREAD, reply='wrong turn').returncode, 0)
+                    self.assertFalse((folder / 'desktop-completion.json').exists())
+                    for _ in range(2):
+                        result = command('complete', reply='原回复')
+                        self.assertEqual(result.returncode, 0, result.stderr)
+                        self.assertEqual(json.loads(result.stdout)['state'], 'completed')
+                    self.assertNotEqual(command('complete', reply='另一个回复').returncode, 0)
+                    self.assertEqual(jobs.get(request['id'])['result'], '原回复')
+                    self.assertEqual(json.loads(command('read').stdout)['state'], 'completed')
+                finally:
+                    http.shutdown()
+                    worker.join()
+
     def test_split_routes_keep_original_target_through_authenticated_completion(self):
         from urllib.error import HTTPError
         from urllib.request import ProxyHandler, Request, build_opener
