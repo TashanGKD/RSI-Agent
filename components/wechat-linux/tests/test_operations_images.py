@@ -101,6 +101,40 @@ class ImageExecutionTests(unittest.TestCase):
    (data,p),adapter=self.run_export(td);self.assertEqual(data,sample());self.assertTrue(p['exportPerformedThisRequest']);self.assertFalse(p['cacheReused']);self.assertFalse(p['businessAIReadClaimed']);self.assertEqual(p['messagesSent'],0);adapter.dispatch.assert_called_once()
    bound=adapter.dispatch.call_args.kwargs['ui'];self.assertEqual(bound.config({'username':PEER})['header_sha256'],'selected-current-binding')
    with self.assertRaises(ValueError):bound.config({'username':'other@chatroom'})
+ def test_export_uses_native_popout_identity_at_adapter_preflight(self):
+  import types
+  from unittest.mock import Mock,patch
+  from operations import navigation
+  from sender import UI
+  for native,stale in ((True,False),(True,True),(False,False)):
+   with self.subTest(native=native,stale=stale),tempfile.TemporaryDirectory() as td:
+    d,j,c,im,r=self.fixture(td)
+    binding=j['preview']['uiBinding']
+    if native:binding['nativeTargetProof']={'peer':PEER}
+    def dispatch(tool,request,*,ui):
+     ui.preflight(request,{'username':PEER})
+     return r
+    adapter=types.SimpleNamespace(locked=Mock(),dispatch=dispatch)
+    with (
+     patch.dict('sys.modules',{'image_client':adapter}),
+     patch('operations.images.load_context',return_value=c),
+     patch('operations.recipes.screen',return_value=im),
+     patch.object(UI,'preflight',side_effect=ValueError('header pixels changed') if native else None) as legacy,
+     patch.object(navigation,'verify_session',side_effect=images.BeforeEffect('native session changed') if stale else None) as session,
+    ):
+     if stale:
+      with self.assertRaises(images.ImageReadError):images.export(d,j)
+     else:
+      data,proof=images.export(d,j)
+      self.assertEqual(data,sample())
+      self.assertEqual(proof['messagesSent'],0)
+    if native:
+     session.assert_called_once_with(d,binding,PEER)
+     legacy.assert_not_called()
+    else:
+     legacy.assert_called_once()
+     session.assert_not_called()
+
  def test_visible_exact_image_does_not_require_filename_proof(self):
   with tempfile.TemporaryDirectory() as td:
    def visible(d,j,c,im,r):j['payload']['representation']='visible'
