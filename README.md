@@ -13,6 +13,8 @@ RSI Agent 用可见的 Codex 会话分工。任务按范围进入对应会话，
 
 [触发器](trigger/)绑定微信原消息和来源，[本机接收器](receiver/)绑定目标会话和原结果，[发送器](components/wechat-linux/operations/sending.py)核对收件人和原生回执。单会话安装也能收发。启用分流后，本人私聊及经认证的工程任务和好友、群聊使用各自的执行会话。每条微信请求只用它的认证原包和对应会话资料。
 
+项目按触发、发送、RSI Skills 三部分打磨。触发负责原消息进入正确的 Codex 轮次，发送负责该轮结果回到原微信会话，RSI Skills 负责让验证过的经验在下一次任务里复用。
+
 ## Windows 小号接入
 
 把[安装技能](.agents/skills/rsi-wechat-setup/SKILL.md)或本仓库链接交给你电脑上的 Codex，按 [WSL 安装和配对](deploy/wechat-wsl/README.md)操作。安装器在首次运行时下载并校验 Ubuntu Base 和官方 Linux 微信。扫码后为小号建立一个可见的专用回复会话，再验证触发器接入和发送器回执。
@@ -39,7 +41,7 @@ python -B -m rsi_agent --config /private/invited-groups/config.json groups check
 
 已安装的常驻服务通过相同入口的 `run` 模式工作。服务模板见 [私聊](deploy/owner-replies/rsi-owner-replies.service)和[群聊](deploy/group-replies/rsi-group-replies.service)。
 
-## 接收器
+### Codex 接收与路由
 
 [本机接收器](receiver/codex_worker.py)在已登录 Codex 的电脑上运行。它认证请求，按原 ID 和输入摘要持久化去重，然后通过 `codex queue` 把请求交给配置中固定的专用会话。该会话核对原始请求，读取已校验的附件，再把完成结果交回接收器。接收器保存结果，触发器据此交给原 V2 发送队列核对收件人并投递。
 
@@ -56,9 +58,15 @@ python -B -m receiver.codex_worker --config /private/local-codex.json
 | Codex 已完成，微信未收到 | 核对触发器保存的结果和原 V2 回执。实际投递以微信回执为准 |
 | 图片未出现在 Codex | 查原图导出阶段、来源校验和接收器的附件摘要 |
 
-## RSI
+## 发送
 
-执行会话按[会话侧 skill](.agents/skills/rsi-wechat-learn/SKILL.md)在自己的任务范围内验证新做法，并将能复用的结果报给维护会话。[维护侧 skill](.agents/skills/rsi-agent-maintenance/SKILL.md)负责核证据、归到触发或接收的改动，以及 RSI 的规则与私有素材索引。跨会话只传交办所需的信息和可复核的结果，原聊天与附件留在原范围。
+执行会话通过 [desktop_reply](receiver/desktop_reply.py)保存并提交该轮完成结果，Linux 侧通过[原 V2 发送器](components/wechat-linux/operations/sending.py)核收件人、草稿和微信回执。按[专用会话协议](harness/DESKTOP-WECHAT.md)查询同一原 ID 的送达状态，确认已发送后引用回执返回的原文。待回执、结果待确认和本轮静默各保留实际状态。
+
+维护通过 [desktop_reconcile](receiver/desktop_reconcile.py)核原单的入队、轮次、完成和 V2 证据。图片、PDF、链接和原生表情按各自的原件、读取结果或发送载体验收。
+
+## RSI Skills
+
+执行会话按[会话侧 skill](.agents/skills/rsi-wechat-learn/SKILL.md)在自己的任务范围内验证新做法，并将能复用的结果报给维护会话。[维护侧 skill](.agents/skills/rsi-agent-maintenance/SKILL.md)核对实际证据，将收发问题修到对应代码，将可复用的判断与步骤更新到现有 skill。每条经验写清下次从哪个入口命中，用新的适用请求验证复用。跨会话只传交办所需的信息和可复核的结果，原聊天与附件留在原范围。
 
 ## 诊断与验证
 
