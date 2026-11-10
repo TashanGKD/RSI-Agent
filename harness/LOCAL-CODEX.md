@@ -37,8 +37,12 @@ connection. The Codex process runs on this computer.
    reply is needed, records the original V2 delivery receipt.
 
 Authenticated `GET /health` reports readiness, state counts, source version and
-target configuration. Check the installed worker and the active Linux release
-in the live delivery receipt. `POST /drain` is an operator action that stops
+target configuration. If a desktop update removes the configured Codex
+executable, `codex_executable_present` and `ready` become false. The running
+worker accepts and retains original requests in the queue until the configured
+file is available. If the executable moved, verify its new path and restart
+the receiver with the same private state. Check the installed worker and the
+active Linux release in the live delivery receipt. `POST /drain` stops
 new claims before shutdown. Check native V2 state and local queued, running and
 review work before an upgrade. Retain each original ID, input, completion and
 receipt across a restart or rollback.
