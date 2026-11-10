@@ -20,6 +20,42 @@
 | AstrBot + NapCat | 用户的《DSH》PDF 第 21 页可见 AstrBot，历史调研将其与 NapCat 的 QQ 接入组合核对。NapCat 官方仓库定位 NTQQ。 [NapCat 源码](https://github.com/NapNeko/NapCatQQ) | 参考协议适配和消息组件，QQ 的运行证据独立记录。 |
 | Windows 11 x64 + WSL 2 + Ubuntu 24.04 | 首版候选，和现网及 CI 同代。Ubuntu Base 加齐图形与读图依赖约 686 MiB，装微信后约 1.41 GiB。Debian 13 实验包已在 Windows 家庭版实测从本地 `.wsl` 导入并启动；同配置少约 8 MiB。客户端由启动命令下载并校验。 [安装实测与启动入口](https://github.com/Yu-Yang-Li/RSI-Agent/pull/47) · [微软分发说明](https://learn.microsoft.com/en-us/windows/wsl/build-custom-distro) | Windows 首版走 Ubuntu 24.04。待用全新 Windows 验收安装、扫码、群文、原图、PDF 和重启后恢复。 |
 
+## 续研：扫码后配对
+
+目标用户在自己的 Windows Codex 中打开仓库，使用普通微信小号扫码。比较时固定三条验收线：原生好友和普通群能否进来，任务是否进入可见的专用 Codex 会话，回复能否按原请求查到发送结果。安装包下载体积、账号权限和恢复成本分别比较。
+
+| 路线 | 核到的机制和适用边界 | 对本项目的价值 |
+| --- | --- | --- |
+| WSL 2 + Ubuntu Base + 腾讯客户端 | 已发布的安装器可下载并校验固定版本、准备专用发行版和检查登录窗口。Windows 端接收器与 Linux 原生收发已分别运行。扫码后的账号绑定和回环通道仍由 Codex 手工配置。 [安装器](../deploy/wechat-wsl/Install-WeChat.ps1) · [配对指南](../deploy/wechat-wsl/README.md) | 继续作为首版。客户端首次启动下载，图形依赖留在专用发行版。先减少配对中的人工步骤。 |
+| Agent WeChat | 上游提供 Windows 安装包及自有客户端，文档支持普通私聊、群聊和媒体。API 支持按事件游标续读、按消费者确认和按幂等键查同一发送。存储源码将重启前已进入提交的发送标为 `needs_review`。上游仍列明无法发送原生表情。RSI 未实测其登录兼容、群媒体或发送。 [发布包](https://github.com/thisnick/agent-wechat/releases/tag/v2.2.1) · [API 契约](https://github.com/thisnick/agent-wechat/blob/08b3bfa2b49ccb51b64b38d37bbb545a26b2e7fa/docs/src/content/docs/use/api.mdx) · [送达存储](https://github.com/thisnick/agent-wechat/blob/08b3bfa2b49ccb51b64b38d37bbb545a26b2e7fa/packages/native-client-rust/crates/wechat-store/src/operations.rs) | 有价值的免 WSL 对照。先借鉴按原 ID 展示进度、断线续读和未知结果待复核的契约。保留现有普通客户端和 V2。 |
+| Windows 普通客户端 + UI 自动化 | wxauto 的上游列出两个已测试的 4.1 版本。其说明指出 4.x 界面消息无法取得发送者信息。它能演示普通群发送，RSI 未验证其原生身份、原图来源或单次送达证据。 [项目说明](https://github.com/evanhuang365/wxauto) | 可对照图形发送方式。只有同时证明原生发送者、会话及原请求回执后，才能承接本人任务。 |
+| iLink + SteerWX / WeClaw | SteerWX 在 Windows 用 ClawBot QR 绑定，显式 `/codex` 走本机只读 CLI。WeClaw 可用长驻 ACP 或逐轮 CLI。Hermes 文档说明 QR 机器人是独立身份，普通群事件常无法送到。 [SteerWX](https://github.com/samzhou1972/steerwx/blob/dec13a103fb73f7bef85f868d6666f5b0da3527f/README.md) · [WeClaw](https://github.com/fastclaw-ai/weclaw/tree/f9560754a67a7ed5e83be1eb793d972471b06cf7) · [Hermes 的身份限制](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/user-guide/messaging/weixin.md) | 对照扫码向导和分段诊断。ACP 的进程与会话复用不能当作 Codex 桌面可见用户项的证据。普通小号群聊仍走原生链路。 |
+| 容器或微型虚拟机 | Podman Machine 在 Windows 仍需 Linux VM。Firecracker 需要 Linux KVM，官方微信图形会话、权限和回传需要另外接通。WSLg 已提供本项目使用的 X11 应用窗口。 [Podman Machine](https://docs.podman.io/en/latest/markdown/podman-machine-init.1.html) · [Firecracker 前置条件](https://github.com/firecracker-microvm/firecracker/blob/main/docs/getting-started.md) · [WSLg](https://learn.microsoft.com/windows/wsl/tutorials/gui-apps) | 能改变封装方式。首版维持当前底包，等首装闭环后再用同一收发场景比较磁盘、内存、安装时间和恢复成本。 |
+
+### 回环通道的隔离实测
+
+基线为 `e38444d`。在同一台 Windows 机器上，试验 WSL 2 发行版的 `wslinfo --networking-mode` 返回 `mirrored`。用原 [接收器](../receiver/codex_worker.py) 的 `server()` 和临时 `Jobs` 库监听 Windows `127.0.0.1` 的随机端口。从 WSL 直连该端口，未启动 SSH、微信客户端或 Codex 轮次。
+
+| 跨边界请求 | 实际结果 |
+| --- | --- |
+| 正确令牌查询 `GET /health` | HTTP 200 |
+| 错误令牌查询同一地址 | HTTP 403 |
+| 首次提交和重交同一个隔离原包 | 两次 HTTP 202，SQLite 中共 1 条 queued 记录 |
+| 原 ID 不变，替换包内原消息 ID | HTTP 409，原记录保留 |
+
+实测支持把直连作为已开启镜像网络、且通过认证探测的本机候选。保留现有 SSH 回环方案供默认 NAT、远程 Linux 或探测失败时使用。现有常驻接收器入口仍会启动 SSH，独立试验只复用了实际 HTTP 和 SQLite 模块。镜像模式不能作为全局安装前提。该试验未测默认 NAT、新机重启或真实微信送达。 [微软 WSL 网络说明](https://learn.microsoft.com/windows/wsl/networking)
+
+### 首个要收束的工程项
+
+下一项是扫码后的可恢复配对。安装器现有的 `desktop_open` 由客户端窗口、进程和资料目录判定，不能单独确认原生账号或决定是否启用发送。先让安装技能和配对入口给出同一份可检查的阶段结果，复用现有模块和状态：
+
+1. 扫码前核发行版、官方客户端版本、独立显示、接收器依赖和 Codex 入队能力。需要账号授权准备时在首次扫码前说明。
+2. 扫码后核唯一原生账号、当前运行实例和发送职责。无法证实账号或已有同账号回复器时保持只读。由用户在本机明确授权本人绑定，再固化原生身份及新消息起点。
+3. 绑定一个可见的专用 Codex 会话。用已认证的回环探测校验接收器和固定目标。续跑复用当前实例及目标，避免生成第二个回复器或会话。
+4. 用用户新发的一条私聊贯通原生入站、可见用户项、同一完成轮次和原 V2 单次发送。再分别记录好友、普通群、图片及 PDF 的新增验收。记录人工步骤数、扫码后耗时及中断续跑结果。扫码完成、HTTP 接纳和实际发送各留一项结果。
+
+现有基线没有通用配对命令。若一台全新 Windows 仍需用户手改私有配置、手输账号 ID 或手工维护 SSH 转发，首版配对尚未达到目标。升级和恢复沿用同一个账号、目标、原队列和回执。相关来源通过内置搜索、豆包发现及上游固定源码核对。`wx-cli` 的 GitHub 原始仓库访问返回 451，本轮不据转载判断其能力。
+
 ## 本轮实际采样
 
 群回复器版本 `064ba7f497ee` 启动后的约 32 分钟窗口，核到两条新群聊文字。两条均有原生 ACK、匹配的输入摘要、固定 Codex 会话完成轮次及原回复。V2 均单次点击发送，`nativeStatus=2`，清理完成。
