@@ -27,3 +27,13 @@
   exposed the click arriving after Ctrl+A and collapsing selection before
   Backspace. Wait after the click, not just after Delete; retain a real window
   manager in this regression and preserve exact-text/attempt guards.
+
+## 微信会话复用经验
+
+- **接收｜群图缺附件。** 先查原图片的导出任务。一次有界恢复核对了官方卡片
+  和保存控件，文件 MD5 与原消息一致，Codex 实际读取。原 V2 初次被草稿保护拦截，
+  后经同请求对账证实微信只发一次。桌面保留首次未发送的记录。判断送达时以原 V2
+  为准，这个案例的自动恢复仍待验收。
+- **RSI｜本人任务回传。** 原请求、输入摘要和执行轮次一起绑定完成结果。
+  一次真实工程文本回传经原 V2 和原生记录核实为单次发送。下次在报告微信已发送前
+  查同一条原生回执。接口收到结果只是交接阶段。

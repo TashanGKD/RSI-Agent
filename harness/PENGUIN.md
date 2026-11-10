@@ -14,10 +14,11 @@ real failure → memory/todo → hypothesis → versioned candidate
 retained lessons ← PR and decision ← fixed checks / evaluator
 ```
 
-1. **Engineering loop now.** Codex wakes in this chat every 45 minutes, reads the
-   GitHub-backed checkpoint, uses the shared maintenance Skill and submits a
-   bounded PR. Existing code, native request identity and the official client
-   remain the execution layer.
+1. **RSI loop now.** The two reply conversations use the
+   [learning skill](../.agents/skills/rsi-wechat-learn/SKILL.md) after a verified
+   capability change. Maintenance checks the reported evidence and retains the
+   reusable method in the relevant code, skill, or private asset index. This
+   loop runs on real cases. Formal evaluation is a separate stage below.
 2. **Agent State adapter.** Once an isolated Penguin Project is selected, put the
    role in the test Agent's `agent_state/AGENTS.md` and copy the canonical
    `.agents/skills/rsi-agent-maintenance/` into its `agent_state/skills/`. Give it
