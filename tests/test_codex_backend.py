@@ -224,7 +224,10 @@ class CodexBackendTests(unittest.TestCase):
         self.folder = tempfile.TemporaryDirectory();self.addCleanup(self.folder.cleanup)
         self.root = Path(self.folder.name);self.root.chmod(0o700)
         self.jobs = Jobs(self.root / 'worker')
-        self.http = server({'token': 'c' * 64, 'port': 0, 'desktop_thread_id': THREAD}, self.jobs, threading.Event())
+        self.cli = self.root / 'fixture-codex'
+        self.cli.touch()
+        self.http = server({'token': 'c' * 64, 'port': 0, 'desktop_thread_id': THREAD,
+                            'codex': str(self.cli)}, self.jobs, threading.Event())
         threading.Thread(target=self.http.serve_forever, daemon=True).start()
         self.addCleanup(self.http.server_close);self.addCleanup(self.http.shutdown)
         for name, text in [('token', 'c' * 64), ('preferences', 'Concise natural conversation')]:
@@ -236,6 +239,22 @@ class CodexBackendTests(unittest.TestCase):
         path = self.root / 'backend.json';path.write_text(json.dumps(self.config));path.chmod(0o600)
         self.backend = load_model(path, verify_runtime=True)
         self.backend.bind('self', 'owner');self.backend.use_request(['42'])
+
+    def test_missing_cli_reports_unready_and_retains_the_original(self):
+        self.cli.unlink()
+        with self.assertRaisesRegex(ModelError, 'worker is not ready'):
+            self.backend.check_runtime()
+        with self.assertRaises(PublicationPending):
+            self.backend.reply('Original message')
+        key = self.backend.last_input_key
+        original = self.jobs.get(key)
+        self.assertEqual(original['state'], 'queued')
+        self.cli.touch()
+        self.backend.check_runtime()
+        with self.assertRaises(PublicationPending):
+            self.backend.reply('Changed live context')
+        self.assertEqual(self.jobs.get(key)['digest'], original['digest'])
+        self.assertEqual(self.jobs.get(key)['body'], original['body'])
 
     def test_reply_loader_rejects_retired_and_non_codex_configurations(self):
         path = self.root / 'retired.json'

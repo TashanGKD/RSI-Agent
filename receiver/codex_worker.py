@@ -411,6 +411,8 @@ def process_job(config, jobs, row):
 
 
 def server(config, jobs, draining):
+    cli = Path(config['codex'])
+
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *_):
             pass
@@ -434,7 +436,9 @@ def server(config, jobs, draining):
                     return self.answer(409, {'state': 'original_task_rejected'})
             if self.path != '/health':
                 return self.answer(404, {'state': 'not_found'})
-            return self.answer(200, {'backend': 'local-codex', 'ready': not draining.is_set(),
+            cli_present = cli.is_file()
+            return self.answer(200, {'backend': 'local-codex', 'ready': not draining.is_set() and cli_present,
+                'codex_executable_present': cli_present,
                 'counts': jobs.counts(), 'pid': os.getpid(), 'source_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                 'desktop_thread_id': config.get('desktop_thread_id'),
                 'desktop_all_requests': config.get('desktop_all_requests') is True})
@@ -480,7 +484,8 @@ def main():
     parser.add_argument('--config', required=True)
     args = parser.parse_args()
     config = json.loads(Path(args.config).read_text(encoding='utf-8-sig'))
-    if not Path(config['codex']).is_file() or not re.fullmatch('[a-f0-9]{64}', config['token']):
+    cli = Path(config['codex'])
+    if not cli.is_file() or not re.fullmatch('[a-f0-9]{64}', config['token']):
         raise ValueError('Existing local Codex and private transport token required.')
     if config.get('desktop_all_requests') is True and not re.fullmatch('[a-f0-9-]{36}', config.get('desktop_thread_id', '')):
         raise ValueError('Unified routing requires the dedicated desktop target.')
@@ -491,6 +496,10 @@ def main():
         threading.Thread(target=http.serve_forever, daemon=True).start()
         def consume(mode):
             while not draining.is_set():
+                # Keep accepted originals queued while a desktop update removes the CLI.
+                if not cli.is_file():
+                    draining.wait(1)
+                    continue
                 row = jobs.claim(mode)
                 if not row:
                     time.sleep(.3);continue
