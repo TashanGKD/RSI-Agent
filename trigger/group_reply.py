@@ -45,23 +45,16 @@ class GroupLoop(ReplyLoop):
     def save(self, key, value):
         self.db.execute('INSERT OR REPLACE INTO participation VALUES(?,?)', (key, str(value)))
 
-    def deliver(self, key, reply):
-        outcome = self.io({'op': 'submit', 'server_id': key, 'text': reply})
-        if outcome['state'] in ('queued', 'confirmed'):
-            outcome = self.io({'op': 'advance', 'server_id': key})
-        if outcome['state'] == 'succeeded' and outcome.get('outcome') == 'sent' and not outcome.get('cleanup_pending'):
-            return 'sent'
-        return 'pending' if outcome['state'] in ('queued', 'confirmed', 'busy') else 'attention'
-
     def cycle(self):
+        self.flush_delivery()
         if self.value('introduction') == 'attention':
             return {'state': 'attention', 'counts': self.counts()}
-        stopped = self.db.execute("SELECT id,reply FROM inbox WHERE state='attention' ORDER BY created,id LIMIT 1").fetchone()
+        stopped = self.db.execute("SELECT id,reply,desktop_job FROM inbox WHERE state='attention' ORDER BY created,id LIMIT 1").fetchone()
         if stopped:
             return self.reconcile_attention(stopped)
         if self.value('introduction') not in ('sent', 'not_requested'):
             # Stable original request even after a lost response or worker restart.
-            state = self.deliver('introduction', INTRODUCTION)
+            state, _ = self.deliver('introduction', INTRODUCTION)
             with self.db:
                 self.save('introduction', state)
                 if state == 'sent':
@@ -107,9 +100,10 @@ class GroupLoop(ReplyLoop):
         pending_rows = self.db.execute("SELECT * FROM inbox WHERE state='pending' ORDER BY created,id LIMIT 2").fetchall()
         if pending_rows:
             pending = pending_rows[0]
-            state = self.deliver(pending['id'], pending['reply'])
+            state, outcome = self.deliver(pending['id'], pending['reply'])
             with self.db:
                 self.db.execute('UPDATE inbox SET state=? WHERE id=?', (state, pending['id']))
+                self.record_delivery(pending, outcome)
                 if state == 'sent':
                     self.save('last_spoken', time.time())
             if (state != 'pending' or len(pending_rows) > 1
@@ -263,8 +257,12 @@ class GroupLoop(ReplyLoop):
             decision.update(speak=True, text=reply)
         with self.db:
             self.db.executemany("UPDATE inbox SET state='quiet' WHERE id=?", [(r['id'],) for r in rows])
+            job = getattr(self.model, 'last_delivery_key', None)
             if decision['speak']:
-                self.db.execute("UPDATE inbox SET reply=?,state='pending' WHERE id=?", (decision['text'], rows[-1]['id']))
+                self.db.execute("UPDATE inbox SET reply=?,state='pending',desktop_job=? WHERE id=?",
+                                (decision['text'], job, rows[-1]['id']))
+            else:
+                self.save_delivery(rows[-1]['id'], job, 'quiet')
             self.db.execute("DELETE FROM participation WHERE k='model_batch'")
         # Deliver only cached output on the next cycle, including after restart.
         return {'state': 'pending' if decision['speak'] else 'quiet', 'counts': self.counts()}

@@ -70,6 +70,10 @@ class ReplyLoop:
             self.db.execute('ALTER TABLE inbox ADD COLUMN pdf_name TEXT')
         if 'voice_text' not in {r[1] for r in self.db.execute('PRAGMA table_info(inbox)')}:
             self.db.execute('ALTER TABLE inbox ADD COLUMN voice_text TEXT')
+        columns = {r[1] for r in self.db.execute('PRAGMA table_info(inbox)')}
+        for column in ('desktop_job', 'desktop_report'):
+            if column not in columns:
+                self.db.execute(f'ALTER TABLE inbox ADD COLUMN {column} TEXT')
         identity = json.dumps([owner['account'], owner['peer'], owner['scope']], sort_keys=True)
         old = self.db.execute('SELECT binding FROM meta').fetchone()
         if old and old[0] != identity:
@@ -92,6 +96,7 @@ class ReplyLoop:
         self.context = context
         self.images = getattr(model, 'backend', None) == 'local-codex'
         self.voice = voice if self.images and self.memory_enabled else None
+        self.report_retry = 0
         if self.images:
             model.bind(owner['account'], owner['peer'])
 
@@ -101,6 +106,45 @@ class ReplyLoop:
     def counts(self):
         return dict(self.db.execute('SELECT state,count(*) FROM inbox GROUP BY state').fetchall())
 
+    def flush_delivery(self):
+        if not self.images or time.monotonic() < self.report_retry:
+            return
+        row = self.db.execute('SELECT id,desktop_report FROM inbox WHERE desktop_report IS NOT NULL ORDER BY rowid LIMIT 1').fetchone()
+        if not row:
+            return
+        try:
+            self.model.publish_delivery(json.loads(row['desktop_report']))
+        except ModelError:
+            self.report_retry = time.monotonic() + 5
+            return
+        with self.db:
+            self.db.execute('UPDATE inbox SET desktop_report=NULL WHERE id=?', (row['id'],))
+
+    def record_delivery(self, row, outcome):
+        if not row['desktop_job']:
+            return
+        state = outcome.get('outcome')
+        if state == 'review_required':
+            state = 'unknown'
+        digest = hashlib.sha256(row['reply'].encode()).hexdigest()
+        if (state not in ('sent', 'not_sent', 'unknown') or not outcome.get('request_id')
+                or outcome.get('reply_sha256') != digest):
+            return
+        self.save_delivery(row['id'], row['desktop_job'], state, outcome['request_id'], digest, outcome.get('code'))
+
+    def save_delivery(self, source, job, state, native_id=None, digest=None, code=None):
+        if job:
+            self.db.execute('UPDATE inbox SET desktop_report=? WHERE id=?', (json.dumps({
+                'id': job, 'state': state, 'native_request_id': native_id, 'reply_sha256': digest, 'code': code}), source))
+
+    def deliver(self, key, reply):
+        outcome = self.io({'op': 'submit', 'server_id': key, 'text': reply})
+        if outcome['state'] in ('queued', 'confirmed'):
+            outcome = self.io({'op': 'advance', 'server_id': key})
+        if outcome['state'] == 'succeeded' and outcome.get('outcome') == 'sent' and not outcome.get('cleanup_pending'):
+            return 'sent', outcome
+        return ('pending' if outcome['state'] in ('queued', 'confirmed', 'busy') else 'attention'), outcome
+
     def reconcile_attention(self, stopped):
         outcome = self.io({'op': 'status', 'server_id': stopped['id']})
         if (outcome['state'] != 'failed' or outcome.get('recoverable_preinput_failure') is not True
@@ -109,10 +153,12 @@ class ReplyLoop:
             return {'state': 'attention', 'counts': self.counts()}
         with self.db:
             self.db.execute("UPDATE inbox SET state='failed' WHERE id=? AND state='attention'", (stopped['id'],))
+            self.record_delivery(stopped, outcome)
         return {'state': 'failed', 'counts': self.counts()}
 
     def cycle(self):
-        stopped = self.db.execute("SELECT id,reply FROM inbox WHERE state='attention' ORDER BY created,id LIMIT 1").fetchone()
+        self.flush_delivery()
+        stopped = self.db.execute("SELECT id,reply,desktop_job FROM inbox WHERE state='attention' ORDER BY created,id LIMIT 1").fetchone()
         if stopped:
             if self.friend:
                 return self.reconcile_attention(stopped)
@@ -233,15 +279,14 @@ class ReplyLoop:
             if not isinstance(reply, str) or not reply.strip() or '\0' in reply or len(reply.encode()) > 16384:
                 raise ValueError('Model reply does not satisfy the text-only sender contract.')
             with self.db:
-                self.db.execute("UPDATE inbox SET reply=?,state='pending' WHERE id=?", (reply, row['id']))
-        outcome = self.io({'op': 'submit', 'server_id': row['id'], 'text': reply})
-        if outcome['state'] in ('queued', 'confirmed'):
-            outcome = self.io({'op': 'advance', 'server_id': row['id']})
-        sent = outcome['state'] == 'succeeded' and outcome.get('outcome') == 'sent'
-        state = 'sent' if sent and not outcome.get('cleanup_pending') else (
-            'pending' if outcome['state'] in ('queued', 'confirmed', 'busy') else 'attention')
+                job = getattr(self.model, 'last_delivery_key', None) if not attachment_error else None
+                self.db.execute("UPDATE inbox SET reply=?,state='pending',desktop_job=? WHERE id=?",
+                                (reply, job, row['id']))
+            row = self.db.execute('SELECT * FROM inbox WHERE id=?', (row['id'],)).fetchone()
+        state, outcome = self.deliver(row['id'], reply)
         with self.db:
             self.db.execute('UPDATE inbox SET state=? WHERE id=?', (state, row['id']))
+            self.record_delivery(row, outcome)
         return {'state': state, 'counts': self.counts(), 'sender_code': outcome.get('code')}
 
 

@@ -97,7 +97,7 @@ original link. In PowerShell, use the absolute private config path for `$config`
 
 ```powershell
 python -B -m receiver.desktop_reply read $config $requestId $threadId $turnId
-$reply | python -B -m receiver.desktop_reply complete $config $requestId $threadId $turnId
+$reply | python -B -m receiver.desktop_reply complete $config $requestId $threadId $turnId --wait
 ```
 
 `read` authenticates the original, checks its digest and target, and saves the
@@ -110,8 +110,19 @@ and removes one final newline added by the shell pipe. If a POST is uncertain,
 reconcile and use the exact frozen completion below. An older checkpoint from
 the manual flow stays with its original turn.
 
-After the completion API confirms acceptance, finish with a one-line desktop
-status. The native bridge owns delivery and maintenance checks its V2 receipt.
+For a final ordinary reply, `--wait` checks the same request's delivery for up
+to 18 seconds. In the desktop chat, name the original conversation and the
+message or attachment received in this turn. Then report the outcome. For
+`sent`, quote the exact returned `text`.
+For `quiet`, say no reply was chosen. For `not_sent`, report that no send
+occurred. Show `pending` as waiting for a receipt and `unknown` as delivery
+requiring confirmation. Acceptance
+by the completion API is only an acknowledgement of the reply text.
+
+Use `python -B -m receiver.desktop_reply status $config $requestId $threadId $turnId`
+to check the original later, with its original thread and turn IDs. Status never
+submits a send. A classification that delegates to engineering or link reading
+ends after `complete` without `--wait`; the next turn needs the same queue.
 
 ## Engineering
 
