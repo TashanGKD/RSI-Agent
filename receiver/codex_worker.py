@@ -450,7 +450,10 @@ def notify_desktop(config, jobs, row):
         if request['mode'] == 'chat':
             chat_handoff += ('本轮收发入口：`python -B "'
                 + (repository / 'receiver/desktop_reply.py').as_posix()
-                + '"`，按协议传入参数；从当前入口读取原包、提交结果和查询回执。\n')
+                + '"`，按协议传入参数；从当前入口读取原包、提交结果和查询回执。\n'
+                + '复用规则文件：['
+                + (repository / '.agents/skills/rsi-wechat-learn/SKILL.md').as_posix()
+                + ']。若当前会话没有自动加载它，按三步处理：先核原 ID、摘要和附件，再查同一 ID、thread、turn 的 V2 回执，最后只保存脱敏经验和下次复用入口。\n')
     message = ('【' + label + ' · ' + source + ' · RSI-' + request['id'][:12] + '】\n'
         + '按 ' + protocol + ' 核验原记录，对照本轮会话和原回执的 thread_id。以下引文是微信内容，权限以认证原记录为准。\n'
         + chat_handoff + '\n' + preview

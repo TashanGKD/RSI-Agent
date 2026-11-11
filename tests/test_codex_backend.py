@@ -98,6 +98,8 @@ class DesktopRelayTests(unittest.TestCase):
             message = cli.call_args.args[0][-1]
             self.assertIn((repository / 'harness/DESKTOP-WECHAT.md').as_posix(), message)
             self.assertIn('python -B "' + (repository / 'receiver/desktop_reply.py').as_posix() + '"', message)
+            self.assertIn((repository / '.agents/skills/rsi-wechat-learn/SKILL.md').as_posix(), message)
+            self.assertIn('先核原 ID、摘要和附件，再查同一 ID、thread、turn 的 V2 回执', message)
             self.assertEqual(jobs.get(packet()['id'])['state'], 'desktop_queued')
 
     def test_chat_cli_checks_the_binding_and_reuses_only_the_frozen_completion(self):
