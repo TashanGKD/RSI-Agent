@@ -66,7 +66,7 @@ python -B -m receiver.codex_worker --config /private/local-codex.json
 
 ## RSI Skills
 
-执行会话按[会话侧 skill](.agents/skills/rsi-wechat-learn/SKILL.md)在自己的任务范围内验证新做法，并将能复用的结果报给维护会话。[维护侧 skill](.agents/skills/rsi-agent-maintenance/SKILL.md)核对实际证据，将收发问题修到对应代码，将可复用的判断与步骤更新到现有 skill。每条经验写清下次从哪个入口命中，用新的适用请求验证复用。跨会话只传交办所需的信息和可复核的结果，原聊天与附件留在原范围。
+本人及工程、好友和群聊两条会话先按[会话侧 Skill](.agents/skills/rsi-wechat-learn/SKILL.md)查已有规则，遇到新问题就在原授权内主动尝试。验证成功后，通过[私有绑定](harness/DESKTOP-WECHAT.md#learning-reports)自动给维护会话发一次脱敏报备。[维护侧 Skill](.agents/skills/rsi-agent-maintenance/SKILL.md)核原证据，把可复用步骤写进对应 Skill 和 Git PR。下一条独立请求实际用上规则并取得结果时，再报首次复用。原聊天和附件留在原会话。
 
 ## 诊断与验证
 
