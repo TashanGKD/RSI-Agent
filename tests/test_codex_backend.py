@@ -756,6 +756,11 @@ class LinkReadingAuthorityTests(unittest.TestCase):
         self.assertEqual(len(self.calls), 1)
         self.assertNotIn('Untrusted page', str(self.calls[0][0]))
 
+    def test_link_reading_unwraps_a_repeated_chat_decision_before_sending(self):
+        self.model._run = Mock(return_value={'message': {'content':
+            '{"speak":true,"text":"正文回复","work_index":null}'}})
+        self.assertEqual(self.model.read_pages(self.pages, [{'role': 'user', 'content': 'read'}]), '正文回复')
+
 
 if __name__ == '__main__':
     unittest.main()
