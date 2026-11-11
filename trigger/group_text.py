@@ -8,12 +8,21 @@ from .reply_io import original_status, status
 # A readability policy, not an official/mobile-tested WeChat folding threshold.
 PART_UNITS = 300
 URL = re.compile(r'https?://[^\s<>，。；！？「」“”]+')
+SPACE_BREAK = re.compile(r'(?<![ \t])[ \t]+\r?\n\s*')
 
 
 def atoms(text):
     """Keep URLs, common emoji sequences, combining marks and CRLF intact."""
     index = 0
     while index < len(text):
+        start = index
+        separator = SPACE_BREAK.match(text, index)
+        if separator:
+            # Keep an internal space-plus-newline on the next text atom.
+            index = separator.end()
+            if index == len(text):
+                yield text[start:]
+                break
         match = URL.match(text, index)
         end = match.end() if match else index + 1
         if not match:
@@ -29,7 +38,7 @@ def atoms(text):
                     end += 1
                 else:
                     break
-        yield text[index:end]
+        yield text[start:end]
         index = end
 
 
@@ -40,7 +49,8 @@ def partition(pieces, sizes, budget, prefer_boundaries):
         while end < len(pieces) and size + sizes[end] <= budget:
             size += sizes[end]
             end += 1
-            if size >= budget // 2 and pieces[end - 1][-1] in '\n。！？；.!?; ':
+            if size >= budget // 2 and (pieces[end - 1][-1] in '\n。！？；.!?; '
+                    or (end < len(pieces) and SPACE_BREAK.match(pieces[end]))):
                 preferred.append(end)
         if end == start:
             # Keep indivisible URLs/emoji intact even above the readability target.
@@ -116,33 +126,63 @@ def originals(api, client, rid, peer):
     return jobs
 
 
+def untouched_part(store, job):
+    if job['state'] == 'queued' and job.get('result') is None:
+        states = ['queued']
+    elif job['state'] == 'cancelled' and job.get('result') == {
+            'reason': 'caller_cancelled_before_preparation', 'noSend': True}:
+        states = ['queued', 'cancelled']
+    else:
+        return False
+    if any(job.get(key) is not None for key in ('preview', 'expires')):
+        return False
+    history = store.c.execute('SELECT state FROM events WHERE job_id=? ORDER BY seq', (job['id'],))
+    return [row[0] for row in history] == states and not any(store.root.glob(job['id'] + '-*'))
+
+
+def native_text_parts(jobs, sent):
+    from operations.proof import text_mode
+    parts = []
+    for index, job in enumerate(jobs):
+        expected = job['payload']['text']
+        actual = None
+        if index < sent:
+            comparison = (job.get('result') or {}).get('textComparison') or {}
+            actual = comparison.get('actualText')
+            if not isinstance(actual, str):
+                return None
+            if comparison.get('expectedText') != expected or text_mode(expected, actual) is None:
+                raise ValueError('Original group native text comparison changed.')
+        parts.append({'request_id': job['request_id'], 'expected_text': expected, 'actual_text': actual})
+    return parts
+
+
 def aggregate(api, jobs, client, rid):
     parts = [original_status(api, job, client) for job in jobs]
     if len(parts) == 1:
         return parts[0]
     sent = sum(p['outcome'] == 'sent' for p in parts)
-    current = next((p for p in parts if p['outcome'] != 'sent' or p['cleanup_pending']), parts[-1])
+    index = next((i for i, p in enumerate(parts) if p['outcome'] != 'sent' or p['cleanup_pending']), len(parts) - 1)
+    current = parts[index]
     result = dict(current, request_id=rid,
         reply_sha256=hashlib.sha256(''.join(j['payload']['text'] for j in jobs).encode()).hexdigest(),
         parts_total=len(parts), parts_sent=sent, parts=parts,
         recoverable_preinput_failure=sent == 0 and current['recoverable_preinput_failure'])
     if sent == len(parts):
         result.update(state='busy' if current['cleanup_pending'] else 'succeeded', outcome='sent')
-        comparisons = [(job.get('result') or {}).get('textComparison') or {} for job in jobs]
-        if not all(isinstance(c.get('actualText'), str) for c in comparisons):
-            result.update(state='needs_attention', outcome='unknown', code='GROUP_PART_TEXT_PROOF_MISSING')
-        else:
-            from operations.proof import text_mode
-            if any(c.get('expectedText') != j['payload']['text']
-                   or text_mode(j['payload']['text'], c['actualText']) is None
-                   for j, c in zip(jobs, comparisons)):
-                raise ValueError('Original group native text comparison changed.')
-            result['native_parts'] = [{'request_id': j['request_id'], 'expected_text': j['payload']['text'],
-                'actual_text': c['actualText']} for j, c in zip(jobs, comparisons)]
+    elif (0 < sent == index and current['outcome'] == 'not_sent' and current['recoverable_preinput_failure']
+            and all(untouched_part(api.s, job) for job in jobs[index + 1:])):
+        result.update(state='failed', outcome='partial')
     elif current['outcome'] == 'sent':
         result.update(state='busy', outcome='pending', code='GROUP_PART_CLEANUP_PENDING')
     elif sent and current['outcome'] in ('not_sent', 'unknown', 'review_required'):
         result.update(state='needs_attention', outcome='unknown', code='GROUP_PARTIAL_REPLY_STOPPED')
+    if result['outcome'] in ('sent', 'partial'):
+        proven = native_text_parts(jobs, sent)
+        if proven is None:
+            result.update(state='needs_attention', outcome='unknown', code='GROUP_PART_TEXT_PROOF_MISSING')
+        else:
+            result['native_parts'] = proven
     return result
 
 

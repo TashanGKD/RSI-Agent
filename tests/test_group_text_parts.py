@@ -5,7 +5,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from rsi_agent.config import WECHAT_LINUX
 from trigger.group_io import CLIENT, handle, token
@@ -27,6 +27,12 @@ class SplitTests(unittest.TestCase):
             parts = split_text(text)
             self.assertEqual(''.join(parts), text)
             self.assertTrue(any(atom in p for p in parts), repr(atom))
+
+    def test_internal_space_and_line_break_move_with_the_next_text(self):
+        for prefix, separator in [('甲' * 200, ' \n'), ('甲' * 299, ' \t\r\n')]:
+            with self.subTest(separator=separator):
+                suffix = '乙' * 110
+                self.assertEqual(split_text(prefix + separator + suffix), [prefix, separator + suffix])
 
     def test_url_is_kept_clickable_even_when_it_exceeds_the_readability_budget(self):
         url = 'https://example.org/?source=' + 'x' * 350
@@ -74,10 +80,10 @@ class GroupPartsTests(unittest.TestCase):
         self.text = '甲' * 300 + '乙' * 300 + '丙' * 80
         self.members = {'wxid_fixture_self': 'Self', 'wxid_fixture_owner': 'Owner'}
 
-    def call(self, op, **extra):
+    def call(self, op, server_id='1', **extra):
         with patch('trigger.group_io.group_info', return_value=self.members):
             return handle(self.installation, self.binding,
-                {'op': op, 'server_id': '1', '_binding': token(self.binding), **extra})
+                {'op': op, 'server_id': server_id, '_binding': token(self.binding), **extra})
 
     def jobs(self):
         return self.api.s.list_jobs(CLIENT)
@@ -132,6 +138,86 @@ class GroupPartsTests(unittest.TestCase):
             self.assertEqual(result['parts_sent'], 1)
             self.assertEqual(self.jobs()[2]['state'], 'queued')
 
+    def test_settled_partial_failure_releases_only_the_next_group_request(self):
+        from operations import navigation
+        from operations.dispatch import choose
+        from trigger.group_reply import GroupLoop
+        from trigger.reply_io import original_status
+
+        self.call('submit', text=self.text)
+        jobs = self.jobs()
+        self.accept(jobs[0])
+        failed = jobs[1]['id']
+        self.api.s.set_state(failed, 'preparing')
+        self.api.s.set_state(failed, 'failed', {
+            'code': 'SEARCH_SELECTION_UNPROVEN', 'noSend': True, 'sideEffectStarted': False})
+        navigation.save(self.api.s.root, self.api.s.by_id(failed), {'state': 'started'})
+
+        def transport(request):
+            if request['op'] == 'read':
+                return {'events': [{'account': self.binding['account'], 'peer': self.binding['group_peer'],
+                    'sender': 'member', 'sender_name': 'Member', 'mentioned': True, 'kind': 1,
+                    'text': 'New question?', 'created': 150, 'server_id': '2'}]}
+            return self.call(**request)
+
+        group = {'account': self.binding['account'], 'owner_peer': self.binding['owner_peer'],
+                 'peer': self.binding['group_peer'], 'name': 'Fixture', 'scope': self.binding['send_scope']}
+        model = Mock(backend='local-codex', engineering=False, last_delivery_key='b' * 64)
+        model.complete.return_value = {'message': {'content': '{"speak":true,"text":"New reply"}'}}
+        loop = GroupLoop(self.root / 'inbox.sqlite', group, model, transport)
+        self.addCleanup(loop.close)
+        with loop.db:
+            loop.save('introduction', 'not_requested')
+            loop.db.execute('INSERT INTO inbox(id,created,text,reply,state,desktop_job) VALUES(?,?,?,?,?,?)',
+                            ('1', 120, '{}', self.text, 'pending', 'a' * 64))
+
+        next_id = CLIENT + '-' + hashlib.sha256(b'wxid_fixture_self\0fixture@chatroom\0' + b'2').hexdigest()
+
+        def accept_next(api, job, policy):
+            self.assertEqual(job['request_id'], next_id)
+            self.assertEqual(choose(api.s)['request_id'], next_id)
+            self.accept(job)
+            return original_status(api, api.s.by_id(job['id']), CLIENT)
+
+        with patch('trigger.group_io.advance', side_effect=accept_next) as advance:
+            self.assertEqual(loop.cycle()['state'], 'attention')
+            self.assertEqual(loop.cycle()['state'], 'attention')
+            model.complete.assert_not_called()
+            advance.assert_not_called()
+            navigation.save(self.api.s.root, self.api.s.by_id(failed), {'state': 'settled'})
+            before = self.jobs()
+            self.assertEqual(loop.cycle()['state'], 'failed')
+            self.assertEqual(loop.cycle()['state'], 'pending')
+            self.assertEqual(loop.cycle()['state'], 'sent')
+            advance.assert_called_once()
+
+        self.assertEqual(self.jobs()[:3], before)
+        self.assertEqual([job['state'] for job in self.jobs()], ['succeeded', 'failed', 'queued', 'succeeded'])
+        self.assertEqual(loop.db.execute('SELECT state,reply FROM inbox WHERE id=?', ('1',)).fetchone()[:],
+                         ('failed', self.text))
+        model.complete.assert_called_once()
+        partial, = [call.args[0] for call in model.publish_delivery.call_args_list if call.args[0]['state'] == 'partial']
+        self.assertEqual(partial['native_request_id'], self.rid)
+        self.assertEqual(partial['reply_sha256'], hashlib.sha256(self.text.encode()).hexdigest())
+        self.assertEqual([part['actual_text'] for part in partial['native_parts']], ['甲' * 300, None, None])
+        self.api.s.cancel(CLIENT, jobs[2]['request_id'])
+        self.assertEqual(self.call('status')['native_parts'], partial['native_parts'])
+
+    def test_queued_suffix_with_preparation_history_is_not_proven_unsent(self):
+        from operations import navigation
+        self.call('submit', text=self.text)
+        jobs = self.jobs()
+        self.accept(jobs[0])
+        failed = jobs[1]['id']
+        self.api.s.set_state(failed, 'preparing')
+        self.api.s.set_state(failed, 'failed', {
+            'code': 'SEARCH_SELECTION_UNPROVEN', 'noSend': True, 'sideEffectStarted': False})
+        navigation.save(self.api.s.root, self.api.s.by_id(failed), {'state': 'settled'})
+        self.api.s.event(jobs[2]['id'], 'preparing')
+        result = self.call('status')
+        self.assertEqual(result['outcome'], 'unknown')
+        self.assertNotIn('native_parts', result)
+
     def test_cleanup_debt_and_read_only_status_never_advance_a_part(self):
         self.call('submit', text=self.text)
         self.accept(self.jobs()[0], navigationRecoveryPending=True)
@@ -146,7 +232,6 @@ class GroupPartsTests(unittest.TestCase):
 
     def test_group_loop_waits_for_cleanup_then_only_sends_the_next_part(self):
         from trigger.group_reply import GroupLoop
-        from unittest.mock import Mock
         self.call('submit', text=self.text)
         jobs = self.jobs()
         self.accept(jobs[0], navigationRecoveryPending=True)
@@ -220,7 +305,6 @@ class GroupPartsTests(unittest.TestCase):
 
     def test_partial_send_is_not_reported_as_complete_to_the_desktop(self):
         from trigger.owner_reply import ReplyLoop
-        from unittest.mock import Mock
         loop = ReplyLoop(self.root / 'inbox.sqlite', {'account': 'wxid_fixture_self',
             'peer': 'fixture@chatroom', 'scope': {'mode': 'owner-private-text', 'since': 100}}, Mock(), Mock())
         self.addCleanup(loop.close)

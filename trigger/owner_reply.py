@@ -132,7 +132,7 @@ class ReplyLoop:
         if state == 'review_required':
             state = 'unknown'
         digest = hashlib.sha256(row['reply'].encode()).hexdigest()
-        if (state not in ('sent', 'not_sent', 'unknown') or not outcome.get('request_id')
+        if (state not in ('sent', 'partial', 'not_sent', 'unknown') or not outcome.get('request_id')
                 or outcome.get('reply_sha256') != digest):
             return
         extra = {'native_parts': outcome['native_parts']} if 'native_parts' in outcome else {}
@@ -154,8 +154,10 @@ class ReplyLoop:
 
     def reconcile_attention(self, stopped):
         outcome = self.io({'op': 'status', 'server_id': stopped['id']})
-        if (outcome['state'] != 'failed' or outcome.get('recoverable_preinput_failure') is not True
-                or outcome.get('outcome') != 'not_sent' or not isinstance(stopped['reply'], str)
+        state = outcome.get('outcome')
+        recoverable = (state == 'not_sent' and outcome.get('recoverable_preinput_failure') is True
+                       or state == 'partial' and self.owner['peer'].endswith('@chatroom'))
+        if (outcome['state'] != 'failed' or not recoverable or not isinstance(stopped['reply'], str)
                 or outcome.get('reply_sha256') != hashlib.sha256(stopped['reply'].encode()).hexdigest()):
             return {'state': 'attention', 'counts': self.counts()}
         with self.db:
