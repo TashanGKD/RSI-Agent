@@ -9,7 +9,7 @@ import threading
 import unittest
 from unittest.mock import Mock, patch
 
-from receiver.codex_worker import Jobs, blocks, notify_desktop, run_codex, server
+from receiver.codex_worker import CodexExecutable, Jobs, blocks, notify_desktop, run_codex, server
 from trigger.backend import load_model
 from trigger.codex_backend import CodexBackend
 from rsi_agent.model import ModelError, PublicationPending
@@ -30,6 +30,33 @@ def queued():
 
 
 class CodexWorkerTests(unittest.TestCase):
+    def test_store_codex_recovers_after_a_package_update(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            store = root / 'WindowsApps'
+            old = store / 'OpenAI.Codex_1.0.0.0_x64__2p2nqsd0c76g0/app/resources/codex.exe'
+            new = store / 'OpenAI.Codex_2.0.0.0_x64__2p2nqsd0c76g0/app/resources/codex.exe'
+            for exe in (old, new):
+                exe.parent.mkdir(parents=True)
+                exe.touch()
+            with patch('receiver.codex_worker.sys.platform', 'win32'):
+                store_exe = CodexExecutable(old)
+                explicit_exe = CodexExecutable(root / 'standalone' / 'codex.exe')
+            with patch('receiver.codex_worker.registered_store_codex', return_value=None) as registered, \
+                    patch('receiver.codex_worker.time.monotonic', return_value=100) as clock:
+                self.assertEqual(store_exe.resolve(), old)
+                registered.assert_not_called()
+                old.unlink()
+                self.assertIsNone(store_exe.resolve())
+                self.assertIsNone(store_exe.resolve())
+                registered.assert_called_once()
+                registered.return_value = new
+                clock.return_value = 116
+                self.assertEqual(store_exe.resolve(), new)
+                self.assertEqual(store_exe.resolve(), new)
+                self.assertIsNone(explicit_exe.resolve())
+                self.assertEqual(registered.call_count, 2)
+
     def test_images_are_inline_inputs_and_other_roles_remain_distinct(self):
         image = 'data:image/png;base64,' + base64.b64encode(b'verified bytes').decode()
         system, inputs = blocks([{'role': 'system', 'content': 'facts'},

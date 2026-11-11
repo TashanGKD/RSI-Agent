@@ -563,8 +563,69 @@ def process_job(config, jobs, row):
         run_codex(config, jobs, row)
 
 
-def server(config, jobs, draining):
-    cli = Path(config['codex'])
+STORE_CODEX_EXE = ('app', 'resources', 'codex.exe')
+STORE_CODEX_PACKAGE = re.compile(
+    r'OpenAI\.Codex_[0-9]+(?:\.[0-9]+){3}_(?:x64|arm64|x86)__2p2nqsd0c76g0',
+    re.IGNORECASE,
+)
+
+
+def is_store_codex(path):
+    parts = path.parts
+    return (path.is_absolute() and len(parts) >= 6
+            and parts[-5].lower() == 'windowsapps'
+            and STORE_CODEX_PACKAGE.fullmatch(parts[-4]) is not None
+            and tuple(part.lower() for part in parts[-3:]) == STORE_CODEX_EXE)
+
+
+def registered_store_codex():
+    system_root = os.environ.get('SystemRoot')
+    if not system_root:
+        return None
+    powershell = Path(system_root) / 'System32/WindowsPowerShell/v1.0/powershell.exe'
+    query = (
+        "[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false); "
+        "Get-AppxPackage -Name OpenAI.Codex -PackageTypeFilter Main -ErrorAction Stop | "
+        "Where-Object { $_.PackageFamilyName -eq 'OpenAI.Codex_2p2nqsd0c76g0' "
+        "-and $_.SignatureKind -eq 'Store' -and $_.Status -eq 'Ok' } | "
+        "Select-Object -ExpandProperty InstallLocation"
+    )
+    try:
+        result = subprocess.run([str(powershell), '-NoProfile', '-NonInteractive', '-Command', query],
+            check=True, timeout=5, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            encoding='utf-8-sig', creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+    except (OSError, subprocess.SubprocessError, UnicodeError):
+        return None
+    locations = result.stdout.strip().splitlines()
+    if len(locations) != 1:
+        return None
+    candidate = Path(locations[0]).joinpath(*STORE_CODEX_EXE)
+    return candidate if is_store_codex(candidate) and candidate.is_file() else None
+
+
+class CodexExecutable:
+    def __init__(self, configured):
+        self.path = Path(configured)
+        self.follows_store = sys.platform == 'win32' and is_store_codex(self.path)
+        self.retry_at = 0.0
+        self.lock = threading.Lock()
+
+    def resolve(self):
+        with self.lock:
+            if self.path.is_file():
+                return self.path
+            if self.follows_store and time.monotonic() >= self.retry_at:
+                replacement = registered_store_codex()
+                if replacement is not None:
+                    self.path = replacement
+                    return replacement
+                self.retry_at = time.monotonic() + 15
+            return None
+
+
+def server(config, jobs, draining, executable=None):
+    if executable is None:
+        executable = CodexExecutable(config['codex'])
     targets = (config.get('desktop_thread_id'), config.get('desktop_other_thread_id'))
 
     class Handler(BaseHTTPRequestHandler):
@@ -596,7 +657,7 @@ def server(config, jobs, draining):
                     return self.answer(409, {'state': 'original_delivery_rejected'})
             if self.path != '/health':
                 return self.answer(404, {'state': 'not_found'})
-            cli_present = cli.is_file()
+            cli_present = executable.resolve() is not None
             return self.answer(200, {'backend': 'local-codex', 'ready': not draining.is_set() and cli_present,
                 'codex_executable_present': cli_present,
                 'counts': jobs.counts(), 'pid': os.getpid(), 'source_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
@@ -651,8 +712,9 @@ def main():
     parser.add_argument('--config', required=True)
     args = parser.parse_args()
     config = json.loads(Path(args.config).read_text(encoding='utf-8-sig'))
-    cli = Path(config['codex'])
-    if not cli.is_file() or not re.fullmatch('[a-f0-9]{64}', config['token']):
+    executable = CodexExecutable(config['codex'])
+    if (not re.fullmatch('[a-f0-9]{64}', config['token'])
+            or not (executable.follows_store or executable.resolve())):
         raise ValueError('Existing local Codex and private transport token required.')
     if config.get('desktop_all_requests') is True and not re.fullmatch('[a-f0-9-]{36}', config.get('desktop_thread_id', '')):
         raise ValueError('Unified routing requires the dedicated desktop target.')
@@ -674,19 +736,20 @@ def main():
     state = Path(config['state']);state.mkdir(mode=0o700, parents=True, exist_ok=True)
     with singleton(state / 'worker.lock'):
         jobs = Jobs(state);jobs.review_interrupted();draining = threading.Event()
-        http = server(config, jobs, draining)
+        http = server(config, jobs, draining, executable)
         threading.Thread(target=http.serve_forever, daemon=True).start()
         def consume(mode):
             while not draining.is_set():
                 # Keep accepted originals queued while a desktop update removes the CLI.
-                if not cli.is_file():
+                cli = executable.resolve()
+                if cli is None:
                     draining.wait(1)
                     continue
                 row = jobs.claim(mode)
                 if not row:
                     time.sleep(.3);continue
                 try:
-                    process_job(config, jobs, row)
+                    process_job(dict(config, codex=str(cli)), jobs, row)
                 except BlockingIOError:
                     jobs.update(row['id'], state='queued');time.sleep(30)
                 except Exception:
