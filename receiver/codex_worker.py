@@ -119,6 +119,37 @@ def completion_text(request, text):
         raise ValueError('Completion exceeds the original native reply contract.')
 
 
+def link_reply_text(request, text):
+    """Project an echoed routing decision onto the original read-only reply."""
+    if request['mode'] != 'chat' or request['schema'] is not None:
+        return text
+    identity = [request['scope'], request['request'], 'chat', 'link-reading']
+    if request['id'] != hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest():
+        return text
+    try:
+        value = json.loads(text)
+    except ValueError:
+        return text
+    if not isinstance(value, dict):
+        return text
+    fields = set(value)
+    if fields in ({'speak', 'text'}, {'speak', 'text', 'work_index'}):
+        speaking = value['speak'] is True and value.get('work_index') is None
+    elif fields == {'engineering', 'text'}:
+        speaking = value['engineering'] is False
+    else:
+        return text
+    answer = value['text']
+    return answer if speaking and isinstance(answer, str) and answer.strip() and '\0' not in answer else None
+
+
+def delivery_texts(request, frozen):
+    if request['schema'] is not None:
+        return (json.loads(frozen)['text'],)
+    # A native send prepared before this change may still report its raw payload.
+    return (link_reply_text(request, frozen), frozen)
+
+
 class Jobs:
     def __init__(self, root):
         self.root = Path(root)
@@ -230,9 +261,7 @@ class Jobs:
             body = json.loads(row['body'])
             if not row['desktop_message_id'] or body['mode'] != 'chat':
                 return {'state': 'not_bound'}
-            text = row['result']
-            decision = json.loads(text) if body['schema'] is not None else {}
-            text = decision['text'] if body['schema'] is not None else text
+            decision = json.loads(row['result']) if body['schema'] is not None else {}
             account, peer = body['scope']
             group = peer.endswith('@chatroom')
             if value['state'] == 'quiet':
@@ -242,10 +271,12 @@ class Jobs:
             else:
                 native = hashlib.sha256('\0'.join((account, peer, body['request'][-1])).encode()).hexdigest()
                 clients = ('rsi-group',) if group else ('rsi-owner', 'rsi-friend')
-                if (not text.strip() or decision.get('speak') is False or decision.get('engineering') is True
+                if (decision.get('speak') is False or decision.get('engineering') is True
                         or decision.get('work_index') is not None
                         or value['native_request_id'] not in {client + '-' + native for client in clients}
-                        or value['reply_sha256'] != hashlib.sha256(text.encode()).hexdigest()):
+                        or not any(text and text.strip()
+                                   and value['reply_sha256'] == hashlib.sha256(text.encode()).hexdigest()
+                                   for text in delivery_texts(body, row['result']))):
                     raise ValueError('Native request and reply digest must match the original.')
             old = db.execute('SELECT receipt FROM delivery_receipts WHERE id=?', (value['id'],)).fetchone()
             if old:
@@ -253,7 +284,8 @@ class Jobs:
                 if previous == value:
                     return {'state': 'recorded'}
                 if (previous['state'] != 'unknown' or value['state'] not in ('sent', 'not_sent')
-                        or previous['native_request_id'] != value['native_request_id']):
+                        or previous['native_request_id'] != value['native_request_id']
+                        or previous['reply_sha256'] != value['reply_sha256']):
                     raise ValueError('Recorded native outcome cannot be replaced.')
             db.execute('INSERT OR REPLACE INTO delivery_receipts VALUES(?,?)', (value['id'], encoded(value).decode()))
         return {'state': 'recorded'}
@@ -265,12 +297,17 @@ class Jobs:
             raise ValueError('Original completed desktop turn required.')
         with self.connect() as db:
             proof = db.execute('SELECT receipt FROM delivery_receipts WHERE id=?', (identity,)).fetchone()
+        body = json.loads(row['body'])
         if not proof:
-            return {'id': identity, 'state': 'pending'}
+            state = 'review' if link_reply_text(body, row['result']) is None else 'pending'
+            return {'id': identity, 'state': state}
         receipt = json.loads(proof['receipt'])
         if receipt['state'] == 'sent':
-            receipt['text'] = (json.loads(row['result'])['text']
-                if json.loads(row['body'])['schema'] is not None else row['result'])
+            text = next((text for text in delivery_texts(body, row['result']) if text is not None
+                         and hashlib.sha256(text.encode()).hexdigest() == receipt['reply_sha256']), None)
+            if text is None:
+                raise ValueError('Recorded native text does not match its digest.')
+            receipt['text'] = text
         return receipt
 
     def counts(self):
@@ -548,8 +585,11 @@ def server(config, jobs, draining):
                     return self.answer(200, jobs.report_delivery(value))
                 row = jobs.accept(value)
                 state = row['state']
+                if state == 'completed':
+                    text = link_reply_text(value, row['result'])
+                    return self.answer(200, {'state': 'review'} if text is None else {'state': state, 'text': text})
                 self.answer(202 if state in ('queued', 'starting', 'running', 'desktop_submitting', 'desktop_queued') else 200,
-                    {'state': state, **({'text': row['result']} if state == 'completed' else {})})
+                    {'state': state})
             except (ValueError, TypeError, KeyError):
                 self.answer(409, {'state': 'original_input_rejected'})
     return ThreadingHTTPServer(('127.0.0.1', config['port']), Handler)

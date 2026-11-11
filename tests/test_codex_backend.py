@@ -85,6 +85,30 @@ for line in sys.stdin:
 
 
 class DesktopRelayTests(unittest.TestCase):
+    def test_old_link_delivery_keeps_the_recorded_raw_payload(self):
+        with tempfile.TemporaryDirectory() as td:
+            jobs = Jobs(td)
+            request = dict(packet(), scope=['self', 'group@chatroom'])
+            request['id'] = hashlib.sha256(json.dumps(
+                [request['scope'], request['request'], 'chat', 'link-reading'], sort_keys=True).encode()).hexdigest()
+            original = jobs.accept(request)
+            jobs.update(request['id'], state='desktop_queued', thread_id=THREAD, desktop_message_id=MESSAGE)
+            raw = '{"speak":true,"text":"original answer","work_index":null}'
+            jobs.complete_desktop({'id': request['id'], 'input_sha256': original['digest'],
+                'thread_id': THREAD, 'turn_id': 'original-turn', 'text': raw}, THREAD)
+            native_id = hashlib.sha256('\0'.join((*request['scope'], '42')).encode()).hexdigest()
+            receipt = {'id': request['id'], 'state': 'unknown', 'native_request_id': 'rsi-group-' + native_id,
+                       'reply_sha256': hashlib.sha256(raw.encode()).hexdigest(), 'code': None}
+            jobs.report_delivery(receipt)
+            with self.assertRaises(ValueError):
+                jobs.report_delivery(dict(receipt, state='sent',
+                    reply_sha256=hashlib.sha256(b'original answer').hexdigest()))
+            sent = dict(receipt, state='sent')
+            jobs.report_delivery(sent)
+            self.assertEqual(jobs.report_delivery(sent)['state'], 'recorded')
+            self.assertEqual(jobs.desktop_delivery(request['id'], THREAD, 'original-turn', THREAD),
+                             dict(sent, text=raw))
+
     def test_handoff_binds_the_configured_repository_protocol_and_helper(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
@@ -570,13 +594,17 @@ class CodexBackendTests(unittest.TestCase):
 
     def test_single_owner_article_keeps_its_original_route_and_replies_once(self):
         from trigger.group_reply import GroupLoop
+        from trigger.reply_io import request_id
         group = {'account': 'self', 'peer': 'group@chatroom', 'owner_peer': 'owner',
                  'name': 'Fixture group', 'scope': {'mode': 'invited-group-text', 'since': 100, 'introduction': False}}
         url = 'https://mp.weixin.qq.com/s/article'
         page = {'state': 'ready', 'url': url, 'text': 'Observed public article.'}
-        answer = '基于已读取的正文给出答复'
-        for native_id, already_routed in (('45', True), ('44', False)):
-            with self.subTest(already_routed=already_routed):
+        answer = '基于已读取的正文给出答复\n\n第二段'
+        envelope = json.dumps({'speak': True, 'text': answer, 'work_index': None}, ensure_ascii=False)
+        review = '{"speak":true,"text":"","work_index":0}'
+        for native_id, already_routed, output in (('44', False, envelope), ('45', True, answer),
+                                                  ('46', True, review)):
+            with self.subTest(native_id=native_id, already_routed=already_routed):
                 event = {'account': 'self', 'peer': group['peer'], 'sender': 'owner',
                          'sender_name': 'Owner', 'mentioned': False, 'kind': 49, 'created': 120,
                          'server_id': native_id, 'link': {'url': url, 'text': 'Original article card'}}
@@ -587,7 +615,9 @@ class CodexBackendTests(unittest.TestCase):
                         return {'events': [event]}
                     if value['op'] == 'submit':
                         sends.append((value['server_id'], value['text']))
-                        return {'state': 'succeeded', 'outcome': 'sent'}
+                        return {'state': 'succeeded', 'outcome': 'sent',
+                                'request_id': request_id('self', group['peer'], native_id, 'rsi-group'),
+                                'reply_sha256': hashlib.sha256(value['text'].encode()).hexdigest()}
                     raise AssertionError('Unexpected native action')
 
                 path = self.root / (native_id + '.sqlite')
@@ -633,12 +663,22 @@ class CodexBackendTests(unittest.TestCase):
                     self.assertIsNone(task['body']['schema'])
                     self.assertEqual(json.loads(task['body']['messages'][-1]['content']), {'linked_pages': [page]})
                     self.assertEqual(sends, [])
+                    turn = 'article-turn-' + native_id
                     self.backend.exchange('/desktop-completions', {'id': article_key, 'input_sha256': task['input_sha256'],
-                        'thread_id': THREAD, 'turn_id': 'article-turn-' + native_id, 'text': answer})
+                        'thread_id': THREAD, 'turn_id': turn, 'text': output})
+                    if output == review:
+                        self.assertEqual(restarted.cycle()['state'], 'model_review')
+                        self.assertIsNone(restarted.value('model_batch'))
+                        self.assertEqual(sends, [])
+                        self.assertEqual(self.jobs.get(article_key)['result'], output)
+                        continue
                     self.assertEqual(restarted.cycle()['state'], 'pending')
                     self.assertEqual(restarted.cycle()['state'], 'sent')
                     self.assertEqual(restarted.cycle()['state'], 'idle')
                     self.assertEqual(sends, [(native_id, answer)])
+                    _, receipt = self.backend.exchange(f'/desktop-deliveries/{article_key}/{THREAD}/{turn}')
+                    self.assertEqual((receipt['state'], receipt.get('text')), ('sent', answer))
+                    self.assertEqual(self.jobs.get(article_key)['result'], output)
 
     def test_native_group_schema_keeps_original_work_index_and_image(self):
         self.backend.bind('self', 'group@chatroom');self.backend.use_request(['44', '45'])
@@ -755,7 +795,6 @@ class LinkReadingAuthorityTests(unittest.TestCase):
         self.model.engineer.assert_called_once_with(prompt)
         self.assertEqual(len(self.calls), 1)
         self.assertNotIn('Untrusted page', str(self.calls[0][0]))
-
 
 if __name__ == '__main__':
     unittest.main()
