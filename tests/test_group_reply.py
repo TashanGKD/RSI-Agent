@@ -186,6 +186,34 @@ class GroupTests(unittest.TestCase):
         self.assertEqual(loop.cycle()['state'], 'sent')
         self.assertEqual(list(self.effects), ['1'])
 
+    def test_recycle_keeps_pre_activation_batch_and_already_published_work(self):
+        self.model.backend = 'local-codex'
+        self.model.engineering = True
+        self.model.has_original_input.side_effect = lambda keys, *, mode='chat': mode == 'engineering' and keys == ['2']
+        self.group['owner_peer'] = 'owner'
+        self.batch['events'] = [self.event(), self.event(2, sender='owner', created=130),
+                                self.event(3, created=131)]
+        self.model.complete.side_effect = PublicationPending('fixture worker pending')
+        loop = self.loop()
+        loop.recycle_since = 125
+        with loop.db:
+            loop.save('model_batch', '["1"]')
+        with patch('trigger.group_reply.time.time', return_value=1040):
+            with self.assertRaises(PublicationPending):
+                loop.cycle()
+        self.assertEqual(loop.counts(), {'new': 1, 'recycled': 2})
+        self.assertEqual(loop.value('model_batch'), '["1"]')
+
+        with loop.db:
+            loop.db.execute("UPDATE inbox SET state='new' WHERE id='2'")
+            loop.save('model_batch', '["2"]')
+        with patch('trigger.group_reply.time.time', return_value=1041):
+            with self.assertRaises(PublicationPending):
+                loop.cycle()
+        self.assertEqual(loop.counts(), {'new': 2, 'recycled': 1})
+        self.assertEqual(loop.value('model_batch'), '["2"]')
+        self.assertFalse(self.effects)
+
     def test_automatically_admitted_group_waits_for_input_without_an_introduction(self):
         self.group['scope']['introduction'] = False
         loop = self.loop(introduction=True)
