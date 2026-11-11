@@ -85,6 +85,21 @@ for line in sys.stdin:
 
 
 class DesktopRelayTests(unittest.TestCase):
+    def test_handoff_binds_the_configured_repository_protocol_and_helper(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            jobs = Jobs(root / 'state')
+            jobs.accept(packet())
+            repository = root / 'current checkout'
+            config = {'codex': 'existing-codex', 'desktop_thread_id': THREAD,
+                      'desktop_all_requests': True, 'repository': str(repository)}
+            with patch('receiver.codex_worker.subprocess.run', return_value=queued()) as cli:
+                notify_desktop(config, jobs, jobs.claim('chat'))
+            message = cli.call_args.args[0][-1]
+            self.assertIn((repository / 'harness/DESKTOP-WECHAT.md').as_posix(), message)
+            self.assertIn('python -B "' + (repository / 'receiver/desktop_reply.py').as_posix() + '"', message)
+            self.assertEqual(jobs.get(packet()['id'])['state'], 'desktop_queued')
+
     def test_chat_cli_checks_the_binding_and_reuses_only_the_frozen_completion(self):
         from urllib.error import HTTPError
         from urllib.request import ProxyHandler, Request, build_opener
@@ -107,10 +122,16 @@ class DesktopRelayTests(unittest.TestCase):
                 try:
                     path = root / 'config.json'
                     path.write_text(json.dumps(dict(config, port=http.server_port)))
+                    old_checkout = root / 'old checkout'
+                    old_package = old_checkout / 'receiver'
+                    old_package.mkdir(parents=True)
+                    (old_package / '__init__.py').write_text("raise RuntimeError('obsolete receiver')")
+                    helper = Path(__file__).resolve().parents[1] / 'receiver/desktop_reply.py'
 
                     def command(action, thread=THREAD, turn=MESSAGE, reply='', identity=request['id']):
-                        return subprocess.run([sys.executable, '-B', '-m', 'receiver.desktop_reply', action,
-                            str(path), identity, thread, turn], input=reply.encode(), capture_output=True, timeout=5)
+                        return subprocess.run([sys.executable, '-B', str(helper), action,
+                            str(path), identity, thread, turn], cwd=old_checkout,
+                            input=reply.encode(), capture_output=True, timeout=5)
 
                     rejected = command('read', thread=OTHER_THREAD)
                     self.assertNotEqual(rejected.returncode, 0)

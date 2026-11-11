@@ -8,6 +8,12 @@ the original job and result. See the [repository entrypoint](../README.md) for
 code and operator commands. The independent SCNET group gate is disabled on the
 current deployment. Use the live release and process records to verify activation.
 
+The latest [feedback review](../harness/RESEARCH-MATRIX.md#2026-11-11-反馈复盘)
+compares yesterday's original desktop and V2 records. Image export fixes #70/#71
+are now in the active Linux service source, with the original records retained.
+Fresh automatic image/PDF delivery and draft-recovery receipt agreement remain
+open; historical candidate paragraphs below do not establish current acceptance.
+
 The [Windows setup skill](../.agents/skills/rsi-wechat-setup/SKILL.md) points
 to the [repository installer](../deploy/wechat-wsl/README.md). Keep Ubuntu and
 the official client as verified first-run downloads. For a new installation,
