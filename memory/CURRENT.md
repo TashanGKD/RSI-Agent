@@ -35,6 +35,11 @@ An initial group chat request explicitly returned in Codex review now isolates
 its original batch as model_review. Subsequent group messages can proceed. The
 original packet, ACK and worker review are retained for reconciliation.
 
+Groups that enable `recycle_since` retain expired ordinary inputs as
+`recycled` and let newer inputs proceed after 15 minutes. The original
+packet and native ACK stay available. Published engineering requests and
+replies already waiting for native delivery keep their existing lifecycle.
+
 PR #34 is merged and activated. The dedicated desktop target has completed real
 private and group turns with matching original V2 sends. Other completed group
 turns have pending native effects. Check the private `unified_wechat_thread`

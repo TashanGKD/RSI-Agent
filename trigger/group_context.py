@@ -40,7 +40,12 @@ def group_configs(path=REGISTRY, key='groups'):
         if not private_file(item):
             raise ValueError('Private group configuration required.')
         config = json.loads(Path(item).read_text())
-        if set(config) != {'installation', 'binding', 'model', 'state', 'enabled', 'binding_token'}:
+        fields = {'installation', 'binding', 'model', 'state', 'enabled', 'binding_token'}
+        if key == 'groups' and 'recycle_since' in config:
+            if type(config['recycle_since']) is not int or config['recycle_since'] <= 0:
+                raise ValueError('Positive group recycle activation epoch required.')
+            fields.add('recycle_since')
+        if set(config) != fields:
             raise ValueError('Invalid group configuration.')
         if config['enabled'] is True:
             configs.append(config)

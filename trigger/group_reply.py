@@ -17,6 +17,9 @@ from .media import image_part, pdf_part, MediaPending, MediaUnavailable
 from .link_reader import linked_pages, video_link
 
 
+REPLY_TTL = 15 * 60
+
+
 def gate_text(event):
     if event['kind'] == 1:
         return event['text']
@@ -36,6 +39,7 @@ def image_source(row, event):
 class GroupLoop(ReplyLoop):
     def __init__(self, path, group, model, transport):
         super().__init__(path, group, model, transport)
+        self.recycle_since = None
         self.reply_gate = None
         self.db.execute('CREATE TABLE IF NOT EXISTS participation(k TEXT PRIMARY KEY,v TEXT NOT NULL)')
         if 'follows_self' not in {r[1] for r in self.db.execute('PRAGMA table_info(inbox)')}:
@@ -73,6 +77,25 @@ class GroupLoop(ReplyLoop):
             'oldest_created': oldest,
             'age_seconds': round(max(0, time.time() - oldest), 1),
         }
+
+    def recycle_expired(self):
+        cutoff = time.time() - REPLY_TTL
+        stale = {row[0] for row in self.db.execute(
+            "SELECT id FROM inbox WHERE state='new' AND reply IS NULL AND desktop_job IS NULL "
+            "AND created>=? AND created<?", (self.recycle_since, cutoff))}
+        if not stale:
+            return
+        active = set(json.loads(self.value('model_batch', '[]')))
+        # A frozen batch is indivisible. Wait until every member is expired.
+        expired_batch = bool(active) and active <= stale
+        if expired_batch and self.images and getattr(self.model, 'engineering', False) is True:
+            expired_batch = not any(self.model.has_original_input([key], mode='engineering') for key in active)
+        with self.db:
+            if expired_batch:
+                self.db.execute("DELETE FROM participation WHERE k='model_batch'")
+                active.clear()
+            self.db.executemany("UPDATE inbox SET state='recycled' WHERE id=?",
+                                [(key,) for key in stale - active])
 
     def cycle(self):
         self.flush_delivery()
@@ -128,6 +151,8 @@ class GroupLoop(ReplyLoop):
                      event['link']['url'] if link else None))
         if batch.get('batch_id'):
             self.io({'op': 'ack', **{k: batch[k] for k in ('batch_id', 'batch_hash', 'ack_ids')}})
+        if self.recycle_since is not None:
+            self.recycle_expired()
         pending_rows = self.db.execute("SELECT * FROM inbox WHERE state='pending' ORDER BY created,id LIMIT 2").fetchall()
         if pending_rows:
             pending = pending_rows[0]
@@ -354,6 +379,7 @@ def sync_groups(workers, configs, reply_gate=None, friends=()):
                         + ' 这是好友私聊。直接回应对方，只用当前好友私聊中的信息。'}])
             else:
                 loop = GroupLoop(directory / 'inbox.sqlite', group, model, io)
+                loop.recycle_since = config.get('recycle_since')
                 loop.reply_gate = reply_gate
             workers[state] = (config, loop, fd)
         except (OSError, ValueError, KeyError, TypeError, ModelError, subprocess.SubprocessError):

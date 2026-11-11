@@ -655,6 +655,62 @@ class CodexBackendTests(unittest.TestCase):
         self.assertNotIn('text', receipt)
         self.assertEqual(sends, ['45'])
 
+    def test_recycled_group_batch_cannot_send_a_late_result(self):
+        from trigger.group_reply import GroupLoop
+        group = {'account': 'self', 'peer': 'group@chatroom', 'owner_peer': 'owner',
+                 'name': 'Fixture group', 'scope': {'mode': 'invited-group-text', 'since': 100, 'introduction': False}}
+        event = {'account': 'self', 'peer': 'group@chatroom', 'sender': 'member',
+                 'sender_name': 'Member', 'mentioned': True, 'kind': 1, 'created': 120,
+                 'server_id': 44, 'text': 'Original group question'}
+        events = [event, dict(event, server_id=45, created=125)]
+        sends = []
+
+        def native(value):
+            if value['op'] == 'read':
+                return {'events': events}
+            if value['op'] == 'submit':
+                sends.append(value['server_id'])
+                return {'state': 'succeeded', 'outcome': 'sent'}
+            self.fail('Unexpected native action')
+
+        loop = GroupLoop(self.root / 'recycle.sqlite', group, self.backend, native)
+        loop.recycle_since = 100
+        self.addCleanup(loop.close)
+        with patch('trigger.group_reply.time.time', return_value=126):
+            with self.assertRaises(PublicationPending):
+                loop.cycle()
+        original = self.backend.last_input_key
+        with patch('receiver.codex_worker.subprocess.run', return_value=queued()):
+            notify_desktop({'codex': 'fixture-codex', 'desktop_thread_id': THREAD,
+                            'desktop_all_requests': True}, self.jobs, self.jobs.claim('chat'))
+        saved = self.jobs.get(original)
+        events.append(dict(event, server_id=46, created=1025, text='Fresh group question'))
+        with patch('trigger.group_reply.time.time', return_value=1025):
+            with self.assertRaises(PublicationPending):
+                loop.cycle()
+        self.assertEqual(loop.value('model_batch'), '["44", "45"]')
+        self.assertEqual(loop.counts(), {'new': 3})
+
+        with patch('trigger.group_reply.time.time', return_value=1026):
+            with self.assertRaises(PublicationPending):
+                loop.cycle()
+        fresh = self.backend.last_input_key
+        self.assertNotEqual(fresh, original)
+        self.assertEqual(json.loads(self.jobs.get(fresh)['body'])['request'], ['46'])
+        self.assertEqual(loop.counts(), {'new': 1, 'recycled': 2})
+
+        self.backend.exchange('/desktop-completions', {'id': original, 'input_sha256': saved['digest'],
+            'thread_id': THREAD, 'turn_id': 'late-fixture-turn',
+            'text': '{"speak":true,"text":"Old answer","work_index":null}'})
+        self.assertEqual(self.jobs.get(original)['body'], saved['body'])
+        self.jobs.update(fresh, state='completed', result='{"speak":true,"text":"Fresh answer","work_index":null}')
+        with patch('trigger.group_reply.time.time', return_value=1027):
+            self.assertEqual(loop.cycle()['state'], 'pending')
+            self.assertEqual(loop.cycle()['state'], 'sent')
+            self.assertEqual(loop.cycle()['state'], 'idle')
+        self.assertEqual(sends, ['46'])
+        self.assertEqual(loop.counts(), {'recycled': 2, 'sent': 1})
+
     def test_single_owner_article_keeps_its_original_route_and_replies_once(self):
         from trigger.group_reply import GroupLoop
         from trigger.reply_io import request_id

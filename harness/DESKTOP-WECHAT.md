@@ -139,6 +139,14 @@ otherwise. Actual message text must fit 6000 UTF-8 bytes for groups or 16384 for
 private chat. The API checks fields/types and actual text limits, not JSON
 overhead.
 
+An admitted group's private worker config can set `recycle_since` to the
+activation epoch in seconds. Unanswered ordinary inputs received from that
+cutoff move to `recycled` after 15 minutes and stay in the inbox for audit.
+A frozen model batch expires together when every member is older than 15
+minutes. Existing engineering packets and replies already pending native
+delivery retain their original lifecycle. Late results of recycled batches
+stay bound to their original requests and have no native send.
+
 New group text submitted through `trigger.group_io` is split by a conservative
 300 UTF-16-unit readability budget, preferring sentence/paragraph boundaries.
 This is not a Tencent-published threshold or a guarantee against folding on a
