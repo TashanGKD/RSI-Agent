@@ -128,7 +128,9 @@ display part or an oversized non-URL sequence is held before admission.
 The existing V2 `admit(ordered=true)` transaction freezes all parts and their
 dependencies. The first native request keeps its original ID; later IDs derive
 once from that ID and their part number. No ID changes on retries or restarts.
-Concatenating the native texts reproduces the frozen full reply exactly. Status
+Concatenating the frozen part payloads reproduces the full reply exactly. Native
+acceptance retains the existing V2 text-comparison rules, including its explicit
+single-terminal-LF case; inspect each original result for the actual sent text. Status
 retains its original request ID/full-text SHA and includes each part's receipt;
 only acceptance of every part permits an overall `sent`. Partial failure or
 unknown results stop later parts; cleanup debt also blocks advancement. Status
