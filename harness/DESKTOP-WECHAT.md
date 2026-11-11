@@ -238,6 +238,14 @@ match a user item inside a turn in the supplied Codex history for that target.
 history is unavailable. The command only reads the original records and reports
 metadata.
 
+For a prolonged wait after queue acknowledgement, the private
+`desktop-notification.json` holds the original `desktop_message_id`. When a
+read-only desktop queue snapshot is available, check that exact item for the
+same target alongside the observed turn, completion and V2 evidence. A queue
+snapshot is specific to the installed Codex version. An absent item and a turn
+not observed in the supplied history leave the original unresolved. Keep the
+same request for reconciliation.
+
 ## Engineering
 
 Only authenticated mode=engineering permits the already native-verified owner's

@@ -15,8 +15,11 @@ description: Use in either RSI Agent reply conversation to resolve a new WeChat 
 
 1. 找到第一处缺口。
    - **触发**看原生身份、入站持久化与 ACK，以及接收器中的原 ID、输入摘要、
-     目标会话和附件。已入队但看不到输入时，维护按协议的只读对账入口核入队与
-     实际轮次；轮次缺失保留为待复核。
+     目标会话和附件。已入队却长时间等不到输入时，维护用 `desktop_reconcile`
+     对账原回执、目标会话历史及完成记录，再用原回执里的 `desktop_message_id`
+     核同一目标的可用只读队列快照。队列项消失且所查历史未观测到原输入时，
+     保留原单为待核对。等待时长、队列空白和 `not_observed` 都不足以判定原单丢失，
+     也不足以触发重投或重跑。
    - **发送**从该轮冻结结果查到原 V2。沿协议的 `desktop_reply status` 查询
      同一 ID、会话和轮次。`pending` 表示等待回执，`unknown` 表示结果待确认，
      `not_sent` 表示未发送，`sent` 表示整条已发送。`partial` 表示部分已发送，
