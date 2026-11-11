@@ -121,19 +121,30 @@ particular Android/iOS version, font size or display. Public searches on
 2026-11-11 did not establish a reproducible universal chat-bubble threshold;
 Moments' line limits, quoted previews and transport byte limits are different.
 Short replies stay unchanged. URLs and common emoji sequences stay intact;
-an indivisible URL longer than the budget occupies its own bubble and may still
-fold. The complete 6000-byte reply limit remains. More than 20 parts, an empty
-display part or an oversized non-URL sequence is held before admission.
+an indivisible sequence longer than the target may still fold. Separators stay
+on an adjacent bubble rather than becoming invalid blank native messages. The
+complete 6000-byte reply limit remains. To fit V2's 20-job cap, a full reply first
+falls back to hard boundaries at 300 units, then widens the budget in 50-unit
+steps only if protected atoms still require it. Thus 300 is a target, not a hard
+per-bubble maximum. Legal full-length replies must not block later group intake
+merely because preferred sentence breaks would create more than 20 parts.
 
 The existing V2 `admit(ordered=true)` transaction freezes all parts and their
 dependencies. The first native request keeps its original ID; later IDs derive
 once from that ID and their part number. No ID changes on retries or restarts.
 Concatenating the frozen part payloads reproduces the full reply exactly. Native
 acceptance retains the existing V2 text-comparison rules, including its explicit
-single-terminal-LF case; inspect each original result for the actual sent text. Status
+single-terminal-LF case. Completed multipart receipts carry original ordered
+`native_parts` (request ID, expected text, actual text). The receiver verifies
+their reconstruction and permits only the same terminal-LF difference. Desktop
+`texts` contains the actual bubbles in order; `text` joins them with blank lines
+for display and `text_source=native_parts` identifies that rendering. The original
+reply digest never changes. Quote each `texts` entry when reporting sent content.
+Deploy the compatible receiver before enabling multipart trigger output. Status
 retains its original request ID/full-text SHA and includes each part's receipt;
 only acceptance of every part permits an overall `sent`. Partial failure or
-unknown results stop later parts; cleanup debt also blocks advancement. Status
+unknown results stop later parts; cleanup debt keeps the same inbox pending and
+blocks advancement until restored. Status
 is read-only. Existing single-message requests are never retrofitted or replayed.
 Private replies, media and separate batch-digest senders are outside this path.
 Verify mobile readability on future authorized replies; regression/CI and native

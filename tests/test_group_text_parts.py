@@ -35,6 +35,19 @@ class SplitTests(unittest.TestCase):
         self.assertEqual(''.join(parts), text)
         self.assertIn(url, parts)
 
+    def test_full_budget_and_long_links_do_not_produce_empty_or_excess_parts(self):
+        url = 'https://example.org/?q=' + 'x' * 300
+        for text in ('a' * 6000, ('a' * 150 + '. ') * 39,
+                     ('a' * 100 + '\n' + url + '\n') * 14,
+                     ('\n' + url + '\n') * 17, 'a' + ' ' * 5900 + 'b', ' ' * 5900 + 'b'):
+            self.assertLessEqual(len(text.encode()), 6000)
+            parts = split_text(text)
+            self.assertEqual(''.join(parts), text)
+            self.assertLessEqual(len(parts), 20)
+            self.assertTrue(all(p.strip() for p in parts))
+            if url in text:
+                self.assertEqual(sum(p.count(url) for p in parts), text.count(url))
+
 
 @unittest.skipUnless(sys.platform == 'linux', 'requires private Linux V2 fixture state')
 class GroupPartsTests(unittest.TestCase):
@@ -70,7 +83,9 @@ class GroupPartsTests(unittest.TestCase):
         return self.api.s.list_jobs(CLIENT)
 
     def accept(self, job, **extra):
-        self.api.s.set_state(job['id'], 'succeeded', {'state': 'accepted', **extra})
+        text = job['payload']['text']
+        self.api.s.set_state(job['id'], 'succeeded', {'state': 'accepted',
+            'textComparison': {'expectedText': text, 'actualText': text}, **extra})
 
     def test_ordered_admission_restart_full_digest_and_completion(self):
         initial = self.call('submit', text=self.text)
@@ -129,6 +144,66 @@ class GroupPartsTests(unittest.TestCase):
         self.assertNotEqual(result['outcome'], 'sent')
         self.assertEqual((self.api.s.root / 'queue.sqlite').read_bytes(), before)
 
+    def test_group_loop_waits_for_cleanup_then_only_sends_the_next_part(self):
+        from trigger.group_reply import GroupLoop
+        from unittest.mock import Mock
+        self.call('submit', text=self.text)
+        jobs = self.jobs()
+        self.accept(jobs[0], navigationRecoveryPending=True)
+        def transport(request):
+            if request['op'] == 'read':
+                return {'events': []}
+            return self.call(request['op'], **({'text': request['text']} if 'text' in request else {}))
+        group = {'account': self.binding['account'], 'owner_peer': self.binding['owner_peer'],
+                 'peer': self.binding['group_peer'], 'name': 'Fixture', 'scope': self.binding['send_scope']}
+        loop = GroupLoop(self.root / 'inbox.sqlite', group, Mock(), transport)
+        self.addCleanup(loop.close)
+        with loop.db:
+            loop.save('introduction', 'not_requested')
+            loop.db.execute('INSERT INTO inbox(id,created,text,reply,state) VALUES(?,?,?,?,?)',
+                            ('1', 120, '{}', self.text, 'pending'))
+        with patch('trigger.group_io.advance') as advance:
+            self.assertEqual(loop.cycle()['state'], 'pending')
+            advance.assert_not_called()
+        self.accept(jobs[0])
+        seen = []
+        def accept_next(api, job, policy):
+            seen.append(job['request_id'])
+            self.accept(job)
+            return {'state': 'succeeded'}
+        with patch('trigger.group_io.advance', side_effect=accept_next):
+            self.assertEqual(loop.cycle()['state'], 'pending')
+            self.assertEqual(loop.cycle()['state'], 'sent')
+        self.assertEqual(seen, [j['request_id'] for j in jobs[1:]])
+
+    def test_missing_root_membership_is_never_mistaken_for_a_legacy_sent_reply(self):
+        self.call('submit', text=self.text)
+        root = self.jobs()[0]
+        self.accept(root)
+        self.api.s.c.execute('DELETE FROM dispatch_metadata WHERE job_id=?', (root['id'],))
+        with self.assertRaises(ValueError):
+            self.call('status')
+
+    def test_native_part_texts_retain_per_bubble_terminal_lf_differences(self):
+        text = '甲' * 200 + '\n' + '乙' * 200
+        self.call('submit', text=text)
+        for job in self.jobs():
+            expected = job['payload']['text']
+            self.accept(job, textComparison={'expectedText': expected,
+                        'actualText': expected.removesuffix('\n')})
+        result = self.call('status')
+        self.assertEqual(''.join(p['expected_text'] for p in result['native_parts']), text)
+        self.assertEqual([p['actual_text'] for p in result['native_parts']], ['甲' * 200, '乙' * 200])
+        self.assertEqual(result['reply_sha256'], hashlib.sha256(text.encode()).hexdigest())
+
+    def test_missing_native_part_text_proof_is_not_reported_as_the_full_sent_body(self):
+        self.call('submit', text=self.text)
+        for job in self.jobs():
+            self.api.s.set_state(job['id'], 'succeeded', {'state': 'accepted'})
+        result = self.call('status')
+        self.assertEqual(result['outcome'], 'unknown')
+        self.assertEqual(result['code'], 'GROUP_PART_TEXT_PROOF_MISSING')
+
     def test_legacy_long_original_is_never_split_or_replayed(self):
         job = self.api.s.submit({'client': CLIENT, 'request_id': self.rid, 'peer': 'fixture@chatroom',
             'action': 'send_text', 'payload': {'text': self.text}, 'execution_mode': 'verified_fast'})
@@ -158,8 +233,9 @@ class GroupPartsTests(unittest.TestCase):
         for job in self.jobs()[1:]:
             self.accept(job)
         loop.record_delivery(row, self.call('status'))
+        native_parts = self.call('status')['native_parts']
         loop.save_delivery.assert_called_once_with('1', 'fixture-desktop', 'sent', self.rid,
-                                                  hashlib.sha256(self.text.encode()).hexdigest(), None)
+            hashlib.sha256(self.text.encode()).hexdigest(), None, native_parts=native_parts)
 
     def test_corrupt_or_missing_batch_is_not_reconstructed(self):
         self.call('submit', text=self.text)
@@ -172,11 +248,12 @@ class GroupPartsTests(unittest.TestCase):
             self.call('submit', text=self.text)
         self.assertEqual(len(self.jobs()), 1)
 
-    def test_oversized_batch_is_rejected_atomically_before_any_send(self):
+    def test_full_valid_reply_is_admitted_within_batch_limit(self):
         text = ('a' * 150 + '. ') * 39
-        with self.assertRaises(ValueError):
-            self.call('submit', text=text)
-        self.assertEqual(self.jobs(), [])
+        result = self.call('submit', text=text)
+        self.assertEqual(result['state'], 'queued')
+        self.assertLessEqual(len(self.jobs()), 20)
+        self.assertEqual(''.join(j['payload']['text'] for j in self.jobs()), text)
 
 
 if __name__ == '__main__':

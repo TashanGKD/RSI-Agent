@@ -135,12 +135,14 @@ class ReplyLoop:
         if (state not in ('sent', 'not_sent', 'unknown') or not outcome.get('request_id')
                 or outcome.get('reply_sha256') != digest):
             return
-        self.save_delivery(row['id'], row['desktop_job'], state, outcome['request_id'], digest, outcome.get('code'))
+        extra = {'native_parts': outcome['native_parts']} if 'native_parts' in outcome else {}
+        self.save_delivery(row['id'], row['desktop_job'], state, outcome['request_id'], digest, outcome.get('code'), **extra)
 
-    def save_delivery(self, source, job, state, native_id=None, digest=None, code=None):
+    def save_delivery(self, source, job, state, native_id=None, digest=None, code=None, native_parts=None):
         if job:
+            extra = {'native_parts': native_parts} if native_parts is not None else {}
             self.db.execute('UPDATE inbox SET desktop_report=? WHERE id=?', (json.dumps({
-                'id': job, 'state': state, 'native_request_id': native_id, 'reply_sha256': digest, 'code': code}), source))
+                'id': job, 'state': state, 'native_request_id': native_id, 'reply_sha256': digest, 'code': code, **extra}), source))
 
     def deliver(self, key, reply):
         outcome = self.io({'op': 'submit', 'server_id': key, 'text': reply})

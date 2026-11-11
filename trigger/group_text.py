@@ -33,28 +33,46 @@ def atoms(text):
         index = end
 
 
+def partition(pieces, sizes, budget, prefer_boundaries):
+    result, start, leading = [], 0, ''
+    while start < len(pieces):
+        end, size, preferred = start, 0, []
+        while end < len(pieces) and size + sizes[end] <= budget:
+            size += sizes[end]
+            end += 1
+            if size >= budget // 2 and pieces[end - 1][-1] in '\n。！？；.!?; ':
+                preferred.append(end)
+        if end == start:
+            # Keep indivisible URLs/emoji intact even above the readability target.
+            end += 1
+        elif end < len(pieces) and preferred and prefer_boundaries:
+            end = preferred[-1]
+        part = ''.join(pieces[start:end])
+        if not part.strip():
+            # Blank native messages are invalid. Preserve separators on an adjacent bubble.
+            if result:
+                result[-1] += part
+            else:
+                leading += part
+        else:
+            result.append(leading + part)
+            leading = ''
+        start = end
+    return result
+
+
 def split_text(text):
     pieces = list(atoms(text))
     sizes = [len(p.encode('utf-16-le')) // 2 for p in pieces]
-    result, start = [], 0
-    while start < len(pieces):
-        end, size, preferred = start, 0, []
-        while end < len(pieces) and size + sizes[end] <= PART_UNITS:
-            size += sizes[end]
-            end += 1
-            if size >= PART_UNITS // 2 and pieces[end - 1][-1] in '\n。！？；.!?; ':
-                preferred.append(end)
-        if end == start:
-            # A single long URL remains clickable in its own bubble. Never truncate it.
-            if not URL.fullmatch(pieces[start]):
-                raise ValueError('An indivisible text sequence exceeds the group part budget.')
-            end += 1
-        elif end < len(pieces) and preferred:
-            end = preferred[-1]
-        result.append(''.join(pieces[start:end]))
-        start = end
-    if any(not part.strip() for part in result):
-        raise ValueError('Group text contains an empty display part.')
+    result = partition(pieces, sizes, PART_UNITS, True)
+    if len(result) > 20:
+        # Full 6000-byte replies must remain sendable within V2's 20-job limit.
+        # First drop preferred breaks; widen only if protected atoms still need it.
+        budget = PART_UNITS
+        result = partition(pieces, sizes, budget, False)
+        while len(result) > 20:
+            budget += 50
+            result = partition(pieces, sizes, budget, False)
     return result
 
 
@@ -67,7 +85,11 @@ def originals(api, client, rid, peer):
     from operations.contract import digest, validate_job
     first = api.s.get(client, rid)
     batch = first.get('dispatch', {}).get('batch_id')
+    receipt = api.s.c.execute('SELECT hash FROM dispatch_batches WHERE client=? AND batch_id=?',
+                             (client, rid)).fetchone()
     if batch is None:
+        if receipt is not None:
+            raise ValueError('Original group batch membership is missing.')
         jobs = [first]
     else:
         if batch != rid:
@@ -87,8 +109,6 @@ def originals(api, client, rid, peer):
             body = validate_job({key: job[key] for key in
                 ('client', 'request_id', 'peer', 'action', 'payload', 'method', 'execution_mode')})
             frozen.append({'job': body, 'dispatch': meta})
-        receipt = api.s.c.execute('SELECT hash FROM dispatch_batches WHERE client=? AND batch_id=?',
-                                 (client, rid)).fetchone()
         if receipt is None or receipt[0] != digest(frozen):
             raise ValueError('Original group batch content changed.')
     if any(j['peer'] != peer or j['action'] != 'send_text' for j in jobs):
@@ -107,9 +127,20 @@ def aggregate(api, jobs, client, rid):
         parts_total=len(parts), parts_sent=sent, parts=parts,
         recoverable_preinput_failure=sent == 0 and current['recoverable_preinput_failure'])
     if sent == len(parts):
-        result.update(state='succeeded', outcome='sent')
+        result.update(state='busy' if current['cleanup_pending'] else 'succeeded', outcome='sent')
+        comparisons = [(job.get('result') or {}).get('textComparison') or {} for job in jobs]
+        if not all(isinstance(c.get('actualText'), str) for c in comparisons):
+            result.update(state='needs_attention', outcome='unknown', code='GROUP_PART_TEXT_PROOF_MISSING')
+        else:
+            from operations.proof import text_mode
+            if any(c.get('expectedText') != j['payload']['text']
+                   or text_mode(j['payload']['text'], c['actualText']) is None
+                   for j, c in zip(jobs, comparisons)):
+                raise ValueError('Original group native text comparison changed.')
+            result['native_parts'] = [{'request_id': j['request_id'], 'expected_text': j['payload']['text'],
+                'actual_text': c['actualText']} for j, c in zip(jobs, comparisons)]
     elif current['outcome'] == 'sent':
-        result.update(state='needs_attention', outcome='unknown', code='GROUP_PART_CLEANUP_PENDING')
+        result.update(state='busy', outcome='pending', code='GROUP_PART_CLEANUP_PENDING')
     elif sent and current['outcome'] in ('not_sent', 'unknown', 'review_required'):
         result.update(state='needs_attention', outcome='unknown', code='GROUP_PARTIAL_REPLY_STOPPED')
     return result
