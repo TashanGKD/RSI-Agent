@@ -51,6 +51,29 @@ class GroupLoop(ReplyLoop):
     def save(self, key, value):
         self.db.execute('INSERT OR REPLACE INTO participation VALUES(?,?)', (key, str(value)))
 
+    def pending_batch(self):
+        """Return bounded diagnostics for a batch waiting on the Codex route."""
+        raw = self.value('model_batch')
+        if raw is None:
+            return None
+        try:
+            identities = json.loads(raw)
+            rows = [self.db.execute('SELECT id,created,state FROM inbox WHERE id=?',
+                                    (identity,)).fetchone() for identity in identities]
+        except (TypeError, ValueError, json.JSONDecodeError):
+            return {'state': 'invalid', 'count': 0}
+        if (not isinstance(identities, list) or not identities
+                or any(row is None or row['state'] != 'new' for row in rows)):
+            return {'state': 'invalid', 'count': len(identities) if isinstance(identities, list) else 0}
+        oldest = min(row['created'] for row in rows)
+        return {
+            'state': 'waiting_for_codex',
+            'count': len(identities),
+            'ids': identities,
+            'oldest_created': oldest,
+            'age_seconds': round(max(0, time.time() - oldest), 1),
+        }
+
     def cycle(self):
         self.flush_delivery()
         if self.value('introduction') == 'attention':
@@ -395,7 +418,8 @@ def run(path, mode):
                 try:
                     result = loop.cycle()
                 except PublicationPending:
-                    result = {'state': 'work_pending', 'counts': loop.counts()}
+                    result = {'state': 'work_pending', 'counts': loop.counts(),
+                              'pending_batch': loop.pending_batch()}
                 except ModelError:
                     result = {'state': 'model_unavailable', 'counts': loop.counts()}
                 except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError):
