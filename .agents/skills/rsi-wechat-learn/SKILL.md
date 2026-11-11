@@ -7,6 +7,7 @@ description: Use when an RSI Agent WeChat reply session hits a missing image, li
 
 适用于本人及工程任务会话、好友和群聊回复会话。任务留在当前负责会话。
 从[原请求与会话协作协议](../../../harness/DESKTOP-WECHAT.md)核身份、目标和回执。
+新入站附有当前协议和收发入口的绝对路径时，从该入口核验；会话工作目录可能仍是旧版工作区。
 确需另一会话协作时，核对用户授权和已有执行者，只交办一个有明确结果的子项，
 再把证据汇回原负责会话。
 

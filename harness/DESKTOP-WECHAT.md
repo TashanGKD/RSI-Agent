@@ -112,7 +112,11 @@ overhead.
 
 A chat turn shares its queue with the next WeChat input for that target. Go
 straight to the original packet, bound attachments and completion. For a new
-chat, run the helper from the repository checkout. Supply the actual thread and
+chat, use the absolute protocol and helper paths supplied by the current handoff.
+The chat's working directory can still be an older worktree. The helper accepts
+direct file execution from another directory, using its own checkout's imports:
+`python -B "<absolute repository>/receiver/desktop_reply.py" read ...`.
+The module commands below also work from that repository checkout. Supply the actual thread and
 turn IDs from the supported app tool and the full request ID from the visible
 original link. In PowerShell, use the absolute private config path for `$config`.
 
