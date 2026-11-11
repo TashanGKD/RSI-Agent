@@ -56,6 +56,27 @@ class HostInstallationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'existing contents retained'):
             require_empty_editor(ui)
 
+    def test_default_popout_accepts_only_the_empty_frame_and_caret(self):
+        from PIL import Image, ImageDraw
+        from host_support.file_transport import require_empty_editor
+        from operations.navigation import popout_binding
+
+        window = {'x': 70, 'y': 90, 'width': 623, 'height': 667}
+        image = Image.new('RGB', (693, 757), 'white')
+        draw = ImageDraw.Draw(image)
+        draw.line((91, 616, 651, 616), fill=(222, 222, 222))
+        draw.rectangle((95, 626, 96, 647), fill=(0, 195, 117))
+        cfg = popout_binding({'editor': [600, 554]}, window, image)
+        require_empty_editor(SimpleNamespace(cfg=cfg, ui=SimpleNamespace(screenshot=lambda: image)))
+
+        for top in (614, 617):
+            with self.subTest(top=top):
+                occupied = image.copy()
+                ImageDraw.Draw(occupied).rectangle((100, top, 115, top + 5), fill='black')
+                ui = SimpleNamespace(cfg=cfg, ui=SimpleNamespace(screenshot=lambda: occupied))
+                with self.assertRaisesRegex(ValueError, 'existing contents retained'):
+                    require_empty_editor(ui)
+
     def test_reparented_window_uses_absolute_screen_coordinates(self):
         raw = '  0x400019 "File Transfer": ("wechat" "wechat") 600x642+0+0  +393+300\n'
         window = parse_app_windows(raw)[0]

@@ -24,9 +24,18 @@ def require_empty_editor(ui):
     box=ui.cfg['header_box'];top=ui.cfg['editor'][1]-30
     content_top=ui.cfg.get('editor_content_top',top)
     if type(content_top) is not int or not top<=content_top<=top+12:raise ValueError('editor content calibration changed')
-    im=ui.ui.screenshot().crop((box[0]+20,content_top,box[2]-40,ui.cfg['send'][1]-30)).convert('RGB')
+    bottom = ui.cfg['send'][1] - 30
+    im = ui.ui.screenshot().crop((box[0] + 20, content_top, box[2] - 40, bottom)).convert('RGB')
+    dark_pixels = sum(min(pixel) < 230 for pixel in im.getdata())
+    frame_y = ui.cfg.get('editor_frame_y')
+    if frame_y == top + 2 and content_top <= frame_y < bottom:
+        # The calibrated popout has one uniform light gray frame row.
+        row = frame_y - content_top
+        if im.crop((0, row, im.width, row + 1)).getextrema() == ((222, 222),) * 3:
+            dark_pixels -= im.width
     # A caret is tiny; text, existing file cards and images are not. OCR alone could miss Chinese or an image.
-    if sum(min(pixel)<230 for pixel in im.getdata())>80:raise ValueError('editor is not visibly empty; existing contents retained')
+    if dark_pixels > 80:
+        raise ValueError('editor is not visibly empty; existing contents retained')
 
 def chooser_present():
     env=dict(os.environ,DISPLAY=display(),XAUTHORITY=xauthority(Path(os.environ.get('WECHAT_TOOL_ROOT','/var/lib/secretary-wechat'))))
