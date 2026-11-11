@@ -102,7 +102,7 @@ def popout_binding(cfg, window, image):
  box = [x+1, y+35, x+window['width']-1, y+82]
  editor = [x+280, y+554]
  bound = dict(cfg, header_box=box, header_sha256=hashlib.sha256(image.crop(tuple(box)).tobytes()).hexdigest(),
-              editor=editor, send=[x+window['width']-50, y+window['height']-32])
+              editor=editor, editor_frame_y=y+526, send=[x+window['width']-50, y+window['height']-32])
  content_top = cfg.get('editor_content_top')
  if type(content_top) is int:
   # Keep the calibrated inset relative to the editor when its window moves.
