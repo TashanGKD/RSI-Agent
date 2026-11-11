@@ -40,12 +40,16 @@ def verify_export(path,expected,root):
     with Image.open(io.BytesIO(data)) as im:im.load()
     return data,{**info,'bytes':len(data),'md5':expected,'sha256':hashlib.sha256(data).hexdigest()}
 
+class ImageFilenameMismatch(ValueError):
+    pass
+
+
 def verify_filename(name,metadata):
     from datetime import datetime
     from zoneinfo import ZoneInfo
     stamp=datetime.fromtimestamp(metadata['time'],ZoneInfo('Asia/Shanghai')).strftime('%Y%m%d%H%M%S')
     if not isinstance(name,str) or not re.fullmatch(r'Weixin Image_'+stamp+'_'+str(metadata['sourceLocalId'])+r'_[0-9]+\.[A-Za-z0-9]+',name):
-        raise ValueError('official filename differs from exact native time and local ID')
+        raise ImageFilenameMismatch('official filename differs from exact native time and local ID')
 
 def verify_visible_export(path,metadata,root,filename):
     from attachments import read_bound
@@ -296,6 +300,7 @@ def dispatch(tool,r,*,ui=None):
             if visible:
                 stage='filename'
                 require_guard();control.focus(dialog);filename=control.filename(dialog)
+                if r.get('verify_source_filename'):verify_filename(filename,metadata)
             stage='export'
             with tempfile.TemporaryDirectory(prefix='image-',dir=export_root) as td:
                 folder=Path(td);out=folder/'image'

@@ -77,6 +77,27 @@ class VisibleImageTests(unittest.TestCase):
    with self.assertRaises(images.ImageReadError):
     images.locate_visible(im,body,[],source,message_pane=pane)
 
+ def test_filename_fallback_keeps_complete_wide_cards_despite_thumbnail_shape(self):
+  im=Image.new('RGB',(620,437),(249,249,249));draw=ImageDraw.Draw(im)
+  draw.rectangle((70,177,316,276),fill='white')
+  draw.rectangle((73,183,186,271),fill=(248,248,248))
+  draw.rectangle((194,182,309,271),fill=(248,248,248))
+  draw.rectangle((439,0,545,43),fill='white')
+  draw.rectangle((145,372,565,429),fill='green')
+  source=dict(context(),sourceMode='inbound',thumbnailWidth=180,thumbnailHeight=102)
+  box=[60,0,546,437]
+  with self.assertRaises(images.ImageReadError):
+   images.locate_visible(im,box,[],source)
+  self.assertEqual(images.filename_candidates(im,box),[[193,226]])
+
+ def test_filename_fallback_stops_at_a_bounded_number_of_complete_cards(self):
+  im=Image.new('RGB',(500,500),(249,249,249));draw=ImageDraw.Draw(im)
+  for y in (15,120,225,330):
+   draw.rectangle((70,y,316,y+95),fill='white')
+  with self.assertRaises(images.ImageReadError):
+   images.filename_candidates(im,[60,0,420,480])
+
+
 class ImageExecutionTests(unittest.TestCase):
  def fixture(self,td):
   import types
@@ -144,6 +165,24 @@ class ImageExecutionTests(unittest.TestCase):
    self.assertEqual(proof['representation'],'original')
    self.assertEqual(proof['sourceIdentityMethod'],'native-message-md5')
    self.assertNotIn('officialDefaultFilename',proof)
+ def test_filename_fallback_checks_each_candidate_before_returning_an_image(self):
+  import types
+  from unittest.mock import Mock,patch
+  from image_client import ImageFilenameMismatch
+  with tempfile.TemporaryDirectory() as td:
+   d,j,c,im,r=self.fixture(td)
+   j['payload']['representation']='visible';c['sourceMode']='inbound'
+   j['preview']['context']=images.digest(c)
+   j['preview'].pop('imagePoint')
+   j['preview']['imageFilenamePoints']=[[120,150],[155,155]]
+   call=Mock(side_effect=[ImageFilenameMismatch('different source'),r])
+   adapter=types.SimpleNamespace(locked=object(),dispatch=call,ImageFilenameMismatch=ImageFilenameMismatch)
+   with patch.dict('sys.modules',{'image_client':adapter}),patch('operations.images.load_context',return_value=c),patch('operations.recipes.screen',return_value=im):
+    data,proof=images.export(d,j)
+   self.assertEqual(data,sample());self.assertEqual(proof['messagesSent'],0)
+   self.assertEqual([x.args[1]['point'] for x in call.call_args_list],[[120,150],[155,155]])
+   self.assertTrue(all(x.args[1]['verify_source_filename'] for x in call.call_args_list))
+
  def test_wrong_source_export_receipt_is_rejected(self):
   with tempfile.TemporaryDirectory() as td:
    with self.assertRaises(images.ImageReadError):self.run_export(td,lambda d,j,c,im,r:r.update(peer='other@chatroom'))
