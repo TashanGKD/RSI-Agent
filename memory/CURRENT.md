@@ -58,6 +58,12 @@ a bounded stage for the next real image investigation. Check the installed
 processes against live receipts. An isolated Codex run recognized a PNG. A fresh
 ordinary WeChat photo still needs end-to-end verification.
 
+The inbound locator can fall back to a bounded set of complete cards when
+thumbnail dimensions disagree with the rendered card. It checks the official
+Save dialog filename against native time and local message ID before export.
+A retained real source was read using the candidate and matched native MD5.
+Fresh automatic attachment delivery remains its own acceptance.
+
 The PDF intake candidate binds already downloaded ordinary-file PDFs to their
 native peer, sender, message, cache resource, size and MD5. The desktop
 receiver stores the original PDF privately and exposes a digest-bound document

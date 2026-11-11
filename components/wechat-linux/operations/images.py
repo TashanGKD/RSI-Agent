@@ -83,6 +83,29 @@ def validate_payload(data,expected_md5):
  except Exception:raise ImageReadError('IMAGE_NOT_DECODABLE','Export is not a complete image readable by installed decoder.') from None
  return dict(info,bytes=len(data),md5=expected_md5,sha256=hashlib.sha256(data).hexdigest())
 
+def _components(image,region,required_pixel=None):
+ im=image.crop(tuple(region)).convert('RGB');w,h=im.size
+ top=region[1]
+ if w*h>500000:raise ImageReadError('IMAGE_OVER_BUDGET','Visible locator region exceeds its budget.')
+ # A long outgoing bubble can cover the right edge; find the same calibrated
+ # neutral color around the complete boundary instead of treating it as green.
+ edge=[im.getpixel((x,y)) for x in (0,w-1) for y in range(h)]+[im.getpixel((x,y)) for y in (0,h-1) for x in range(w)]
+ neutral=Counter(v for v in edge if min(v)>=245 and max(v)-min(v)<=3)
+ if not neutral:raise ImageReadError('UNSUPPORTED_IMAGE_LAYOUT','The calibrated neutral message background is not visible.')
+ bg=neutral.most_common(1)[0][0]
+ mask=bytearray(max(abs(v[k]-bg[k]) for k in range(3))>2 for v in im.getdata())
+ required_index=None if required_pixel is None else (required_pixel[1]-top)*w+required_pixel[0]-region[0]
+ for idx in range(w*h):
+  if not mask[idx]:continue
+  mask[idx]=0;stack=[idx];x0=w;x1=0;y0=h;y1=0;n=0;contains_required=False
+  while stack:
+   p=stack.pop();y,x=divmod(p,w);n+=1;x0=min(x0,x);x1=max(x1,x);y0=min(y0,y);y1=max(y1,y)
+   contains_required=contains_required or p==required_index
+   for q in ([p-1] if x else [])+([p+1] if x+1<w else [])+([p-w] if y else [])+([p+w] if y+1<h else []):
+    if mask[q]:mask[q]=0;stack.append(q)
+  if x1-x0>=70 and y1-y0>=35 and n>=1500:
+   yield x0+region[0],y0+top,x1+region[0],y1+top,contains_required,(region[0]+idx%w,top+idx//w)
+
 def locate_visible(image,box,rows,context,*,message_pane=None,required_pixel=None):
  if not all(type(v) is int for v in box) or not 0<=box[0]<box[2]<=image.width or not 0<=box[1]<box[3]<=image.height:raise ImageReadError('UNSUPPORTED_IMAGE_LAYOUT','Invalid calibrated message pane.')
  def match(v,a):
@@ -97,41 +120,41 @@ def locate_visible(image,box,rows,context,*,message_pane=None,required_pixel=Non
    found.append(candidates[0])
   top,bottom=found[0]+15,found[1]-15
   if not box[1]<top<bottom<box[3]:raise ImageReadError('IMAGE_CONTEXT_AMBIGUOUS','Visible anchors are reversed, clipped, or too close.')
- region=[box[0],top,box[2],bottom];im=image.crop(tuple(region)).convert('RGB');w,h=im.size
- if w*h>500000:raise ImageReadError('IMAGE_OVER_BUDGET','Visible locator region exceeds its budget.')
- # A long outgoing bubble can cover the right edge; find the same calibrated
- # neutral color around the complete boundary instead of treating it as green.
- edge=[im.getpixel((x,y)) for x in (0,w-1) for y in range(h)]+[im.getpixel((x,y)) for y in (0,h-1) for x in range(w)]
- neutral=Counter(v for v in edge if min(v)>=245 and max(v)-min(v)<=3)
- if not neutral:raise ImageReadError('UNSUPPORTED_IMAGE_LAYOUT','The calibrated neutral message background is not visible.')
- bg=neutral.most_common(1)[0][0]
- mask=bytearray(max(abs(v[k]-bg[k]) for k in range(3))>2 for v in im.getdata());candidates=[]
- required_index=None if required_pixel is None else (required_pixel[1]-top)*w+required_pixel[0]-region[0]
- for idx in range(w*h):
-  if not mask[idx]:continue
-  mask[idx]=0;stack=[idx];x0=w;x1=0;y0=h;y1=0;n=0;contains_required=False
-  while stack:
-   p=stack.pop();y,x=divmod(p,w);n+=1;x0=min(x0,x);x1=max(x1,x);y0=min(y0,y);y1=max(y1,y)
-   contains_required=contains_required or p==required_index
-   for q in ([p-1] if x else [])+([p+1] if x+1<w else [])+([p-w] if y else [])+([p+w] if y+1<h else []):
-    if mask[q]:mask[q]=0;stack.append(q)
-  if x1-x0>=70 and y1-y0>=35 and n>=1500:
-   if context.get('sourceMode')=='inbound' and context.get('thumbnailWidth') and context.get('thumbnailHeight'):
-    expected=context['thumbnailWidth']/context['thumbnailHeight'];actual=(x1-x0)/(y1-y0)
-    if not .8*expected<=actual<=1.2*expected:continue
-   if x0==0 or y0==0 or x1==w-1 or y1==h-1:
-    if (message_pane is not None and context.get('sourceMode')=='inbound' and y0>0 and y1<h-1
-        and context.get('thumbnailWidth') and context.get('thumbnailHeight')):
-     # The locator's horizontal inset can cut a card that is fully visible in
-     # the calibrated pane. Re-scan only the affected edge of this same frame.
-     expanded=[message_pane[0] if x0==0 else box[0],top,message_pane[2] if x1==w-1 else box[2],bottom]
-     if expanded!=region:
-      return locate_visible(image,expanded,rows,context,required_pixel=(region[0]+idx%w,top+idx//w))
-    raise ImageReadError('IMAGE_CANDIDATE_CLIPPED','Image candidate is not fully within the proven visible range.')
-   candidates.append(([region[0]+(x0+x1)//2,region[1]+(y0+y1)//2],contains_required))
- if len(candidates)!=1 or required_index is not None and not candidates[0][1]:
+ region=[box[0],top,box[2],bottom];candidates=[]
+ for x0,y0,x1,y1,contains_required,component_start in _components(image,region,required_pixel):
+  if context.get('sourceMode')=='inbound' and context.get('thumbnailWidth') and context.get('thumbnailHeight'):
+   expected=context['thumbnailWidth']/context['thumbnailHeight'];actual=(x1-x0)/(y1-y0)
+   if not .8*expected<=actual<=1.2*expected:continue
+  if x0==region[0] or y0==top or x1==region[2]-1 or y1==bottom-1:
+   if (message_pane is not None and context.get('sourceMode')=='inbound' and y0>top and y1<bottom-1
+       and context.get('thumbnailWidth') and context.get('thumbnailHeight')):
+    # The locator's horizontal inset can cut a card that is fully visible in
+    # the calibrated pane. Re-scan only the affected edge of this same frame.
+    expanded=[message_pane[0] if x0==region[0] else box[0],top,message_pane[2] if x1==region[2]-1 else box[2],bottom]
+    if expanded!=region:
+     return locate_visible(image,expanded,rows,context,required_pixel=component_start)
+   raise ImageReadError('IMAGE_CANDIDATE_CLIPPED','Image candidate is not fully within the proven visible range.')
+  candidates.append(([(x0+x1)//2,(y0+y1)//2],contains_required))
+ if len(candidates)!=1 or required_pixel is not None and not candidates[0][1]:
   raise ImageReadError('IMAGE_CANDIDATE_AMBIGUOUS','Exactly one complete substantial image card must match the proven range.')
  return candidates[0][0]
+
+MAX_FILENAME_CANDIDATES=3
+
+def filename_candidates(image,box):
+ # A thumbnail's dimensions can differ from the official client's rendered card.
+ # Inspect only complete substantial cards. The Save dialog will prove the source.
+ l,t,r,b=box
+ bounds=[(x0,y0,x1,y1) for x0,y0,x1,y1,_,_ in _components(image,box)
+         if l<x0 and t<y0 and x1<r-1 and y1<b-1 and y1-y0>=60 and x1-x0<=4*(y1-y0)]
+ bounds.sort(key=lambda v:((v[2]-v[0])*(v[3]-v[1]),v[1]),reverse=True)
+ outer=[]
+ for x0,y0,x1,y1 in bounds:
+  if not any(a<=x0 and b<=y0 and c>=x1 and d>=y1 for a,b,c,d in outer):
+   outer.append((x0,y0,x1,y1))
+ if not 1<=len(outer)<=MAX_FILENAME_CANDIDATES:
+  raise ImageReadError('IMAGE_CANDIDATE_AMBIGUOUS','No bounded set of complete image candidates.')
+ return [[(x0+x1)//2,(y0+y1)//2] for x0,y0,x1,y1 in outer]
 
 def prepare(driver,j):
  from . import image_verified
@@ -143,11 +166,16 @@ def prepare(driver,j):
  context=load_context(driver,j);navigation.begin(driver,j);driver._select(j);w=main_window(driver)
  if (w['width'],w['height']) not in ((905,667),(623,667)):raise ImageReadError('UNSUPPORTED_IMAGE_LAYOUT','A calibrated official main or conversation window is required.')
  cfg=driver.binding(j['peer']);pane=[cfg['header_box'][0],cfg['header_box'][3]+1,cfg['header_box'][2],cfg['editor'][1]-34];body=[pane[0]+60,pane[1],pane[2]-75,pane[3]]
- image=screen(driver);observed=rows(driver,body,contrast=160);point=locate_visible(image,body,observed,context,message_pane=pane)
+ image=screen(driver);observed=rows(driver,body,contrast=160)
+ try:points={'imagePoint':locate_visible(image,body,observed,context,message_pane=pane)}
+ except ImageReadError as exc:
+  if (exc.code not in ('IMAGE_CANDIDATE_AMBIGUOUS','IMAGE_CANDIDATE_CLIPPED')
+      or context.get('sourceMode')!='inbound' or j['payload'].get('representation')!='visible'):raise
+  points={'imageFilenamePoints':filename_candidates(image,body)}
  # OCR must not race a changed message pane.
  pane_hash=hashlib.sha256(image.crop(tuple(pane)).tobytes()).hexdigest()
  if hashlib.sha256(screen(driver).crop(tuple(pane)).tobytes()).hexdigest()!=pane_hash:raise ImageReadError('IMAGE_CONTEXT_CHANGED','Message pane changed during preparation.')
- return dict(driver.screenshot(j),imageRecipe=True,programRecipe=True,uiBinding=dict(cfg),imageContext=context,imagePane=pane,imagePoint=point,imagePaneSHA256=pane_hash,imageWindows=driver.app_windows(),context=digest(context),summary={'peer':j['peer'],'action':'save_attachment','source_id':context['sourceId'],'sender':context['sender'],'nativeMD5':context['nativeMD5'],'origin':'official-client-save-as-programmatic','cacheReused':False,'messagesSent':0})
+ return dict(driver.screenshot(j),imageRecipe=True,programRecipe=True,uiBinding=dict(cfg),imageContext=context,imagePane=pane,**points,imagePaneSHA256=pane_hash,imageWindows=driver.app_windows(),context=digest(context),summary={'peer':j['peer'],'action':'save_attachment','source_id':context['sourceId'],'sender':context['sender'],'nativeMD5':context['nativeMD5'],'origin':'official-client-save-as-programmatic','cacheReused':False,'messagesSent':0})
 
 def clean(driver,j):
  if (j.get('preview') or {}).get('verifiedImageSourceRecipe'):return True # This recipe performs no UI input/navigation.
@@ -165,7 +193,11 @@ def export(driver,j):
  p=j['preview'];context=load_context(driver,j)
  if digest(context)!=p['context'] or context['peer']!=j['peer']:raise ImageReadError('IMAGE_CONTEXT_CHANGED','Native image context differs from the frozen request.')
  if not clean(driver,j):raise ImageReadError('IMAGE_CONTEXT_CHANGED','Official windows changed since the final preview.',clean=False)
- if hashlib.sha256(screen(driver).crop(tuple(p['imagePane'])).tobytes()).hexdigest()!=p['imagePaneSHA256']:raise ImageReadError('IMAGE_CONTEXT_CHANGED','Frozen message pane changed; no image is opened.')
+ filename_probe='imageFilenamePoints' in p
+ points=p['imageFilenamePoints'] if filename_probe else [p['imagePoint']]
+ if filename_probe and (context.get('sourceMode')!='inbound' or j['payload'].get('representation')!='visible'
+                        or not isinstance(points,list) or not 1<=len(points)<=MAX_FILENAME_CANDIDATES):
+  raise ImageReadError('IMAGE_SOURCE_MISMATCH','Bounded inbound filename verification required.')
  import image_client
  @contextmanager
  def owned(root):
@@ -186,16 +218,27 @@ def export(driver,j):
     return navigation.verify_session(driver,binding,target['username'])
    return super().preflight(request,target)
  try:
-  try:result=image_client.dispatch(driver.tool(),{'action':'image','peer':j['peer'],'server_id':context['sourceId'],'point':p['imagePoint'],'context_sha256':p['imagePaneSHA256'],'representation':j['payload'].get('representation','original')},ui=SelectedImageUI(driver.root))
-  except ValueError as exc:
-   stage=getattr(exc,'image_export_stage',None)
-   reason='Official image export did not prove the expected source.'
-   if stage in ('viewer','save-control','save-dialog','filename','export','verification'):
-    reason='Official image export failed at '+stage+'.'
-   fingerprint=getattr(exc,'image_toolbar_fingerprint',None)
-   if stage=='save-control' and isinstance(fingerprint,str) and re.fullmatch('[a-f0-9]{64}',fingerprint):
-    reason='Unrecognized save-control toolbar '+fingerprint+'.'
-   raise ImageReadError('IMAGE_EXPORT_NOT_PROVEN',reason+' No bytes returned.',clean=clean(driver,j)) from None
+  for point in points:
+   if hashlib.sha256(screen(driver).crop(tuple(p['imagePane'])).tobytes()).hexdigest()!=p['imagePaneSHA256']:
+    raise ImageReadError('IMAGE_CONTEXT_CHANGED','Frozen message pane changed; no image is opened.')
+   request={'action':'image','peer':j['peer'],'server_id':context['sourceId'],'point':point,
+            'context_sha256':p['imagePaneSHA256'],'representation':j['payload'].get('representation','original')}
+   if filename_probe:request['verify_source_filename']=True
+   try:
+    result=image_client.dispatch(driver.tool(),request,ui=SelectedImageUI(driver.root))
+    break
+   except ValueError as exc:
+    if filename_probe and isinstance(exc,image_client.ImageFilenameMismatch) and clean(driver,j):continue
+    stage=getattr(exc,'image_export_stage',None)
+    reason='Official image export did not prove the expected source.'
+    if stage in ('viewer','save-control','save-dialog','filename','export','verification'):
+     reason='Official image export failed at '+stage+'.'
+    fingerprint=getattr(exc,'image_toolbar_fingerprint',None)
+    if stage=='save-control' and isinstance(fingerprint,str) and re.fullmatch('[a-f0-9]{64}',fingerprint):
+     reason='Unrecognized save-control toolbar '+fingerprint+'.'
+    raise ImageReadError('IMAGE_EXPORT_NOT_PROVEN',reason+' No bytes returned.',clean=clean(driver,j)) from None
+  else:
+   raise ImageReadError('IMAGE_SOURCE_MISMATCH','No official filename matched the original image message.')
  finally:image_client.locked=old
  if not clean(driver,j):raise ImageReadError('IMAGE_CLEANUP_UNPROVEN','Image export windows did not return to the verified initial state.',clean=False)
  visible=j['payload'].get('representation')=='visible'
