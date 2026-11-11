@@ -18,8 +18,24 @@ jobs:
       - run: python -m pip install -r requirements-linux-tests.txt
       - name: Install isolated desktop bootstrap dependencies
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends tigervnc-standalone-server xauth x11-utils websockify novnc socat openbox python3-gi gir1.2-gtk-3.0 python3-pyqt5
+          apt_options=(-o Acquire::ForceIPv4=true -o Acquire::Retries=0
+            -o Acquire::http::Timeout=10 -o Acquire::https::Timeout=10)
+          for mirror in http://azure.archive.ubuntu.com/ubuntu \
+              https://mirror.umd.edu/ubuntu https://mirrors.edge.kernel.org/ubuntu; do
+            if ! curl --ipv4 --fail --silent --show-error --location --max-time 8 \
+                --output /dev/null "$mirror/dists/noble/InRelease"; then
+              continue
+            fi
+            printf '%s\n' "$mirror" | sudo tee /etc/apt/apt-mirrors.txt
+            if sudo apt-get "${apt_options[@]}" update --error-on=any -qq; then
+              sudo apt-get "${apt_options[@]}" install -y --no-install-recommends \
+                tigervnc-standalone-server xauth x11-utils websockify novnc socat \
+                openbox python3-gi gir1.2-gtk-3.0 python3-pyqt5
+              exit $?
+            fi
+          done
+          echo '::error::No Ubuntu mirror provided a current signed Noble package index.'
+          exit 1
       - run: python -B scripts/check.py --linux
       - name: Check isolated trigger experiments without model calls
         run: python -B -m unittest discover -s archive/experiments/triggers/dot_mcp -p 'test_*.py' -v
