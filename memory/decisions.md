@@ -1,5 +1,20 @@
 # Decisions
 
+## Group text readability and original receipts
+
+Use a conservative 300 UTF-16-unit target for new group text via `group_io`,
+not an asserted universal mobile WeChat folding threshold. Preserve the entire
+reply in one immutable ordered V2 batch and report `sent` only after all parts
+are accepted. Full-length replies can widen the budget to remain within V2's
+20-part cap. Keep URLs intact. Phone rendering still needs observation. A
+verified pre-input failure can close a partial reply and release later group
+intake after cleanup. The receipt quotes the accepted prefix and preserves the
+full original digest. Preserve a compatible receiver and reader for these
+records across upgrades and rollback. Reuse and
+limitations: `harness/DESKTOP-WECHAT.md`, `trigger/group_text.py`, and
+`tests/test_group_text_parts.py`. Implementation and synthetic tests do not
+establish deployment or Android/iOS acceptance.
+
 ## D001 — GitHub owns the project history
 
 Keep durable state, decisions and lessons in this repository. Use commits and

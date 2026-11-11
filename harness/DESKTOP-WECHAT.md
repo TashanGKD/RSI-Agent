@@ -114,6 +114,54 @@ otherwise. Actual message text must fit 6000 UTF-8 bytes for groups or 16384 for
 private chat. The API checks fields/types and actual text limits, not JSON
 overhead.
 
+New group text submitted through `trigger.group_io` is split by a conservative
+300 UTF-16-unit readability budget, preferring sentence/paragraph boundaries.
+This is not a Tencent-published threshold or a guarantee against folding on a
+particular Android/iOS version, font size or display. Public searches on
+2026-11-11 did not establish a reproducible universal chat-bubble threshold;
+Moments' line limits, quoted previews and transport byte limits are different.
+Short replies stay unchanged. URLs and common emoji sequences stay intact.
+An indivisible sequence longer than the target may still fold. A space followed
+by a line break inside the reply travels with the next text when split there.
+Separators stay on an adjacent bubble to avoid invalid blank native messages. The
+complete 6000-byte reply limit remains. To fit V2's 20-job cap, a full reply first
+falls back to hard boundaries at 300 units, then widens the budget in 50-unit
+steps only if protected atoms still require it. Thus 300 is a target, not a hard
+per-bubble maximum. Legal full-length replies must not block later group intake
+merely because preferred sentence breaks would create more than 20 parts.
+
+The existing V2 `admit(ordered=true)` transaction freezes all parts and their
+dependencies. The first native request keeps its original ID; later IDs derive
+once from that ID and their part number. No ID changes on retries or restarts.
+Concatenating the frozen part payloads reproduces the full reply exactly. Native
+acceptance retains the existing V2 text-comparison rules, including its explicit
+single-terminal-LF case. Settled multipart receipts carry original ordered
+`native_parts` (request ID, expected text, actual text). The receiver verifies
+their reconstruction and permits only the same terminal-LF difference. `sent`
+requires acceptance of all parts. `partial` records the accepted prefix after
+a proven failure before input, settled navigation, and an unattempted remainder.
+Its unsent parts have `actual_text=null`. The failed original stays in the V2
+ledger with its unsent parts blocked by the dependency, and the group inbox can
+process the next independent request. Uncertain or review-required outcomes
+continue to hold the inbox. Cleanup debt after an accepted part keeps the same
+inbox pending until restored.
+
+Desktop `texts` contains the accepted bubbles in order. `text` joins them with
+blank lines for display and `text_source=native_parts` identifies that rendering.
+Status is read-only and retains the original request ID and full-reply digest.
+Quote each `texts` entry when reporting sent content. Existing single-message
+requests retain their original receipt format.
+
+Deploy the compatible receiver before enabling multipart trigger output.
+Before rolling back the trigger, settle outstanding multipart originals,
+their inbox states and desktop reports with the current code. A verified failed
+dependency can hold an unattempted suffix. Keep the compatible receiver for
+stored multipart receipts and retain the multipart reader for historical V2
+status. The older trigger reads only the first native job of a multipart batch.
+Private replies, media and separate batch-digest senders are outside this path.
+Verify mobile readability on future authorized replies; regression/CI and native
+send acceptance alone cannot establish that the phone did not fold the text.
+
 A chat turn shares its queue with the next WeChat input for that target. Go
 straight to the original packet, bound attachments and completion. For a new
 chat, use the absolute protocol and helper paths supplied by the current handoff.
@@ -142,7 +190,9 @@ the manual flow stays with its original turn.
 For a final ordinary reply, `--wait` checks the same request's delivery for up
 to 18 seconds. In the desktop chat, name the original conversation and the
 message or attachment received in this turn. Then report the outcome. For
-`sent`, quote the exact returned `text`.
+`sent`, quote the exact returned `text` or each native bubble in `texts`.
+For `partial`, report the proven sent count and quote only the accepted bubbles
+in `texts`. The remaining parts are confirmed unsent.
 For `quiet`, say no reply was chosen. For `not_sent`, report that no send
 occurred. For `review`, report that the model result was held before sending.
 Show `pending` as waiting for a receipt and `unknown` as delivery

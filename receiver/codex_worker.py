@@ -23,6 +23,35 @@ def encoded(value):
     return json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(',', ':')).encode()
 
 
+def native_part_texts(receipt, expected):
+    """Validate original group parts without changing the frozen full-reply digest."""
+    parts = receipt.get('native_parts')
+    partial = receipt['state'] == 'partial'
+    if receipt['state'] not in ('sent', 'partial') or not isinstance(parts, list) or not 2 <= len(parts) <= 20:
+        raise ValueError('Completed bounded group parts required.')
+    texts = []
+    for index, part in enumerate(parts):
+        rid = receipt['native_request_id'] + ('-part-' + str(index + 1) if index else '')
+        if (not isinstance(part, dict) or set(part) != {'request_id', 'expected_text', 'actual_text'}
+                or part['request_id'] != rid or not isinstance(part['expected_text'], str)
+                or not part['expected_text'].strip() or '\0' in part['expected_text']):
+            raise ValueError('Original ordered native parts required.')
+        before, after = part['expected_text'], part['actual_text']
+        if partial and after is None:
+            continue
+        if index != len(texts) or not isinstance(after, str) or not after.strip() or '\0' in after:
+            raise ValueError('Accepted native parts must form a prefix.')
+        if (after != before and not (len(before) > 1 and before.endswith('\n')
+                and before[-2] not in '\r\n' and after == before[:-1])):
+            raise ValueError('Native part text differs beyond the V2 terminal-LF rule.')
+        texts.append(after)
+    if partial and not 0 < len(texts) < len(parts):
+        raise ValueError('Partial delivery needs accepted and unsent parts.')
+    if ''.join(p['expected_text'] for p in parts) != expected:
+        raise ValueError('Native parts do not reconstruct the frozen original.')
+    return texts
+
+
 def validate(value):
     if (set(value) != {'id', 'mode', 'scope', 'request', 'messages', 'schema'}
             or not re.fullmatch('[a-f0-9]{64}', value['id'])
@@ -249,8 +278,8 @@ class Jobs:
         return {'id': value['id'], 'state': 'completed'}
 
     def report_delivery(self, value):
-        if (set(value) != {'id', 'state', 'native_request_id', 'reply_sha256', 'code'}
-                or value['state'] not in ('sent', 'not_sent', 'unknown', 'quiet')
+        if (set(value) - {'native_parts'} != {'id', 'state', 'native_request_id', 'reply_sha256', 'code'}
+                or value['state'] not in ('sent', 'partial', 'not_sent', 'unknown', 'quiet')
                 or value['code'] is not None and not re.fullmatch('[A-Z0-9_]{1,80}', value['code'])):
             raise ValueError('Bounded native delivery receipt required.')
         with self.connect() as db:
@@ -264,6 +293,7 @@ class Jobs:
             decision = json.loads(row['result']) if body['schema'] is not None else {}
             account, peer = body['scope']
             group = peer.endswith('@chatroom')
+            expected = None
             if value['state'] == 'quiet':
                 if (not group or decision.get('speak') is not False or decision.get('work_index') is not None
                         or value['native_request_id'] is not None or value['reply_sha256'] is not None):
@@ -271,19 +301,23 @@ class Jobs:
             else:
                 native = hashlib.sha256('\0'.join((account, peer, body['request'][-1])).encode()).hexdigest()
                 clients = ('rsi-group',) if group else ('rsi-owner', 'rsi-friend')
+                expected = next((text for text in delivery_texts(body, row['result']) if text and text.strip()
+                    and hashlib.sha256(text.encode()).hexdigest() == value['reply_sha256']), None)
                 if (decision.get('speak') is False or decision.get('engineering') is True
                         or decision.get('work_index') is not None
                         or value['native_request_id'] not in {client + '-' + native for client in clients}
-                        or not any(text and text.strip()
-                                   and value['reply_sha256'] == hashlib.sha256(text.encode()).hexdigest()
-                                   for text in delivery_texts(body, row['result']))):
+                        or expected is None):
                     raise ValueError('Native request and reply digest must match the original.')
+            if 'native_parts' in value or value['state'] == 'partial':
+                if not group or value['state'] not in ('sent', 'partial'):
+                    raise ValueError('Native parts are only for completed group text.')
+                native_part_texts(value, expected)
             old = db.execute('SELECT receipt FROM delivery_receipts WHERE id=?', (value['id'],)).fetchone()
             if old:
                 previous = json.loads(old['receipt'])
                 if previous == value:
                     return {'state': 'recorded'}
-                if (previous['state'] != 'unknown' or value['state'] not in ('sent', 'not_sent')
+                if (previous['state'] != 'unknown' or value['state'] not in ('sent', 'partial', 'not_sent')
                         or previous['native_request_id'] != value['native_request_id']
                         or previous['reply_sha256'] != value['reply_sha256']):
                     raise ValueError('Recorded native outcome cannot be replaced.')
@@ -302,12 +336,16 @@ class Jobs:
             state = 'review' if link_reply_text(body, row['result']) is None else 'pending'
             return {'id': identity, 'state': state}
         receipt = json.loads(proof['receipt'])
-        if receipt['state'] == 'sent':
+        if receipt['state'] in ('sent', 'partial'):
             text = next((text for text in delivery_texts(body, row['result']) if text is not None
                          and hashlib.sha256(text.encode()).hexdigest() == receipt['reply_sha256']), None)
             if text is None:
                 raise ValueError('Recorded native text does not match its digest.')
             receipt['text'] = text
+            if 'native_parts' in receipt or receipt['state'] == 'partial':
+                receipt['texts'] = native_part_texts(receipt, text)
+                receipt['text'] = '\n\n'.join(receipt['texts'])
+                receipt['text_source'] = 'native_parts'
         return receipt
 
     def counts(self):

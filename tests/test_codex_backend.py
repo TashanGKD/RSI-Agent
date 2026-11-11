@@ -85,6 +85,69 @@ for line in sys.stdin:
 
 
 class DesktopRelayTests(unittest.TestCase):
+    def test_group_parts_show_actual_native_text_without_changing_original_digest(self):
+        with tempfile.TemporaryDirectory() as td:
+            jobs = Jobs(td)
+            request = dict(packet(), scope=['self', 'group@chatroom'])
+            original = jobs.accept(request)
+            jobs.update(request['id'], state='desktop_queued', thread_id=THREAD, desktop_message_id=MESSAGE)
+            text = 'First paragraph.\nSecond paragraph.'
+            jobs.complete_desktop({'id': request['id'], 'input_sha256': original['digest'],
+                'thread_id': THREAD, 'turn_id': 'original-turn', 'text': text}, THREAD)
+            rid = 'rsi-group-' + hashlib.sha256('\0'.join((*request['scope'], '42')).encode()).hexdigest()
+            parts = [{'request_id': rid, 'expected_text': 'First paragraph.\n', 'actual_text': 'First paragraph.'},
+                     {'request_id': rid + '-part-2', 'expected_text': 'Second paragraph.', 'actual_text': 'Second paragraph.'}]
+            receipt = {'id': request['id'], 'state': 'sent', 'native_request_id': rid,
+                       'reply_sha256': hashlib.sha256(text.encode()).hexdigest(), 'code': None, 'native_parts': parts}
+            for wrong in ([dict(parts[0], actual_text='Different text'), parts[1]],
+                          [parts[0], dict(parts[1], request_id=rid + '-part-3')],
+                          [parts[0], dict(parts[1], expected_text='Changed original')],
+                          [parts[0]], parts[::-1]):
+                with self.assertRaises(ValueError):
+                    jobs.report_delivery(dict(receipt, native_parts=wrong))
+            with self.assertRaises(ValueError):
+                jobs.report_delivery(dict(receipt, state='unknown'))
+            self.assertEqual(jobs.report_delivery(receipt), {'state': 'recorded'})
+            self.assertEqual(jobs.report_delivery(receipt), {'state': 'recorded'})
+            shown = jobs.desktop_delivery(request['id'], THREAD, 'original-turn', THREAD)
+            self.assertEqual(shown['texts'], ['First paragraph.', 'Second paragraph.'])
+            self.assertEqual(shown['text'], 'First paragraph.\n\nSecond paragraph.')
+            self.assertEqual(shown['text_source'], 'native_parts')
+            self.assertEqual(shown['reply_sha256'], hashlib.sha256(text.encode()).hexdigest())
+            self.assertEqual(jobs.get(request['id'])['result'], text)
+
+    def test_partial_group_receipt_displays_only_the_proven_native_prefix(self):
+        with tempfile.TemporaryDirectory() as td:
+            jobs = Jobs(td)
+            request = dict(packet(), scope=['self', 'group@chatroom'])
+            original = jobs.accept(request)
+            jobs.update(request['id'], state='desktop_queued', thread_id=THREAD, desktop_message_id=MESSAGE)
+            text = 'First.\nSecond.\nThird.'
+            jobs.complete_desktop({'id': request['id'], 'input_sha256': original['digest'],
+                'thread_id': THREAD, 'turn_id': 'original-turn', 'text': text}, THREAD)
+            rid = 'rsi-group-' + hashlib.sha256('\0'.join((*request['scope'], '42')).encode()).hexdigest()
+            parts = [{'request_id': rid, 'expected_text': 'First.\n', 'actual_text': 'First.'},
+                     {'request_id': rid + '-part-2', 'expected_text': 'Second.\n', 'actual_text': None},
+                     {'request_id': rid + '-part-3', 'expected_text': 'Third.', 'actual_text': None}]
+            unknown = {'id': request['id'], 'state': 'unknown', 'native_request_id': rid,
+                       'reply_sha256': hashlib.sha256(text.encode()).hexdigest(), 'code': None}
+            jobs.report_delivery(unknown)
+            partial = dict(unknown, state='partial', code='SEARCH_SELECTION_UNPROVEN', native_parts=parts)
+            for invalid in (dict(unknown, state='partial'), dict(partial, state='sent'),
+                            dict(partial, native_parts=[*parts[:2], dict(parts[2], actual_text='Third.')]),
+                            dict(partial, native_parts=[dict(parts[0], actual_text=None), *parts[1:]]),
+                            dict(partial, native_parts=parts[:2])):
+                with self.assertRaises(ValueError):
+                    jobs.report_delivery(invalid)
+            self.assertEqual(jobs.report_delivery(partial), {'state': 'recorded'})
+            self.assertEqual(jobs.report_delivery(partial), {'state': 'recorded'})
+            with self.assertRaises(ValueError):
+                jobs.report_delivery(unknown)
+            shown = jobs.desktop_delivery(request['id'], THREAD, 'original-turn', THREAD)
+            self.assertEqual((shown['state'], shown['text'], shown['texts']), ('partial', 'First.', ['First.']))
+            self.assertEqual(shown['reply_sha256'], unknown['reply_sha256'])
+            self.assertEqual(jobs.get(request['id'])['result'], text)
+
     def test_old_link_delivery_keeps_the_recorded_raw_payload(self):
         with tempfile.TemporaryDirectory() as td:
             jobs = Jobs(td)

@@ -17,7 +17,8 @@ description: Use when an RSI Agent WeChat reply session hits a missing image, li
      实际轮次；轮次缺失保留为待复核。
    - **发送**从该轮冻结结果查到原 V2。沿协议的 `desktop_reply status` 查询
      同一 ID、会话和轮次。`pending` 表示等待回执，`unknown` 表示结果待确认，
-     `not_sent` 表示未发送；`sent` 才能报告已发送并引用该回执返回的原文。
+     `not_sent` 表示未发送，`sent` 表示整条已发送。`partial` 表示部分已发送，
+     说明已发段数并逐段引用 `texts`，剩余段已确认未发。
      `quiet` 保留为本轮静默决定。图片、文件和原生表情各按实际载体核验。
 2. 在当前已授权范围试一条可验证的做法。例如在本人已授权生成且找不到贴切素材时，
    按语境做一张。普通聊天的权限以原包为准。需要改代码或操作客户端时，按原协议
