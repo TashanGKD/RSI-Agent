@@ -391,7 +391,7 @@ class GroupTests(unittest.TestCase):
         self.assertEqual(loop.cycle()['state'], 'idle')
         self.model.engineer.assert_called_once()
 
-    def test_owner_links_supply_observed_text_but_other_members_cannot_start_fetches(self):
+    def test_group_member_public_links_supply_observed_text(self):
         self.model.backend = 'local-codex'
         self.model.engineering = True
         self.group['owner_peer'] = 'owner'
@@ -407,10 +407,12 @@ class GroupTests(unittest.TestCase):
         self.assertNotIn('linked_pages', data['new_messages'][0])
         self.model.read_pages.assert_called_once_with([page])
         self.assertEqual(loop.cycle()['state'], 'sent')
-        self.batch['events'] = [self.event(2, sender='member', sender_name='Owner', text='Read https://example.com/private')]
-        with patch('trigger.group_reply.linked_pages') as read:
+        self.batch['events'] = [self.event(2, sender='member', sender_name='FZR',
+            text='刚刚分享 https://example.com/public')]
+        with patch('trigger.group_reply.linked_pages', return_value=[page]) as read:
             self.assertEqual(loop.cycle()['state'], 'pending')
-        read.assert_not_called()
+        read.assert_called_once()
+        self.model.read_pages.assert_called_with([page])
 
     def test_group_member_bilibili_is_context_in_the_original_quiet_decision(self):
         self.model.backend = 'local-codex'

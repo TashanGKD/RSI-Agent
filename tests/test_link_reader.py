@@ -104,6 +104,16 @@ class LinkReaderTests(unittest.TestCase):
                         '<html><body>navigation<div id="js_content"></div></body></html>']:
             self.assertEqual(content(url, blocked.encode())['state'], 'unavailable')
 
+    def test_wechat_rich_media_content_class_is_extracted(self):
+        url = 'https://mp.weixin.qq.com/s/fixture-rich'
+        html = ('<html><head><meta property="og:title" content="Rich title"></head><body>'
+                '<div class="rich_media_content rich_media_content_full"><p>正文段落</p>'
+                '<p>第二段</p></div></body></html>')
+        result = content(url, html.encode())
+        self.assertEqual(result['state'], 'ready')
+        self.assertEqual(result['title'], 'Rich title')
+        self.assertIn('正文段落', result['text'])
+
     def test_only_bounded_current_https_links_and_real_link_cards_are_selected(self):
         self.assertEqual(urls('read https://example.com/a。 https://example.com/a https://example.com/b'),
                          ['https://example.com/a', 'https://example.com/b'])

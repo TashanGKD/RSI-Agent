@@ -176,8 +176,7 @@ class GroupLoop(ReplyLoop):
         for row, event in zip(rows, events):
             event['kind'] = row['kind']
             pages = []
-            if (event['sender'] == self.owner.get('owner_peer')
-                    and (row['kind'] == 1 or 'quote' in event or row['link_url'])):
+            if (row['kind'] == 1 or 'quote' in event or row['link_url']):
                 pages = linked_pages(self.db, row['id'], event['text'], row['link_url'])
             elif video := video_link(event['text'], row['link_url']):
                 pages = linked_pages(self.db, row['id'], event['text'], video)

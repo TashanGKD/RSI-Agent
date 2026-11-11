@@ -103,7 +103,12 @@ class Page(HTMLParser):
         attrs = dict(attrs)
         if self.wechat and tag == 'meta' and attrs.get('property') == 'og:title':
             self.article_title = attrs.get('content') or ''
-        selected = attrs.get('id') == 'js_content' or (not self.wechat and tag in ('main', 'article'))
+        classes = set((attrs.get('class') or '').split())
+        wechat_body = {'js_content', 'rich_media_content', 'rich_media_content_full'}
+        selected = (self.wechat and
+                    (attrs.get('id') in {'js_content', 'page-content'}
+                     or bool(classes & wechat_body)))
+        selected = selected or (not self.wechat and tag in ('main', 'article'))
         self.stack.append((tag, selected))
         if len(self.stack) > 256:
             raise ValueError('HTML nesting limit exceeded.')
