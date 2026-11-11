@@ -152,6 +152,20 @@ class GroupTests(unittest.TestCase):
         self.assertEqual(loop.cycle()['state'], 'sent')
         self.assertEqual(list(self.effects), ['1'])
 
+    def test_pending_batch_reports_age_without_message_content(self):
+        loop = self.loop()
+        with loop.db:
+            loop.db.execute(
+                "INSERT INTO inbox(id,created,text,follows_self,kind,link_url,state) "
+                "VALUES(?,?,?,?,?,?,?)",
+                ('9', __import__('time').time() - 12, '{"text":"private"}', 0, 1, None, 'new'))
+            loop.save('model_batch', '["9"]')
+        report = loop.pending_batch()
+        self.assertEqual(report['state'], 'waiting_for_codex')
+        self.assertEqual((report['count'], report['ids']), (1, ['9']))
+        self.assertGreaterEqual(report['age_seconds'], 12)
+        self.assertNotIn('private', json.dumps(report))
+
     def test_publication_wait_preserves_original_owner_batch_when_another_message_arrives(self):
         self.model.backend = 'local-codex'
         self.model.engineering = True
