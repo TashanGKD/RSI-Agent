@@ -274,6 +274,14 @@ class GroupLoop(ReplyLoop):
             else:
                 result = self.model.complete(messages, json_output=True)
                 decision = json.loads(result['message']['content'])
+                expected = {'speak', 'text', 'work_index'} if engineering else {'speak', 'text'}
+                if (set(decision) != expected or type(decision['speak']) is not bool
+                        or not isinstance(decision['text'], str) or '\0' in decision['text']
+                        or len(decision['text'].encode()) > 6000
+                        or (decision['speak'] and decision.get('work_index') is None and not decision['text'].strip())):
+                    raise ValueError('Invalid text-only participation decision.')
+                if pages and decision.get('work_index') is None:
+                    decision['text'] = self.model.read_pages(pages)
         except OriginalReview:
             # This chat request has no native send or engineering effect.
             with self.db:
@@ -282,13 +290,6 @@ class GroupLoop(ReplyLoop):
                 self.db.execute("DELETE FROM participation WHERE k='model_batch'")
             return {'state': 'model_review', 'counts': self.counts()}
         work = decision.get('work_index')
-        if not direct_article:
-            expected = {'speak', 'text', 'work_index'} if engineering else {'speak', 'text'}
-            if (set(decision) != expected or type(decision['speak']) is not bool
-                    or not isinstance(decision['text'], str) or '\0' in decision['text']
-                    or len(decision['text'].encode()) > 6000
-                    or (decision['speak'] and work is None and not decision['text'].strip())):
-                raise ValueError('Invalid text-only participation decision.')
         if work is not None:
             if (type(work) is not int or not 0 <= work < len(events)
                     or not events[work]['owner'] or events[work]['kind'] != 1):
@@ -299,7 +300,7 @@ class GroupLoop(ReplyLoop):
                 raise ValueError('Bounded completed owner work result required.')
             decision.update(speak=True, text=reply)
         elif pages:
-            reply = decision['text'] if direct_article else self.model.read_pages(pages)
+            reply = decision['text']
             if not isinstance(reply, str) or not reply.strip() or '\0' in reply or len(reply.encode()) > 6000:
                 raise ValueError('Bounded completed page-reading result required.')
             decision.update(speak=True, text=reply)

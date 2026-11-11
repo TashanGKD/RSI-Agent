@@ -105,6 +105,10 @@ Honor body.schema in the private completion:
   Otherwise null. Quiet decisions send nothing; do not acknowledge every message.
 - No schema: return bounded plain text from the supplied material.
 
+A link-reading turn can echo an earlier routing object. The receiver sends only
+the speaking object's `text` to the trigger, keeping the frozen completion intact.
+A routing object without a sendable answer is held for review.
+
 Completion.text is a serialized JSON string for schema decisions and plain text
 otherwise. Actual message text must fit 6000 UTF-8 bytes for groups or 16384 for
 private chat. The API checks fields/types and actual text limits, not JSON
@@ -140,7 +144,8 @@ to 18 seconds. In the desktop chat, name the original conversation and the
 message or attachment received in this turn. Then report the outcome. For
 `sent`, quote the exact returned `text`.
 For `quiet`, say no reply was chosen. For `not_sent`, report that no send
-occurred. Show `pending` as waiting for a receipt and `unknown` as delivery
+occurred. For `review`, report that the model result was held before sending.
+Show `pending` as waiting for a receipt and `unknown` as delivery
 requiring confirmation. Acceptance
 by the completion API is only an acknowledgement of the reply text.
 
