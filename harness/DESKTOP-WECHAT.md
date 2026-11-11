@@ -114,6 +114,29 @@ otherwise. Actual message text must fit 6000 UTF-8 bytes for groups or 16384 for
 private chat. The API checks fields/types and actual text limits, not JSON
 overhead.
 
+New group text submitted through `trigger.group_io` is split by a conservative
+300 UTF-16-unit readability budget, preferring sentence/paragraph boundaries.
+This is not a Tencent-published threshold or a guarantee against folding on a
+particular Android/iOS version, font size or display. Public searches on
+2026-11-11 did not establish a reproducible universal chat-bubble threshold;
+Moments' line limits, quoted previews and transport byte limits are different.
+Short replies stay unchanged. URLs and common emoji sequences stay intact;
+an indivisible URL longer than the budget occupies its own bubble and may still
+fold. The complete 6000-byte reply limit remains. More than 20 parts, an empty
+display part or an oversized non-URL sequence is held before admission.
+
+The existing V2 `admit(ordered=true)` transaction freezes all parts and their
+dependencies. The first native request keeps its original ID; later IDs derive
+once from that ID and their part number. No ID changes on retries or restarts.
+Concatenating the native texts reproduces the frozen full reply exactly. Status
+retains its original request ID/full-text SHA and includes each part's receipt;
+only acceptance of every part permits an overall `sent`. Partial failure or
+unknown results stop later parts; cleanup debt also blocks advancement. Status
+is read-only. Existing single-message requests are never retrofitted or replayed.
+Private replies, media and separate batch-digest senders are outside this path.
+Verify mobile readability on future authorized replies; regression/CI and native
+send acceptance alone cannot establish that the phone did not fold the text.
+
 A chat turn shares its queue with the next WeChat input for that target. Go
 straight to the original packet, bound attachments and completion. For a new
 chat, use the absolute protocol and helper paths supplied by the current handoff.

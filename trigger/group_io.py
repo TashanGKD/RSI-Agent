@@ -9,7 +9,7 @@ import time
 from xml.etree import ElementTree as ET
 
 from rsi_agent.config import WECHAT_LINUX, load
-from .reply_io import advance, original_status, status
+from .reply_io import advance
 from rsi_agent.wechat import environment, private_file
 
 CLIENT = 'rsi-group'
@@ -230,15 +230,9 @@ def handle(installation, value, request):
             text = request['text']
             if not isinstance(text, str) or not text.strip() or '\0' in text or len(text.encode()) > 6000:
                 raise ValueError('Short group text required.')
-            return status(api.call({'op': 'submit', 'job': {'client': CLIENT, 'request_id': rid,
-                'peer': value['group_peer'], 'action': 'send_text', 'payload': {'text': text},
-                'execution_mode': 'verified_fast'}}))
-        job = api.s.get(CLIENT, rid)
-        if job['peer'] != value['group_peer'] or job['action'] != 'send_text':
-            raise ValueError('Original group request changed.')
-        if op == 'status':
-            return original_status(api, job, CLIENT)
-        return advance(api, job, policy)
+        from . import group_text
+        return group_text.handle(api, CLIENT, rid, value['group_peer'], op,
+                                 request.get('text'), policy, advance)
     finally:
         api.close()
 
