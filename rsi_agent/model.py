@@ -15,6 +15,10 @@ class ModelError(ValueError):
 class PublicationPending(ModelError):
     """The original Codex request is waiting for completion or transport."""
 
+    def __init__(self, *args, desktop_queue_age_seconds=None):
+        super().__init__(*args)
+        self.desktop_queue_age_seconds = desktop_queue_age_seconds
+
 
 class OriginalReview(ModelError):
     """The worker retained the original request for review instead of retrying."""

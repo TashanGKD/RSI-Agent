@@ -297,6 +297,7 @@ class GroupLoop(ReplyLoop):
         # A single owner card can only request a reply. Resume any already frozen routing.
         direct_article = (bool(pages) and len(events) == 1 and 'article_url' in events[0]
                           and not self.model.has_original_input(identities))
+        link_followup = False
         try:
             if direct_article:
                 decision = {'speak': True, 'text': self.model.read_pages(pages, messages)}
@@ -310,9 +311,17 @@ class GroupLoop(ReplyLoop):
                         or (decision['speak'] and decision.get('work_index') is None and not decision['text'].strip())):
                     raise ValueError('Invalid text-only participation decision.')
                 if pages and decision.get('work_index') is None:
+                    link_followup = True
                     decision['text'] = self.model.read_pages(pages)
-        except OriginalReview:
-            # This chat request has no native send or engineering effect.
+        except (OriginalReview, PublicationPending) as error:
+            if isinstance(error, PublicationPending):
+                age = error.desktop_queue_age_seconds
+                if not link_followup or age is None or age < REPLY_TTL:
+                    raise
+                if not self.db.execute("SELECT 1 FROM inbox WHERE state='new' AND (created,id)>(?,?) LIMIT 1",
+                                       (rows[-1]['created'], rows[-1]['id'])).fetchone():
+                    raise
+            # Keep the original request available for review and release the group batch.
             with self.db:
                 self.db.executemany("UPDATE inbox SET state='model_review' WHERE id=? AND state='new'",
                                     [(row['id'],) for row in rows])

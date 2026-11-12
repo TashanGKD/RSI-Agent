@@ -687,6 +687,9 @@ def server(config, jobs, draining, executable=None):
                 if state == 'completed':
                     text = link_reply_text(value, row['result'])
                     return self.answer(200, {'state': 'review'} if text is None else {'state': state, 'text': text})
+                if state == 'desktop_queued' and row['desktop_message_id'] and row['thread_id']:
+                    return self.answer(202, {'state': state,
+                        'desktop_queue_age_seconds': max(0, time.time() - row['updated'])})
                 self.answer(202 if state in ('queued', 'starting', 'running', 'desktop_submitting', 'desktop_queued') else 200,
                     {'state': state})
             except (ValueError, TypeError, KeyError):
