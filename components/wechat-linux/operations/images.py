@@ -1,7 +1,7 @@
 """Conservative native-context image reads via the existing host/UI executor.
 No model, caller pointer, raw XML output, private CDN/key handling or new queue.
 """
-import base64,hashlib,io,json,re,time
+import base64,hashlib,io,json,re,subprocess,time
 from collections import Counter
 from contextlib import contextmanager
 from .runtime import BeforeEffect
@@ -184,6 +184,43 @@ def clean(driver,j):
  try:return bool(expected and driver.app_windows()==expected)
  except Exception:return False
 
+def restore_auxiliary_window(driver,j,require_guard):
+ """Hide only an AppEx window newly mapped during this guarded image probe."""
+ from pathlib import Path
+ from image_client import Controls
+ from . import navigation
+ from .lease import birth
+ from .windows import window_identity
+ expected=j['preview']['imageWindows']
+ nav=navigation.load(driver.root,j)
+ if not nav or nav['state']!='started' or nav['beforeWindows']!=expected:return False
+ try:
+  windows=driver.app_windows()
+  added=[w for w in windows if w not in expected]
+  if len(added)!=1 or any(w not in windows for w in expected):return False
+  window=added[0];host=nav['mainIdentity']
+  if window['title']!='WeChat' or nav['main'] not in expected:return False
+  if window_identity(nav['main'])!=host or birth(host['pid'])!=nav['processBirth']:return False
+  def auxiliary():
+   props=subprocess.run(['xprop','-id',window['id'],'WM_CLASS','_NET_WM_PID'],
+                        capture_output=True,text=True,check=True,timeout=3).stdout
+   match=re.fullmatch(r'WM_CLASS\(STRING\) = "com\.tencent\.wechatappex", "WeChatAppEx"\n_NET_WM_PID\(CARDINAL\) = ([1-9][0-9]{0,9})\n',props)
+   if not match:return None
+   pid=int(match[1]);fields=Path(f'/proc/{pid}/stat').read_text().rsplit(')',1)[1].split()
+   return (pid,fields[19]) if int(fields[1])==host['pid'] else None
+  identity=auxiliary()
+  if not identity:return False
+  control=Controls(driver.root.parent)
+  try:
+   require_guard()
+   if driver.app_windows()!=windows or auxiliary()!=identity:return False
+   control.set_mapped(window,False)
+   if clean(driver,j):return True
+   if auxiliary()==identity:control.set_mapped(window,True)
+   return False
+  finally:control.close()
+ except (OSError,ValueError,IndexError,subprocess.SubprocessError):return False
+
 def export(driver,j):
  if (j.get('preview') or {}).get('verifiedImageSourceRecipe'):
   from .image_verified import export as qualified_export
@@ -230,6 +267,8 @@ def export(driver,j):
    except ValueError as exc:
     if filename_probe and isinstance(exc,image_client.ImageFilenameMismatch) and clean(driver,j):continue
     stage=getattr(exc,'image_export_stage',None)
+    if filename_probe and stage=='viewer':
+     restore_auxiliary_window(driver,j,require_guard)
     reason='Official image export did not prove the expected source.'
     if stage in ('viewer','save-control','save-dialog','filename','export','verification'):
      reason='Official image export failed at '+stage+'.'

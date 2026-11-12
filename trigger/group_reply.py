@@ -80,22 +80,26 @@ class GroupLoop(ReplyLoop):
 
     def recycle_expired(self):
         cutoff = time.time() - REPLY_TTL
-        stale = {row[0] for row in self.db.execute(
-            "SELECT id FROM inbox WHERE state='new' AND reply IS NULL AND desktop_job IS NULL "
-            "AND created>=? AND created<?", (self.recycle_since, cutoff))}
+        stale = dict(self.db.execute(
+            "SELECT id,kind FROM inbox WHERE state='new' AND reply IS NULL AND desktop_job IS NULL "
+            "AND created>=? AND created<?", (self.recycle_since, cutoff)))
         if not stale:
             return
         active = set(json.loads(self.value('model_batch', '[]')))
         # A frozen batch is indivisible. Wait until every member is expired.
-        expired_batch = bool(active) and active <= stale
+        expired_batch = bool(active) and active <= stale.keys()
         if expired_batch and self.images and getattr(self.model, 'engineering', False) is True:
             expired_batch = not any(self.model.has_original_input([key], mode='engineering') for key in active)
+        retired = stale.keys() if expired_batch else stale.keys() - active
+        if self.images:
+            for key in sorted(retired):
+                if stale[key] == 3:
+                    self.io({'op': 'recycle_image', 'server_id': key})
         with self.db:
             if expired_batch:
                 self.db.execute("DELETE FROM participation WHERE k='model_batch'")
-                active.clear()
             self.db.executemany("UPDATE inbox SET state='recycled' WHERE id=?",
-                                [(key,) for key in stale - active])
+                                [(key,) for key in retired])
 
     def cycle(self):
         self.flush_delivery()

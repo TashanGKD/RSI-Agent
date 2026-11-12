@@ -192,6 +192,7 @@ def handle(installation, value, request):
         raise ValueError('Invited group scope changed.')
     request = {k: v for k, v in request.items() if k != '_binding'}
     fields = {'read': {'op'}, 'context': {'op'}, 'image': {'op', 'server_id'}, 'pdf': {'op', 'server_id'},
+        'recycle_image': {'op', 'server_id'},
         'ack': {'op', 'batch_id', 'batch_hash', 'ack_ids'},
         'submit': {'op', 'server_id', 'text'}, 'advance': {'op', 'server_id'}, 'status': {'op', 'server_id'}}
     op = request.get('op')
@@ -204,6 +205,10 @@ def handle(installation, value, request):
     if op == 'image':
         from .media_io import image
         return image(root, value['account'], value['group_peer'], request['server_id'], set(members) - {value['account']})
+    if op == 'recycle_image':
+        from .media_io import cancel_queued_image
+        cancel_queued_image(root, value['account'], value['group_peer'], request['server_id'])
+        return {'state': 'recycled'}
     if op == 'pdf':
         from .media_io import pdf
         return pdf(value['account'], value['group_peer'], request['server_id'],

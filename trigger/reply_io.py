@@ -145,6 +145,9 @@ def original_status(api, job, client):
 def failed_before_input(store, job, client):
     from operations import navigation
     result = job.get('result') or {}
+    if job['state'] == 'cancelled' and job['client'] == client and job['action'] == 'send_text':
+        from .group_text import untouched_part
+        return untouched_part(store, job)
     if (job['state'] != 'failed' or job['client'] != client or job['action'] != 'send_text'
             or job.get('preview') is not None or result.get('noSend') is not True
             or result.get('sideEffectStarted') is not False
