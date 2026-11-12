@@ -139,22 +139,28 @@ def locate_visible(image,box,rows,context,*,message_pane=None,required_pixel=Non
   raise ImageReadError('IMAGE_CANDIDATE_AMBIGUOUS','Exactly one complete substantial image card must match the proven range.')
  return candidates[0][0]
 
-MAX_FILENAME_CANDIDATES=3
+MAX_INBOUND_CANDIDATES=3
 
-def filename_candidates(image,box):
- # A thumbnail's dimensions can differ from the official client's rendered card.
- # Inspect only complete substantial cards. The Save dialog will prove the source.
+def inbound_candidates(image,box,context):
+ # A message at the top can still open the official viewer. Geometry only
+ # selects where to click; the exported file must independently prove its source.
  l,t,r,b=box
- bounds=[(x0,y0,x1,y1) for x0,y0,x1,y1,_,_ in _components(image,box)
-         if l<x0 and t<y0 and x1<r-1 and y1<b-1 and y1-y0>=60 and x1-x0<=4*(y1-y0)]
- bounds.sort(key=lambda v:((v[2]-v[0])*(v[3]-v[1]),v[1]),reverse=True)
- outer=[]
- for x0,y0,x1,y1 in bounds:
-  if not any(a<=x0 and b<=y0 and c>=x1 and d>=y1 for a,b,c,d in outer):
-   outer.append((x0,y0,x1,y1))
- if not 1<=len(outer)<=MAX_FILENAME_CANDIDATES:
-  raise ImageReadError('IMAGE_CANDIDATE_AMBIGUOUS','No bounded set of complete image candidates.')
- return [[(x0+x1)//2,(y0+y1)//2] for x0,y0,x1,y1 in outer]
+ width,height=context.get('thumbnailWidth'),context.get('thumbnailHeight')
+ expected=width/height if width and height else None
+ candidates=[]
+ for x0,y0,x1,y1,_,_ in _components(image,box):
+  w,h=x1-x0,y1-y0
+  if not (l<x0 and x1<r-1 and y1<b-1 and h>=60 and w<=4*h):continue
+  complete=y0>t
+  shape_matches=expected and .8*expected<=w/h<=1.2*expected
+  if complete:
+   rank=0 if shape_matches else 2
+  else:
+   rank=1 if expected and w/h>1.2*expected else 3
+  candidates.append((rank,-w*h,-y1,[(x0+x1)//2,(y0+y1)//2]))
+ if not candidates:
+  raise ImageReadError('IMAGE_CANDIDATE_AMBIGUOUS','No visible image candidate within the calibrated pane.')
+ return [point for _,_,_,point in sorted(candidates)[:MAX_INBOUND_CANDIDATES]]
 
 def prepare(driver,j):
  from . import image_verified
@@ -166,13 +172,13 @@ def prepare(driver,j):
  context=load_context(driver,j);navigation.begin(driver,j);driver._select(j);w=main_window(driver)
  if (w['width'],w['height']) not in ((905,667),(623,667)):raise ImageReadError('UNSUPPORTED_IMAGE_LAYOUT','A calibrated official main or conversation window is required.')
  cfg=driver.binding(j['peer']);pane=[cfg['header_box'][0],cfg['header_box'][3]+1,cfg['header_box'][2],cfg['editor'][1]-34];body=[pane[0]+60,pane[1],pane[2]-75,pane[3]]
- image=screen(driver);observed=rows(driver,body,contrast=160)
- try:points={'imagePoint':locate_visible(image,body,observed,context,message_pane=pane)}
- except ImageReadError as exc:
-  if (exc.code not in ('IMAGE_CANDIDATE_AMBIGUOUS','IMAGE_CANDIDATE_CLIPPED')
-      or context.get('sourceMode')!='inbound' or j['payload'].get('representation')!='visible'):raise
-  points={'imageFilenamePoints':filename_candidates(image,body)}
- # OCR must not race a changed message pane.
+ image=screen(driver)
+ if context.get('sourceMode')=='inbound' and j['payload'].get('representation')=='visible':
+  points={'imageSourcePoints':inbound_candidates(image,pane,context)}
+ else:
+  observed=rows(driver,body,contrast=160)
+  points={'imagePoint':locate_visible(image,body,observed,context,message_pane=pane)}
+ # Do not bind a changed message pane to a frozen candidate.
  pane_hash=hashlib.sha256(image.crop(tuple(pane)).tobytes()).hexdigest()
  if hashlib.sha256(screen(driver).crop(tuple(pane)).tobytes()).hexdigest()!=pane_hash:raise ImageReadError('IMAGE_CONTEXT_CHANGED','Message pane changed during preparation.')
  return dict(driver.screenshot(j),imageRecipe=True,programRecipe=True,uiBinding=dict(cfg),imageContext=context,imagePane=pane,**points,imagePaneSHA256=pane_hash,imageWindows=driver.app_windows(),context=digest(context),summary={'peer':j['peer'],'action':'save_attachment','source_id':context['sourceId'],'sender':context['sender'],'nativeMD5':context['nativeMD5'],'origin':'official-client-save-as-programmatic','cacheReused':False,'messagesSent':0})
@@ -230,11 +236,13 @@ def export(driver,j):
  p=j['preview'];context=load_context(driver,j)
  if digest(context)!=p['context'] or context['peer']!=j['peer']:raise ImageReadError('IMAGE_CONTEXT_CHANGED','Native image context differs from the frozen request.')
  if not clean(driver,j):raise ImageReadError('IMAGE_CONTEXT_CHANGED','Official windows changed since the final preview.',clean=False)
- filename_probe='imageFilenamePoints' in p
- points=p['imageFilenamePoints'] if filename_probe else [p['imagePoint']]
- if filename_probe and (context.get('sourceMode')!='inbound' or j['payload'].get('representation')!='visible'
-                        or not isinstance(points,list) or not 1<=len(points)<=MAX_FILENAME_CANDIDATES):
-  raise ImageReadError('IMAGE_SOURCE_MISMATCH','Bounded inbound filename verification required.')
+ # Only frozen previews still carry the legacy filename-only probe.
+ legacy_probe='imageFilenamePoints' in p
+ source_probe=legacy_probe or 'imageSourcePoints' in p
+ points=p.get('imageSourcePoints',p.get('imageFilenamePoints')) if source_probe else [p['imagePoint']]
+ if source_probe and (context.get('sourceMode')!='inbound' or j['payload'].get('representation')!='visible'
+                      or not isinstance(points,list) or not 1<=len(points)<=MAX_INBOUND_CANDIDATES):
+  raise ImageReadError('IMAGE_SOURCE_MISMATCH','Bounded inbound source verification required.')
  import image_client
  held=driver.fds;expected=driver.lease
  def require_guard():
@@ -260,14 +268,14 @@ def export(driver,j):
     raise ImageReadError('IMAGE_CONTEXT_CHANGED','Frozen message pane changed; no image is opened.')
    request={'action':'image','peer':j['peer'],'server_id':context['sourceId'],'point':point,
             'context_sha256':p['imagePaneSHA256'],'representation':j['payload'].get('representation','original')}
-   if filename_probe:request['verify_source_filename']=True
+   if legacy_probe:request['verify_source_filename']=True
    try:
     result=image_client.dispatch(driver.tool(),request,ui=SelectedImageUI(driver.root))
     break
    except ValueError as exc:
-    if filename_probe and isinstance(exc,image_client.ImageFilenameMismatch) and clean(driver,j):continue
+    if source_probe and isinstance(exc,image_client.ImageFilenameMismatch) and clean(driver,j):continue
     stage=getattr(exc,'image_export_stage',None)
-    if filename_probe and stage=='viewer':
+    if source_probe and stage=='viewer':
      restore_auxiliary_window(driver,j,require_guard)
     reason='Official image export did not prove the expected source.'
     if stage in ('viewer','save-control','save-dialog','filename','export','verification'):
@@ -277,7 +285,7 @@ def export(driver,j):
      reason='Unrecognized save-control toolbar '+fingerprint+'.'
     raise ImageReadError('IMAGE_EXPORT_NOT_PROVEN',reason+' No bytes returned.',clean=clean(driver,j)) from None
   else:
-   raise ImageReadError('IMAGE_SOURCE_MISMATCH','No official filename matched the original image message.')
+   raise ImageReadError('IMAGE_SOURCE_MISMATCH','No candidate proved the original image source.')
  finally:image_client.locked=old
  if not clean(driver,j):raise ImageReadError('IMAGE_CLEANUP_UNPROVEN','Image export windows did not return to the verified initial state.',clean=False)
  visible=j['payload'].get('representation')=='visible'

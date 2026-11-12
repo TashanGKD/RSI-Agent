@@ -77,7 +77,7 @@ class VisibleImageTests(unittest.TestCase):
    with self.assertRaises(images.ImageReadError):
     images.locate_visible(im,body,[],source,message_pane=pane)
 
- def test_filename_fallback_keeps_complete_wide_cards_despite_thumbnail_shape(self):
+ def test_inbound_candidates_keep_complete_wide_cards_despite_thumbnail_shape(self):
   im=Image.new('RGB',(620,437),(249,249,249));draw=ImageDraw.Draw(im)
   draw.rectangle((70,177,316,276),fill='white')
   draw.rectangle((73,183,186,271),fill=(248,248,248))
@@ -88,14 +88,22 @@ class VisibleImageTests(unittest.TestCase):
   box=[60,0,546,437]
   with self.assertRaises(images.ImageReadError):
    images.locate_visible(im,box,[],source)
-  self.assertEqual(images.filename_candidates(im,box),[[193,226]])
+  self.assertEqual(images.inbound_candidates(im,box,source),[[193,226]])
 
- def test_filename_fallback_stops_at_a_bounded_number_of_complete_cards(self):
+ def test_inbound_candidates_stop_at_a_bounded_number_of_cards(self):
   im=Image.new('RGB',(500,500),(249,249,249));draw=ImageDraw.Draw(im)
   for y in (15,120,225,330):
    draw.rectangle((70,y,316,y+95),fill='white')
-  with self.assertRaises(images.ImageReadError):
-   images.filename_candidates(im,[60,0,420,480])
+  self.assertEqual(images.inbound_candidates(im,[60,0,420,480],{}),[[193,377],[193,272],[193,167]])
+
+ def test_inbound_candidates_prioritize_a_plausible_top_clipped_card(self):
+  im=Image.new('RGB',(621,437),(249,249,249));draw=ImageDraw.Draw(im)
+  draw.rectangle((70,0,229,143),fill='white')
+  draw.rectangle((70,183,202,429),fill='white')
+  context={'thumbnailWidth':299,'thumbnailHeight':403}
+  self.assertEqual(images.inbound_candidates(im,[0,0,621,437],context),[[149,71],[136,306]])
+  context={'thumbnailWidth':217,'thumbnailHeight':403}
+  self.assertEqual(images.inbound_candidates(im,[0,0,621,437],context)[0],[136,306])
 
 
 class ImageExecutionTests(unittest.TestCase):
@@ -202,6 +210,26 @@ class ImageExecutionTests(unittest.TestCase):
    self.assertEqual(data,sample());self.assertEqual(proof['messagesSent'],0)
    self.assertEqual([x.args[1]['point'] for x in call.call_args_list],[[120,150],[155,155]])
    self.assertTrue(all(x.args[1]['verify_source_filename'] for x in call.call_args_list))
+
+ def test_new_inbound_export_uses_byte_or_filename_proof_per_candidate(self):
+  import types
+  from unittest.mock import Mock,patch
+  from image_client import ImageFilenameMismatch
+  with tempfile.TemporaryDirectory() as td:
+   d,j,c,im,result=self.fixture(td)
+   j['payload']['representation']='visible';c['sourceMode']='inbound'
+   j['preview']['context']=images.digest(c)
+   j['preview'].pop('imagePoint')
+   j['preview']['imageSourcePoints']=[[120,150],[155,155]]
+   call=Mock(side_effect=[ImageFilenameMismatch('different source'),result])
+   adapter=types.SimpleNamespace(locked=object(),dispatch=call,ImageFilenameMismatch=ImageFilenameMismatch)
+   with patch.dict('sys.modules',{'image_client':adapter}),patch('operations.images.load_context',return_value=c),patch('operations.recipes.screen',return_value=im):
+    data,proof=images.export(d,j)
+   self.assertEqual(data,sample())
+   self.assertTrue(proof['nativeMessageMD5Matched'])
+   self.assertEqual(proof['messagesSent'],0)
+   self.assertEqual([x.args[1]['point'] for x in call.call_args_list],[[120,150],[155,155]])
+   self.assertTrue(all('verify_source_filename' not in x.args[1] for x in call.call_args_list))
 
  def test_failed_viewer_probe_releases_the_next_reply(self):
   import types
