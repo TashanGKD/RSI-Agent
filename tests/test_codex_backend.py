@@ -738,6 +738,104 @@ class CodexBackendTests(unittest.TestCase):
         self.assertEqual(sends, ['46'])
         self.assertEqual(loop.counts(), {'recycled': 2, 'sent': 1})
 
+    def test_stalled_group_link_read_releases_only_its_original_batch(self):
+        from trigger.group_reply import GroupLoop, REPLY_TTL
+        from trigger.reply_io import request_id
+
+        group = {'account': 'self', 'peer': 'group@chatroom', 'owner_peer': 'owner',
+                 'name': 'Fixture group', 'scope': {'mode': 'invited-group-text', 'since': 100, 'introduction': False}}
+        url = 'https://example.com/article'
+        original = {'account': 'self', 'peer': group['peer'], 'sender': 'owner',
+                    'sender_name': 'Owner', 'mentioned': False, 'kind': 1, 'created': 120,
+                    'server_id': 44, 'text': 'Read ' + url}
+        page = {'state': 'ready', 'url': url, 'text': 'Observed public article.'}
+        events, sends = [original], []
+
+        def native(value):
+            if value['op'] == 'read':
+                return {'events': events}
+            if value['op'] == 'submit':
+                source = value['server_id']
+                sends.append(source)
+                return {'state': 'succeeded', 'outcome': 'sent',
+                        'request_id': request_id('self', group['peer'], source, 'rsi-group'),
+                        'reply_sha256': hashlib.sha256(value['text'].encode()).hexdigest()}
+            self.fail('Unexpected native action')
+
+        path = self.root / 'link-backlog.sqlite'
+        loop = GroupLoop(path, group, self.backend, native)
+        self.addCleanup(loop.close)
+        config = {'codex': 'existing-codex', 'desktop_thread_id': THREAD, 'desktop_all_requests': True}
+        answer = '{"speak":true,"text":"A reply based on the linked article","work_index":null}'
+        with patch('trigger.group_reply.linked_pages', side_effect=lambda _, source, *args: [page] if source == '44' else []):
+            with self.assertRaises(PublicationPending):
+                loop.cycle()
+            route = self.jobs.claim('chat')
+            self.jobs.update(route['id'], state='completed', result=answer)
+
+            queued_at = 1000
+            with patch('receiver.codex_worker.time.time', return_value=queued_at):
+                with self.assertRaises(PublicationPending):
+                    loop.cycle()
+                old = self.jobs.claim('chat')
+                with patch('receiver.codex_worker.subprocess.run', return_value=queued()) as cli:
+                    notify_desktop(config, self.jobs, old)
+                cli.assert_called_once()
+            old = self.jobs.get(old['id'])
+            events.extend(dict(original, server_id=identity, created=125, text='Later message')
+                          for identity in (45, 46))
+            events.append(dict(original, server_id=47, created=126, sender='member', text='Later group question'))
+            exchange = self.backend.exchange
+
+            def legacy_exchange(route, value=None, **kwargs):
+                if route == '/requests' and value['id'] == old['id']:
+                    return 202, {'state': 'desktop_queued'}
+                return exchange(route, value, **kwargs)
+
+            with patch('receiver.codex_worker.time.time', return_value=queued_at + REPLY_TTL - 1):
+                with self.assertRaises(PublicationPending):
+                    loop.cycle()
+            self.assertEqual(loop.value('model_batch'), '["44"]')
+            with patch('receiver.codex_worker.time.time', return_value=queued_at + REPLY_TTL):
+                with patch.object(self.backend, 'exchange', side_effect=legacy_exchange):
+                    with self.assertRaises(PublicationPending):
+                        loop.cycle()
+                self.assertEqual(loop.cycle()['state'], 'model_review')
+            self.assertEqual(loop.counts(), {'model_review': 1, 'new': 3})
+            self.assertIsNone(loop.value('model_batch'))
+            self.assertEqual(self.jobs.get(old['id']), old)
+
+            loop.close()
+            restarted = GroupLoop(path, group, load_model(self.root / 'backend.json'), native)
+            self.addCleanup(restarted.close)
+            with self.assertRaises(PublicationPending):
+                restarted.cycle()
+            later = self.jobs.claim('chat')
+            self.assertEqual(json.loads(later['body'])['request'], ['45', '46', '47'])
+            queued_later = queued()
+            queued_later.stdout = queued_later.stdout.replace(MESSAGE, '00000000-0000-4000-8000-000000000004')
+            with patch('receiver.codex_worker.subprocess.run', return_value=queued_later) as cli:
+                notify_desktop(config, self.jobs, later)
+            cli.assert_called_once()
+            self.backend.exchange('/desktop-completions', {'id': old['id'], 'input_sha256': old['digest'],
+                'thread_id': THREAD, 'turn_id': 'late-link-turn', 'text': 'Original late link answer'})
+            self.backend.exchange('/desktop-completions', {'id': later['id'], 'input_sha256': later['digest'],
+                'thread_id': THREAD, 'turn_id': 'later-chat-turn',
+                'text': '{"speak":true,"text":"Later answer","work_index":null}'})
+            self.assertEqual(restarted.cycle()['state'], 'pending')
+            self.assertEqual(restarted.cycle()['state'], 'sent')
+            self.assertEqual(restarted.cycle()['state'], 'idle')
+
+        result = self.jobs.get(old['id'])
+        self.assertEqual(result['result'], 'Original late link answer')
+        for key in ('body', 'digest', 'thread_id', 'desktop_message_id'):
+            self.assertEqual(result[key], old[key])
+        self.assertEqual(sends, ['47'])
+        self.assertIsNone(self.jobs.claim('chat'))
+        self.assertEqual(restarted.counts(), {'model_review': 1, 'quiet': 2, 'sent': 1})
+        route = f"/desktop-deliveries/{later['id']}/{THREAD}/later-chat-turn"
+        self.assertEqual(self.backend.exchange(route)[1]['state'], 'sent')
+
     def test_single_owner_article_keeps_its_original_route_and_replies_once(self):
         from trigger.group_reply import GroupLoop
         from trigger.reply_io import request_id

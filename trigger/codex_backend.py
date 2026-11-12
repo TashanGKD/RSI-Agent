@@ -107,7 +107,13 @@ class CodexBackend:
             raise ModelError('Original Codex input is not private.')
         status, value = self.exchange('/requests', json.loads(path.read_text()))
         if status == 202:
-            raise PublicationPending('Original local Codex generation is queued or running.')
+            age = None
+            if stage == 'link-reading' and isinstance(value, dict) and value.get('state') == 'desktop_queued':
+                age = value.get('desktop_queue_age_seconds')
+                if type(age) not in (int, float) or not 0 <= age < float('inf'):
+                    age = None
+            raise PublicationPending('Original local Codex generation is queued or running.',
+                                     desktop_queue_age_seconds=age)
         if status == 200 and value == {'state': 'review'}:
             raise OriginalReview('Original local Codex request is in review.')
         if value.get('state') != 'completed' or not isinstance(value.get('text'), str):

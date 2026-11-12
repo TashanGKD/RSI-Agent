@@ -147,6 +147,12 @@ minutes. Existing engineering packets and replies already pending native
 delivery retain their original lifecycle. Late results of recycled batches
 stay bound to their original requests and have no native send.
 
+A group batch can enter model review when its routing decision has completed
+and its read-only link turn has waited in the acknowledged Codex queue for at
+least 15 minutes. This requires a newer message waiting in the same group. The
+original input and any late completion remain available for review, and the
+newer messages can proceed through their own requests.
+
 New group text submitted through `trigger.group_io` is split by a conservative
 300 UTF-16-unit readability budget, preferring sentence/paragraph boundaries.
 This is not a Tencent-published threshold or a guarantee against folding on a
