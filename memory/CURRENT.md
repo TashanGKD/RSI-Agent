@@ -8,6 +8,11 @@ the original job and result. See the [repository entrypoint](../README.md) for
 code and operator commands. The independent SCNET group gate is disabled on the
 current deployment. Use the live release and process records to verify activation.
 
+When a Microsoft Store update removes the configured Windows Codex executable,
+the receiver can resolve the same registered Store package. During the install
+gap, original work stays queued. Verify the running worker's source and
+authenticated readiness separately from a new native delivery.
+
 The latest [feedback review](../harness/RESEARCH-MATRIX.md#2026-11-11-反馈复盘)
 compares yesterday's original desktop and V2 records. Image export fixes #70/#71
 are now in the active Linux service source, with the original records retained.
