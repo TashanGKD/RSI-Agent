@@ -70,11 +70,14 @@ guard. A protected replay with an injected unreadable first frame exported an
 actual original PNG matching the native MD5. Verify automatic attachment
 delivery from a fresh image on the deployed release.
 
-The inbound locator can fall back to a bounded set of complete cards when
-thumbnail dimensions disagree with the rendered card. It checks the official
-Save dialog filename against native time and local message ID before export.
-A retained real source was read using the candidate and matched native MD5.
-Fresh automatic attachment delivery remains its own acceptance.
+New automatic inbound image previews rank up to three candidates within the
+calibrated pane, including a substantial top-clipped card. Geometry selects a
+candidate. Only a native MD5 match or an exact official filename for a converted
+visible variant admits bytes. A frozen failed preview had offered only a
+different complete card. Its candidate replay now includes the clipped card
+and preserves the first choice of a separate successful preview. The
+filename-only path remains for previously frozen previews. Verify fresh
+automatic export, Codex attachment binding and original delivery after release.
 
 The PDF intake candidate binds already downloaded ordinary-file PDFs to their
 native peer, sender, message, cache resource, size and MD5. The desktop
