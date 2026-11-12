@@ -89,6 +89,10 @@ SAVE_TOOLBARS={
 # glyphs and the captured edge pixels outside the Save control.
 GALLERY_SAVE_TOOLBAR='c7bcb9e2b4967307370c6107eb3d86c1bc67e6a26f3330501f2c8fa640facd79'
 
+class UnrecognizedSaveToolbar(ValueError):
+    pass
+
+
 def viewer_save_proof(viewer,image):
     if (not isinstance(viewer,dict) or viewer.get('title')!='Photos and Videos'
         or not re.fullmatch(r'0x[0-9a-fA-F]{1,16}',viewer.get('id',''))
@@ -110,7 +114,7 @@ def viewer_save_proof(viewer,image):
         if hashlib.sha256(controls.tobytes()).hexdigest()==GALLERY_SAVE_TOOLBAR:
             layout=('with-qr',520)
     if layout is None:
-        error=ValueError('current Save/QR toolbar is not a calibrated inactive layout')
+        error=UnrecognizedSaveToolbar('current Save/QR toolbar is not a calibrated inactive layout')
         error.image_toolbar_fingerprint=prefix
         raise error
     box=[x,y,x+w,y+44]
@@ -133,7 +137,19 @@ def prove_viewer_save_input(control,viewer,capture,require_guard,point=None):
     born=birth(identity['pid'])
     if born is None:raise ValueError('official viewer process birth unavailable')
     control.require_focus(viewer)
-    proof=viewer_save_proof(viewer,capture())
+    # A new viewer can paint before its controls settle. Retry only an
+    # unrecognized rendering, with the original window and process still held.
+    for delay in (150,300,None):
+        try:
+            proof=viewer_save_proof(viewer,capture())
+            break
+        except UnrecognizedSaveToolbar:
+            if delay is None:raise
+            require_guard();control.wait(delay);require_guard()
+            if (control.one('Photos and Videos')!=viewer or control.one('Save',True)
+                or window_identity(viewer)!=identity or birth(identity['pid'])!=born):
+                raise ValueError('viewer geometry/identity/process changed before Save; no input')
+            control.require_focus(viewer)
     if point is not None and (not isinstance(point,(list,tuple)) or len(point)!=2
         or any(type(v) is not int for v in point) or list(point)!=proof['point']):
         raise ValueError('requested toolbar point is not the current proved Save; no input')

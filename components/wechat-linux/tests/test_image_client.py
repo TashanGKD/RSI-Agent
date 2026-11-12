@@ -47,10 +47,13 @@ class ClientImageTests(unittest.TestCase):
                 patch('image_client.viewport',return_value=box), \
                 patch('operations.windows.window_identity',side_effect=window_identity), \
                 patch('operations.lease.birth',return_value='fixture-birth'):
-            with self.assertRaisesRegex(ValueError,'official viewer process' if foreign else 'not a calibrated inactive layout') as error:
+            expected = ('official viewer process' if foreign else
+                        'viewer geometry/identity/process changed' if changed else
+                        'not a calibrated inactive layout')
+            with self.assertRaisesRegex(ValueError, expected) as error:
                 image_client.dispatch(Mock(),request,ui=selected)
             self.assertEqual(error.exception.image_export_stage,'save-control')
-            if not foreign:
+            if not (foreign or changed):
                 x,y=viewer['x'],viewer['y']
                 prefix=im.crop((x,y,x+640,y+44))
                 self.assertEqual(error.exception.image_toolbar_fingerprint,hashlib.sha256(prefix.tobytes()).hexdigest())
@@ -96,6 +99,45 @@ class ClientImageTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'full current toolbar changed'):
                 image_client.prove_viewer_save_input(control,viewer,Mock(side_effect=[active,both]),Mock())
             control.click.assert_not_called()
+
+    def test_save_control_waits_for_the_same_viewer_to_render_a_proven_toolbar(self):
+        from unittest.mock import Mock, patch
+        from PIL import Image
+
+        viewer = {'id': '0x4000d0', 'title': 'Photos and Videos',
+                  'x': 0, 'y': 0, 'width': 827, 'height': 500}
+        main = {'id': '0x400011', 'title': 'Weixin'}
+        dialog = {'id': '0x400020', 'title': 'Save', 'width': 650, 'height': 480}
+        identity = {'class': ['wechat', 'wechat'], 'pid': 1234, 'leader': '0x400009',
+                    'transientFor': None, 'types': ['_NET_WM_WINDOW_TYPE_NORMAL']}
+        blank = Image.new('RGB', (827, 500), 'white')
+        rendered = blank.copy()
+        rendered.paste((40, 40, 40), (514, 15, 527, 28))
+        prefix = hashlib.sha256(rendered.crop((0, 0, 640, 44)).tobytes()).hexdigest()
+        control = Mock()
+        clicked = False
+
+        def window(title, optional=False):
+            if title == 'Save':
+                return dialog if clicked else None
+            return {'Photos and Videos': viewer, 'Weixin': main}[title]
+
+        def click(*point):
+            nonlocal clicked
+            clicked = True
+
+        control.one.side_effect = window
+        control.click.side_effect = click
+        with patch.object(image_client, 'SAVE_TOOLBARS', {prefix: ('with-qr', 520)}), \
+                patch('operations.windows.window_identity',
+                      side_effect=lambda w: dict(identity, transientFor=viewer['id']) if w == dialog else identity), \
+                patch('operations.lease.birth', return_value='fixture-birth'):
+            capture = Mock(side_effect=[blank, rendered, rendered])
+            opened = image_client.open_viewer_save(control, viewer, capture, Mock())
+        self.assertEqual(opened['dialog'], dialog)
+        self.assertEqual(capture.call_count, 3)
+        control.click.assert_called_once_with(520, 21)
+        self.assertGreaterEqual(len(control.wait.call_args_list), 2)
 
     def test_changed_viewer_process_is_left_protected(self):
         control=self.rejected_viewer(changed=True)

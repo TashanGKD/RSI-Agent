@@ -64,9 +64,11 @@ original batch and ACK. The older DeepSeek gate rollout is recorded in D023.
 Ordinary photo export accepts decoded bytes matching the exact native message
 MD5 even when the default Save filename changes. Converted files still require
 the native time and local ID in the official filename. Export failures retain
-a bounded stage for the next real image investigation. Check the installed
-processes against live receipts. An isolated Codex run recognized a PNG. A fresh
-ordinary WeChat photo still needs end-to-end verification.
+a bounded stage for the next real image investigation. The Save check resamples
+an initially unrecognized toolbar under the same viewer, process and input
+guard. A protected replay with an injected unreadable first frame exported an
+actual original PNG matching the native MD5. Verify automatic attachment
+delivery from a fresh image on the deployed release.
 
 The inbound locator can fall back to a bounded set of complete cards when
 thumbnail dimensions disagree with the rendered card. It checks the official
