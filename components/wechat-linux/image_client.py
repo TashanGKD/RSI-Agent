@@ -190,6 +190,11 @@ class Controls:
         if len(rows)!=1:raise ValueError('required unique native window missing: '+title)
         return rows[0]
     def focus(self,w):self.x.XSetInputFocus(self.d,int(w['id'],16),1,0);self.x.XFlush(self.d)
+    def set_mapped(self,w,mapped):
+        change=self.x.XMapWindow if mapped else self.x.XUnmapWindow
+        change.argtypes=[ctypes.c_void_p,ctypes.c_ulong]
+        self.x.XSync.argtypes=[ctypes.c_void_p,ctypes.c_int]
+        change(self.d,int(w['id'],16));self.x.XSync(self.d,0)
     def require_focus(self,w):
         current=self.one(w['title']);focus=ctypes.c_ulong();revert=ctypes.c_int()
         self.x.XGetInputFocus(self.d,ctypes.byref(focus),ctypes.byref(revert))

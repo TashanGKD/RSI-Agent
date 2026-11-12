@@ -214,6 +214,35 @@ class GroupTests(unittest.TestCase):
         self.assertEqual(loop.value('model_batch'), '["2"]')
         self.assertFalse(self.effects)
 
+    def test_recycling_an_expired_photo_cancels_its_unstarted_carrier(self):
+        self.model.backend = 'local-codex'
+        self.model.engineering = False
+        loop = self.loop()
+        loop.recycle_since = 100
+        with loop.db:
+            loop.db.executemany("INSERT INTO inbox(id,created,text,kind) VALUES(?,?,'{}',3)",
+                                [('1', 120), ('2', 200)])
+        transport = Mock(return_value={'state': 'recycled'})
+        loop.io = transport
+        with patch('trigger.group_reply.time.time', return_value=1040):
+            loop.recycle_expired()
+        transport.assert_called_once_with({'op': 'recycle_image', 'server_id': '1'})
+        self.assertEqual(loop.counts(), {'new': 1, 'recycled': 1})
+
+    def test_rejected_delivery_report_does_not_block_the_next_original(self):
+        from rsi_agent.model import ModelError
+        self.model.backend = 'local-codex'
+        loop = self.loop()
+        with loop.db:
+            loop.db.executemany("INSERT INTO inbox(id,created,text,desktop_report) VALUES(?,120,'{}',?)",
+                                [('1', '{"fixture":1}'), ('2', '{"fixture":2}')])
+        self.model.publish_delivery.side_effect = [ModelError('rejected'), None]
+        with patch('trigger.owner_reply.time.monotonic', side_effect=[10, 10, 16]):
+            loop.flush_delivery()
+            loop.flush_delivery()
+        self.assertEqual(loop.db.execute("SELECT id FROM inbox WHERE desktop_report IS NOT NULL").fetchall()[0][0], '1')
+        self.model.publish_delivery.assert_called_with({'fixture': 2})
+
     def test_automatically_admitted_group_waits_for_input_without_an_introduction(self):
         self.group['scope']['introduction'] = False
         loop = self.loop(introduction=True)

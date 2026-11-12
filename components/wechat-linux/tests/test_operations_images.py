@@ -99,6 +99,26 @@ class VisibleImageTests(unittest.TestCase):
 
 
 class ImageExecutionTests(unittest.TestCase):
+ def test_rejected_probe_hides_only_its_new_official_auxiliary_window(self):
+  from types import SimpleNamespace
+  from unittest.mock import Mock,patch
+  main={'id':'0x100','title':'Weixin'};aux={'id':'0x200','title':'WeChat'}
+  host={'pid':123};nav={'state':'started','main':main,'mainIdentity':host,
+                        'processBirth':'host-start','beforeWindows':[main]}
+  job={'preview':{'imageWindows':[main]}}
+  props='WM_CLASS(STRING) = "com.tencent.wechatappex", "WeChatAppEx"\n_NET_WM_PID(CARDINAL) = 456\n'
+  for parent in (123,999):
+   with self.subTest(parent=parent),tempfile.TemporaryDirectory() as td:
+    driver=Mock(root=Path(td));driver.app_windows.side_effect=[[main,aux],[main,aux],[main]]
+    proc='456 (WeChatAppEx) S '+str(parent)+' '+'0 '*17+'999'
+    guard=Mock()
+    with patch('operations.navigation.load',return_value=nav),patch('operations.windows.window_identity',return_value=host), \
+         patch('operations.lease.birth',return_value='host-start'),patch('pathlib.Path.read_text',return_value=proc), \
+         patch('operations.images.subprocess.run',return_value=SimpleNamespace(stdout=props)),patch('image_client.Controls') as controls:
+     self.assertEqual(images.restore_auxiliary_window(driver,job,guard),parent==123)
+     if parent==123:controls.return_value.set_mapped.assert_called_once_with(aux,False)
+     else:controls.assert_not_called()
+
  def fixture(self,td):
   import types
   from unittest.mock import Mock

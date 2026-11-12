@@ -3,10 +3,35 @@ import base64
 import hashlib
 from pathlib import Path
 
-from .reply_io import advance
+from .reply_io import advance, request_id
 from .media import pdf_name
 
 CLIENT = 'rsi-vision'
+
+
+def cancel_queued_image(root, account, peer, server):
+    from operations.cli import load_config
+    from operations.store import Store
+    from receive_source import sid
+    state = root / 'operations-state'
+    if not (state / 'queue.sqlite').is_file():
+        return
+    if load_config(state / 'config.json')['account'] != account:
+        raise ValueError('Native image account changed.')
+    server = sid(server)
+    rid = request_id(account, peer, server, CLIENT)
+    store = Store(state)
+    try:
+        try:
+            job = store.get(CLIENT, rid)
+        except KeyError:
+            return
+        if (job['peer'] != peer or job['action'] != 'save_attachment'
+                or job['payload'].get('source_id') != server or job['payload'].get('source_mode') != 'inbound'):
+            raise ValueError('Original inbound image carrier changed.')
+        store.cancel(CLIENT, rid, queued_only=True)
+    finally:
+        store.close()
 
 
 def pdf(account, peer, server, allowed_senders, since):

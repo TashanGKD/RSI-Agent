@@ -98,6 +98,7 @@ class ReplyLoop:
         self.images = getattr(model, 'backend', None) == 'local-codex'
         self.voice = voice if self.images and self.memory_enabled else None
         self.report_retry = 0
+        self.report_after = 0
         if self.images:
             model.bind(owner['account'], owner['peer'])
 
@@ -114,16 +115,19 @@ class ReplyLoop:
     def flush_delivery(self):
         if not self.images or time.monotonic() < self.report_retry:
             return
-        row = self.db.execute('SELECT id,desktop_report FROM inbox WHERE desktop_report IS NOT NULL ORDER BY rowid LIMIT 1').fetchone()
+        row = self.db.execute('SELECT rowid AS position,id,desktop_report FROM inbox WHERE desktop_report IS NOT NULL '
+                              'ORDER BY rowid<=?,rowid LIMIT 1', (self.report_after,)).fetchone()
         if not row:
             return
         try:
             self.model.publish_delivery(json.loads(row['desktop_report']))
         except ModelError:
+            self.report_after = row['position']
             self.report_retry = time.monotonic() + 5
             return
         with self.db:
-            self.db.execute('UPDATE inbox SET desktop_report=NULL WHERE id=?', (row['id'],))
+            self.db.execute('UPDATE inbox SET desktop_report=NULL WHERE id=? AND desktop_report=?',
+                            (row['id'], row['desktop_report']))
 
     def record_delivery(self, row, outcome):
         if not row['desktop_job']:
@@ -157,7 +161,7 @@ class ReplyLoop:
         state = outcome.get('outcome')
         recoverable = (state == 'not_sent' and outcome.get('recoverable_preinput_failure') is True
                        or state == 'partial' and self.owner['peer'].endswith('@chatroom'))
-        if (outcome['state'] != 'failed' or not recoverable or not isinstance(stopped['reply'], str)
+        if (outcome['state'] not in ('failed', 'cancelled') or not recoverable or not isinstance(stopped['reply'], str)
                 or outcome.get('reply_sha256') != hashlib.sha256(stopped['reply'].encode()).hexdigest()):
             return {'state': 'attention', 'counts': self.counts()}
         with self.db:

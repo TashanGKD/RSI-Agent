@@ -44,6 +44,11 @@ Groups that enable `recycle_since` retain expired ordinary inputs as
 `recycled` and let newer inputs proceed after 15 minutes. The original
 packet and native ACK stay available. Published engineering requests and
 replies already waiting for native delivery keep their existing lifecycle.
+An expired photo can leave an untouched native export in the shared queue.
+Cancel that exact carrier when recycling the source. A rejected image probe
+can restore a newly mapped official auxiliary window when its process and the
+original window set are proved. A rejected receipt remains in its outbox while
+later receipts can progress independently.
 
 PR #34 is merged and activated. The dedicated desktop target has completed real
 private and group turns with matching original V2 sends. Other completed group

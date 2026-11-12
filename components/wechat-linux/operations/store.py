@@ -239,9 +239,10 @@ class Store:
    if expected is not None and (current['state'],current['updated'])!=expected:return current
    self.c.execute('UPDATE jobs SET state=?,result=?,updated=? WHERE id=?',(state,json.dumps(result,ensure_ascii=False) if result is not None else None,time.time(),jid));self.event(jid,state)
   return self.by_id(jid)
- def cancel(self,client,rid):
+ def cancel(self,client,rid,*,queued_only=False):
   with self.tx():
    j=self.get(client,rid)
+   if queued_only and j['state']!='queued':return j
    if j['state']=='queued':
     if (self.root/(j['id']+'-attempt.json')).exists() or (self.root/(j['id']+'-composer.json')).exists() or (self.root/(j['id']+'-navigation.json')).exists() or list(self.root.glob(j['id']+'-step-*')):raise ValueError('queued side-effect evidence must be reconciled')
     self.c.execute("UPDATE jobs SET state='cancelled',result=?,updated=? WHERE id=?",(json.dumps({'reason':'caller_cancelled_before_preparation','noSend':True}),time.time(),j['id']));self.event(j['id'],'cancelled')
