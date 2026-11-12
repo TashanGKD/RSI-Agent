@@ -127,7 +127,7 @@ class ImageExecutionTests(unittest.TestCase):
   data=sample();c['nativeMD5']=hashlib.md5(data).hexdigest();p['context']=digest(c)
   p['uiBinding']={'peer':PEER,'header_sha256':'selected-current-binding'}
   j={'id':'a'*32,'client':'test','request_id':'read','peer':PEER,'action':'save_attachment','payload':{'source_id':SID},'preview':p}
-  driver=types.SimpleNamespace(root=Path(td),previews=Path(td),lease='owned',check_lease=Mock(),tool=Mock(),app_windows=Mock(return_value=windows))
+  driver=types.SimpleNamespace(root=Path(td),previews=Path(td),fds=[1],lease='owned',check_lease=Mock(),tool=Mock(),app_windows=Mock(return_value=windows))
   result={'peer':PEER,'serverId':SID,'senderId':'alice','messageMd5Matched':True,'contentReady':True,'content_base64':__import__('base64').b64encode(data).decode()}
   return driver,j,c,image,result
  def run_export(self,td,change=None):
@@ -202,6 +202,59 @@ class ImageExecutionTests(unittest.TestCase):
    self.assertEqual(data,sample());self.assertEqual(proof['messagesSent'],0)
    self.assertEqual([x.args[1]['point'] for x in call.call_args_list],[[120,150],[155,155]])
    self.assertTrue(all(x.args[1]['verify_source_filename'] for x in call.call_args_list))
+
+ def test_failed_viewer_probe_releases_the_next_reply(self):
+  import types
+  from unittest.mock import Mock,patch
+  from image_client import ImageFilenameMismatch
+  from operations.runtime import Executor
+  from operations.store import Store
+  with tempfile.TemporaryDirectory() as td:
+   driver,j,context,image,_=self.fixture(td)
+   context['sourceMode']='inbound'
+   preview=j['preview']
+   preview.update(context=images.digest(context),imageFilenamePoints=[[120,150]])
+   initial=preview['imageWindows']
+   failure=ValueError('viewer did not open')
+   failure.image_export_stage='viewer'
+   adapter=types.SimpleNamespace(locked=None,ImageFilenameMismatch=ImageFilenameMismatch)
+   def dispatch(*args,**kwargs):
+    with adapter.locked(driver.root):
+     driver.app_windows.return_value=initial+[{'id':'auxiliary'}]
+     raise failure
+   def restore(current,original,guard):
+    self.assertIs(current,driver)
+    self.assertEqual(original['id'],failed['id'])
+    guard()
+    driver.app_windows.return_value=initial
+    return True
+   adapter.dispatch=dispatch
+   driver.acquire=lambda:True
+   driver.release=Mock()
+   driver.execute=Mock(side_effect=lambda original:images.export(driver,original))
+   driver.cleanup=lambda original:images.clean(driver,original)
+   driver.prepare=Mock(return_value={'sha256':'a'*64})
+   store=Store(Path(td)/'queue')
+   try:
+    failed=store.submit({'client':'test','request_id':'image','peer':PEER,'action':'save_attachment',
+                         'payload':{'source_id':SID,'source_mode':'inbound','representation':'visible'}})
+    self.assertEqual(store.claim()['id'],failed['id'])
+    confirmed=store.preview(failed['id'],preview)
+    store.confirm('test','image',confirmed['confirmation_token'])
+    following=store.submit({'client':'test','request_id':'following','peer':PEER,
+                            'action':'send_text','payload':{'text':'isolated following reply'}})
+    executor=Executor(store,driver)
+    with patch.dict('sys.modules',{'image_client':adapter}),patch('operations.images.load_context',return_value=context), \
+         patch('operations.recipes.screen',return_value=image),patch('operations.images.restore_auxiliary_window',side_effect=restore):
+     self.assertEqual(executor.step()['state'],'failed')
+    result=store.get('test','image')['result']
+    self.assertEqual(result['code'],'IMAGE_EXPORT_NOT_PROVEN')
+    self.assertTrue(result['noSend'])
+    self.assertEqual(driver.check_lease.call_count,2)
+    self.assertEqual(executor.step(),{'state':'awaiting_confirmation','job':following['id']})
+    driver.execute.assert_called_once()
+   finally:
+    store.close()
 
  def test_wrong_source_export_receipt_is_rejected(self):
   with tempfile.TemporaryDirectory() as td:
