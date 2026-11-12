@@ -236,12 +236,12 @@ def export(driver,j):
                         or not isinstance(points,list) or not 1<=len(points)<=MAX_FILENAME_CANDIDATES):
   raise ImageReadError('IMAGE_SOURCE_MISMATCH','Bounded inbound filename verification required.')
  import image_client
+ held=driver.fds;expected=driver.lease
+ def require_guard():
+  if not held or driver.fds is not held:raise ValueError('Original image input guard epoch changed.')
+  driver.check_lease(expected)
  @contextmanager
  def owned(root):
-  held=driver.fds;expected=driver.lease
-  def require_guard():
-   if not held or driver.fds is not held:raise ValueError('Original image input guard epoch changed.')
-   driver.check_lease(expected)
   require_guard();yield require_guard
  old=image_client.locked;image_client.locked=owned
  from sender import UI
