@@ -1,6 +1,6 @@
 # 证券智能体治理评测
 
-面向证券机构的智能体上线验收和版本回归。首期以「证券研究资料助手」验证读取授权材料、核对公告口径、在测试表内完成受控更新的流程。交付形态为私有部署评测 API 和可接入 WorkBuddy 的 Skill + MCP 连接器。业务人员在已有产品中查看报告，风控与技术团队使用同一份结构化结果复核。
+面向证券机构的智能体上线验收和版本回归。首期以「证券研究资料助手」验证读取授权材料、核对公告口径、在测试表内完成受控更新的流程。服务提供可私有部署的评测 API、一份可转发的 API Skill、评测工作台，以及可选的 WorkBuddy MCP 连接器。业务、风控与技术团队可使用同一份报告复核。
 
 ## 公开材料及使用边界
 
@@ -45,6 +45,31 @@ uv run --locked uvicorn server:app_from_env --factory --host 127.0.0.1 --port 80
 | POST /v1/comparisons | compare_runs | 输入 before、after 两份记录 |
 
 问答观测包含 `case_id`、`answer.decision`（answer、abstain、escalate）、`answer.values` 和 `answer.citations`。执行观测包含 `case_id`、有序的 `execution.events` 及 `execution.final_state`，工具事件由测试环境记录。使用同一组 `dataset_id`、`dataset_version`、`conditions_id` 传入两版 `subject_version` 与各自的 `observations`。首版 `conditions_id` 由测试方登记，暂未接入签名运行清单。缺失记录给出未验证，基础设施故障单独统计。关键题失败时报告阻断，`completed` 表示评测已完成，最终上线判定由试点方确认。完整字段与运行示例见 `schemas.py`、`examples/` 与 `test_service.py`。
+
+## 接入 API Skill 和评测工作台
+
+把 [SKILL.md](connector/skills/securities-governance/SKILL.md) 交给具备 HTTP 工具或 shell 的 AI，在宿主的连接配置中提供服务根地址 GOVERNANCE_BASE_URL 与授权令牌 GOVERNANCE_TOKEN。使用 GET /v1/cases 对齐题集，POST /v1/tasks 保存首轮，向 POST /v1/tasks/{task_id}/runs 提交新版本。任务创建结果的 workbench_path 可拼接到服务根地址，打开网页查看同一批证据。HTTP 任务接口独立于 WorkBuddy，已有无状态 HTTP 和 MCP 调用可以继续使用。
+
+在启动服务的环境里设置 GOVERNANCE_TASK_DB 为本机 SQLite 文件的绝对路径，并确认运行账户可以访问父目录。未设置时仍可调用原有读取、评测与比较接口，任务接口返回 503。工作台页面和 Skill 可直接打开。任务、报告、证据和写入接口需要同一个服务令牌。浏览器只在当前页面内存里持有令牌，刷新或断开后需重新连接。机构接入时使用认可的 HTTPS 网关和文件权限，任务库包含提交观测和报告。
+
+本地验证使用 examples 数据目录。以下示例在组件目录的 PowerShell 执行，启动前按上一节配置 GOVERNANCE_TOKEN。
+
+```powershell
+$env:GOVERNANCE_DATA_DIR = (Resolve-Path examples).Path
+$env:GOVERNANCE_TASK_DB = Join-Path (Get-Location).Path 'var/tasks.sqlite3'
+uv run --locked uvicorn server:app_from_env --factory --host 127.0.0.1 --port 8010 --no-access-log
+```
+
+另一个终端使用同一令牌运行标准库 HTTP 客户端。脚本先查题集和原文，再保存两版合成记录，核验重复提交返回原记录、读取审批规则并输出工作台链接。
+
+```powershell
+$env:GOVERNANCE_BASE_URL = 'http://127.0.0.1:8010'
+uv run --locked python examples/run_demo.py
+```
+
+每个任务以首轮题集、材料快照、评分器版本及 conditions_id 为复测基准，版本唯一。相同内容重试返回原报告（200），新报告返回 201，版本冲突或条件变化返回 409。逐轮保存结果和材料哈希。重新登记材料后，若当前文件与报告记录的哈希不同，报告仍可查看，原文接口明确报告快照变化。可选的 materials.json 规则索引 rule_sources 将规则编号映射到已登记材料位置。
+
+工作台展示逐题判定、原文证据及两轮执行顺序，支持下载报告 JSON 和提交已有观测。示例里 v0.2 因使用旧公告和写入早于审批而出现两项失败，另有一项未验证。v0.3 用同一条件的修正记录复测，8 项均通过。实际客户验收需要经授权的观测、身份隔离和经机构确认的规则，原型不会代为执行客户智能体。
 
 ## 完整开发与验收方案
 

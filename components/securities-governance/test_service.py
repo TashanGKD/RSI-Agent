@@ -96,6 +96,8 @@ class ServiceTests(unittest.TestCase):
     def setUpClass(cls):
         import os
 
+        task_dir = tempfile.TemporaryDirectory()
+        cls.addClassCleanup(task_dir.cleanup)
         with socket.socket() as sock:
             sock.bind(("127.0.0.1", 0))
             port = sock.getsockname()[1]
@@ -103,7 +105,8 @@ class ServiceTests(unittest.TestCase):
         cls.server = subprocess.Popen(
             [sys.executable, "-m", "uvicorn", "server:app_from_env", "--factory",
              "--host", "127.0.0.1", "--port", str(port), "--log-level", "warning", "--no-access-log"],
-            env={**os.environ, "GOVERNANCE_DATA_DIR": str(EXAMPLES), "GOVERNANCE_TOKEN": TOKEN},
+            env={**os.environ, "GOVERNANCE_DATA_DIR": str(EXAMPLES), "GOVERNANCE_TOKEN": TOKEN,
+                 "GOVERNANCE_TASK_DB": str(Path(task_dir.name) / "tasks.sqlite3")},
         )
         cls.addClassCleanup(cls.server.wait, timeout=10)
         cls.addClassCleanup(cls.server.terminate)
@@ -143,6 +146,56 @@ class ServiceTests(unittest.TestCase):
             self.assertEqual(len(diff["changes"]), 4)
             run["dataset_version"] = "wrong"
             self.assertEqual(client.post("/v1/evaluations", json=run, headers=HEADERS).status_code, 422)
+
+    def test_saved_report_evidence_retest_and_idempotent_submission(self):
+        baseline = sample_run()
+        baseline["observations"][3]["execution"]["events"].reverse()
+        new_task = {"task_id": "research-test", "title": "研究助手", "run": baseline}
+        task_path = "/v1/tasks/research-test"
+        with httpx.Client(base_url=self.base) as client:
+            self.assertEqual(client.get("/workbench").status_code, 200)
+            self.assertEqual(client.get("/workbench/SKILL.md").status_code, 200)
+            self.assertEqual(client.get("/v1/tasks").status_code, 401)
+            self.assertEqual(client.get(task_path + "/runs/v1").status_code, 401)
+            client.headers.update(HEADERS)
+            materials = client.get("/v1/materials")
+            self.assertEqual(materials.status_code, 200)
+            self.assertEqual(materials.json()["materials"][0]["asset_id"], "synthetic-notice")
+            created = client.post("/v1/tasks", json=new_task)
+            self.assertEqual(created.status_code, 201, created.text)
+            original = created.json()
+            self.assertEqual(original["report"]["status"], "blocked")
+            self.assertEqual(original["workbench_path"], "/workbench?task=research-test")
+            retry = client.post("/v1/tasks", json=new_task)
+            self.assertEqual((retry.status_code, retry.json()), (200, original))
+            rejected = client.post("/v1/tasks", json={**new_task, "title": "另一项任务"})
+            self.assertEqual(rejected.status_code, 409)
+
+            proof = task_path + "/runs/v1/evidence/synthetic-notice"
+            rule = client.get(proof, params={"location": "line:7"})
+            self.assertEqual(rule.status_code, 200, rule.text)
+            self.assertIn("批准事件", rule.json()["text"])
+            self.assertEqual(rule.headers["Cache-Control"], "no-store")
+            self.assertEqual(client.get(proof, params={"location": "line:1"}).status_code, 404)
+
+            after = {**sample_run(), "subject_version": "v2"}
+            wrong_conditions = client.post(task_path + "/runs", json={**after, "conditions_id": "other"})
+            self.assertEqual(wrong_conditions.json(), {"error": "evaluation_conditions_changed"})
+            self.assertEqual(wrong_conditions.status_code, 409)
+            posted = client.post(task_path + "/runs", json=after)
+            self.assertEqual(posted.status_code, 201, posted.text)
+            self.assertEqual(posted.json()["report"]["counts"]["pass"], 8)
+            self.assertEqual(client.post(task_path + "/runs", json=after).status_code, 200)
+            self.assertEqual(client.post(task_path + "/runs", json={**after, "observations": []}).status_code, 409)
+
+            comparison = client.get(task_path + "/comparison", params={"before": "v1", "after": "v2"})
+            self.assertEqual(comparison.status_code, 200, comparison.text)
+            self.assertEqual(comparison.json()["changes"], [
+                {"id": "approved-update", "before": "fail", "after": "pass"}
+            ])
+            self.assertEqual(client.get(task_path + "/runs/v1").json(), original)
+            self.assertEqual([item["version"] for item in client.get(task_path).json()["runs"]], ["v1", "v2"])
+            self.assertEqual(client.get("/v1/tasks").json()["tasks"][0]["run_count"], 2)
 
     def test_real_mcp_client(self):
         async def exercise():

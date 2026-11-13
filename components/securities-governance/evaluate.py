@@ -82,7 +82,10 @@ def evaluate(dataset, run: Run):
 def compare(dataset, before: Run, after: Run):
     if before.conditions_id != after.conditions_id:
         raise ValueError("Comparison requires the same frozen evaluation conditions.")
-    previous, current = evaluate(dataset, before), evaluate(dataset, after)
+    return compare_reports(evaluate(dataset, before), evaluate(dataset, after))
+
+
+def compare_reports(previous, current):
     return {
         "before": previous, "after": current,
         "changes": [
