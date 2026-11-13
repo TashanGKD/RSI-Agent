@@ -362,7 +362,7 @@ class GroupLoop(ReplyLoop):
             job = self.desktop_job()
             if decision['speak']:
                 self.db.execute("UPDATE inbox SET reply=?,state='pending',desktop_job=? WHERE id=?",
-                                (decision['text'], job, rows[-1]['id']))
+                                (decision['text'], job, rows[work if work is not None else -1]['id']))
             else:
                 self.save_delivery(rows[-1]['id'], job, 'quiet')
             self.db.execute("DELETE FROM participation WHERE k='model_batch'")
