@@ -98,7 +98,14 @@ class LinuxDesktopBootstrapTests(unittest.TestCase):
                     self.runtime.wait_ready(root, display, seconds=8)
                 except ValueError as error:
                     log.seek(0)
-                    self.fail(f'{error}; Xvnc exit={process.poll()}; '
+                    try:
+                        probe = subprocess.run(['xdpyinfo', '-display', display],
+                            env=dict(os.environ, XAUTHORITY=str(root / 'Xauthority')),
+                            capture_output=True, text=True, timeout=3)
+                        detail = f'xdpyinfo exit={probe.returncode}: {probe.stderr[-1000:]}'
+                    except subprocess.TimeoutExpired:
+                        detail = 'xdpyinfo timed out'
+                    self.fail(f'{error}; Xvnc exit={process.poll()}; {detail}; '
                               + log.read().decode(errors='replace')[-4000:])
                 self.assertIsNone(process.poll())
                 for name in ('Xauthority', 'vnc.sock'):
