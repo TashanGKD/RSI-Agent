@@ -271,14 +271,17 @@ function renderCases() {
 
   const rows = cases.map((item) => {
     const old = oldById.get(item.id);
-    const row = button("", () => {
+    const row = button("", (event) => {
       state.caseId = item.id;
       for (const control of $("case-table").querySelectorAll(".case-row")) {
         control.setAttribute("aria-pressed", String(control === row));
       }
       renderEvidence(item, old);
-      if (window.matchMedia("(max-width: 900px)").matches) {
-        $("evidence-title").focus({ preventScroll: true });
+      const narrow = window.matchMedia("(max-width: 900px)").matches;
+      if (narrow || event.detail === 0) {
+        $("evidence-title").focus({ preventScroll: narrow });
+      }
+      if (narrow) {
         $("evidence").scrollIntoView({ block: "start" });
       }
     }, "case-row" + (before ? "" : " single"));
