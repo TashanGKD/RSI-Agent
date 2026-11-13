@@ -19,7 +19,7 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 [hidden] { display: none !important; }
-body { margin: 0; min-width: 320px; line-height: 1.5; }
+body { margin: 0; line-height: 1.5; }
 button, input, select, textarea { font: inherit; color: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 button { cursor: pointer; }
@@ -139,6 +139,7 @@ select { max-width: min(190px, 38vw); }
 .inline-empty { padding: 16px; color: var(--muted); font-size: 13px; }
 .evidence { min-height: 190px; }
 .evidence .panel-header { padding-bottom: 11px; }
+.evidence-back { display: none; }
 .evidence-body { border-top: 1px solid var(--line); padding: 12px 14px 15px; }
 .sources { margin-bottom: 12px; }
 .trace-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
@@ -176,6 +177,7 @@ textarea { font: 12px/1.45 Consolas, monospace; min-height: 215px; resize: verti
 @media (max-width: 900px) {
   .case-layout { grid-template-columns: 1fr; }
   .connection { display: none; }
+  .evidence-back { display: inline-block; }
 }
 @media (max-width: 660px) {
   .masthead-inner { padding: 9px 14px; gap: 12px; flex-wrap: wrap; }

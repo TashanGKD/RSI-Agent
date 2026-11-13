@@ -277,6 +277,10 @@ function renderCases() {
         control.setAttribute("aria-pressed", String(control === row));
       }
       renderEvidence(item, old);
+      if (window.matchMedia("(max-width: 900px)").matches) {
+        $("evidence-title").focus({ preventScroll: true });
+        $("evidence").scrollIntoView({ block: "start" });
+      }
     }, "case-row" + (before ? "" : " single"));
     row.setAttribute("aria-pressed", String(state.caseId === item.id));
     const title = element("span", item.scenario || item.id, "case-name");
@@ -336,10 +340,14 @@ function traceCard(version, caseReport) {
 function renderEvidence(current, previous) {
   const title = element("h2", "用例证据");
   title.id = "evidence-title";
+  title.tabIndex = -1;
   const heading = element("header", null, "panel-header");
   const headingText = element("div");
   headingText.append(title, element("p", current.rule + " · " + current.id, "muted"));
-  heading.append(headingText);
+  const back = button("返回用例", () => {
+    $("case-table").querySelector('.case-row[aria-pressed="true"]')?.focus();
+  }, "evidence-back quiet compact");
+  heading.append(headingText, back);
   const detail = element("div", null, "evidence-body");
   const traces = element("div", null, "trace-grid" + (previous ? "" : " single"));
   const report = state.report;
