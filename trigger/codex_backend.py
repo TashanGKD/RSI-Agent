@@ -120,7 +120,7 @@ class CodexBackend:
             raise OriginalReview('Original local Codex request is in review.')
         if value.get('state') != 'completed' or not isinstance(value.get('text'), str):
             raise ModelError('Original local Codex result needs inspection; do not regenerate it.')
-        self.last_delivery_key = key if mode == 'chat' else None
+        self.last_delivery_key = key
         return {'model': self.model, 'message': {'role': 'assistant', 'content': value['text']},
                 'finish_reason': 'stop', 'usage': {}}
 

@@ -1072,6 +1072,7 @@ class CodexBackendTests(unittest.TestCase):
 
     def test_native_owner_task_waits_for_this_desktop_result_then_original_sender(self):
         from trigger.owner_reply import ReplyLoop
+        from trigger.reply_io import request_id
         owner = {'account': 'self', 'peer': 'owner', 'scope': {'mode': 'owner-private-text', 'since': 100}}
         event = {'account': 'self', 'peer': 'owner', 'sender': 'owner', 'kind': 1,
                  'created': 120, 'server_id': 42, 'text': '检查实际项目并修复问题'}
@@ -1079,7 +1080,10 @@ class CodexBackendTests(unittest.TestCase):
         def native(value):
             if value['op'] == 'read':return {'events': [event]}
             if value['op'] == 'submit':
-                sends.append(value);return {'state': 'succeeded', 'outcome': 'sent'}
+                sends.append(value)
+                return {'state': 'succeeded', 'outcome': 'sent',
+                        'request_id': request_id('self', 'owner', value['server_id']),
+                        'reply_sha256': hashlib.sha256(value['text'].encode()).hexdigest()}
             raise AssertionError('No additional sender action')
         loop = ReplyLoop(self.root / 'inbox.sqlite', owner, self.backend, native);self.addCleanup(loop.close)
         with self.assertRaises(PublicationPending):loop.cycle()
@@ -1099,6 +1103,66 @@ class CodexBackendTests(unittest.TestCase):
         with self.assertRaises(ModelError):self.backend.exchange('/desktop-completions', dict(result, text='different output'))
         self.assertEqual(loop.cycle()['state'], 'sent');self.assertEqual(loop.cycle()['state'], 'idle')
         self.assertEqual(len(sends), 1);self.assertEqual(sends[0]['text'], result['text'])
+        receipt = self.backend.exchange(f'/desktop-deliveries/{key}/{THREAD}/original-visible-turn')[1]
+        self.assertEqual((receipt['state'], receipt.get('text')), ('sent', result['text']))
+
+    def test_group_engineering_reports_the_owner_task_not_a_later_peer_message(self):
+        from trigger.group_reply import GroupLoop
+        from trigger.reply_io import request_id
+        group = {'account': 'self', 'peer': 'group@chatroom', 'owner_peer': 'owner',
+                 'name': 'Fixture group', 'scope': {'mode': 'invited-group-text', 'since': 100, 'introduction': False}}
+        events = [{'account': 'self', 'peer': group['peer'], 'sender': sender, 'sender_name': sender,
+                   'mentioned': False, 'kind': 1, 'created': 120 + i, 'server_id': str(44 + i), 'text': text}
+                  for i, (sender, text) in enumerate((('owner', 'Fix the requested project'), ('member', 'Later chat')))]
+        sends = []
+
+        def native(value):
+            if value['op'] == 'read':
+                return {'events': events}
+            if value['op'] == 'submit':
+                sends.append(value)
+                rid = request_id('self', group['peer'], value['server_id'], 'rsi-group')
+                parts = [{'request_id': rid, 'expected_text': 'Fixed and checked.\n', 'actual_text': 'Fixed and checked.'},
+                         {'request_id': rid + '-part-2', 'expected_text': 'Draft PR ready.', 'actual_text': 'Draft PR ready.'}]
+                return {'state': 'succeeded', 'outcome': 'sent', 'request_id': rid,
+                        'reply_sha256': hashlib.sha256(value['text'].encode()).hexdigest(), 'native_parts': parts}
+            raise AssertionError('No extra native operation')
+
+        path = self.root / 'engineering-group.sqlite'
+        loop = GroupLoop(path, group, self.backend, native)
+        self.addCleanup(loop.close)
+        with self.assertRaises(PublicationPending):
+            loop.cycle()
+        self.jobs.update(self.backend.last_input_key, state='completed', result='{"speak":true,"text":"","work_index":0}')
+        with self.assertRaises(PublicationPending):
+            loop.cycle()
+        key = self.backend.last_input_key
+        with patch('receiver.codex_worker.subprocess.run', return_value=queued()) as cli:
+            notify_desktop({'codex': 'fixture-codex', 'desktop_thread_id': THREAD}, self.jobs, self.jobs.claim('engineering'))
+        cli.assert_called_once()
+        task = self.backend.exchange('/desktop-requests/' + key)[1]
+        self.assertEqual(task['body']['request'], ['44'])
+        text = 'Fixed and checked.\nDraft PR ready.'
+        self.backend.exchange('/desktop-completions', {'id': key, 'input_sha256': task['input_sha256'],
+            'thread_id': THREAD, 'turn_id': 'group-engineering-turn', 'text': text})
+        receipt = {'id': key, 'state': 'sent', 'native_request_id': request_id('self', group['peer'], '44', 'rsi-group'),
+                   'reply_sha256': hashlib.sha256(text.encode()).hexdigest(), 'code': None}
+        for changed in ({'native_request_id': request_id('self', group['peer'], '45', 'rsi-group')},
+                        {'reply_sha256': '0' * 64},
+                        {'state': 'quiet', 'native_request_id': None, 'reply_sha256': None}):
+            with self.assertRaises(ValueError):
+                self.jobs.report_delivery(dict(receipt, **changed))
+        self.assertEqual(loop.cycle()['state'], 'pending')
+        loop.close()
+        restarted = GroupLoop(path, group, load_model(self.root / 'backend.json'), native)
+        self.addCleanup(restarted.close)
+        self.assertEqual(restarted.cycle()['state'], 'sent')
+        self.assertEqual(restarted.cycle()['state'], 'idle')
+        self.assertEqual([v['server_id'] for v in sends], ['44'])
+        receipt = self.backend.exchange(f'/desktop-deliveries/{key}/{THREAD}/group-engineering-turn')[1]
+        self.assertEqual((receipt['state'], receipt.get('texts')), ('sent', ['Fixed and checked.', 'Draft PR ready.']))
+        self.assertEqual(self.jobs.get(key)['result'], text)
+        self.assertIsNone(self.jobs.claim('engineering'))
 
 
 class LinkReadingAuthorityTests(unittest.TestCase):

@@ -314,7 +314,7 @@ class Jobs:
             if not row or row['state'] != 'completed':
                 raise ValueError('Original completed reply required.')
             body = json.loads(row['body'])
-            if not row['desktop_message_id'] or body['mode'] != 'chat':
+            if not row['desktop_message_id']:
                 return {'state': 'not_bound'}
             decision = json.loads(row['result']) if body['schema'] is not None else {}
             account, peer = body['scope']

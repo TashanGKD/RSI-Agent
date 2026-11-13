@@ -8,6 +8,14 @@ the original job and result. See the [repository entrypoint](../README.md) for
 code and operator commands. The independent SCNET group gate is disabled on the
 current deployment. Use the live release and process records to verify activation.
 
+An original owner engineering result was sent in two native group parts while
+the desktop still showed pending: both ends omitted engineering delivery binding.
+Completed engineering replies now retain their desktop key and use the same
+native ID, digest and part checks as chat. A group task binds its owner message,
+including when a later peer message ends the batch. Upgrade the receiver before
+the trigger. Keep historical unbound sends unchanged; frozen-case checks do not
+establish a fresh engineering task's native delivery.
+
 Document intake accepts source-bound cached PDF and UTF-8 Markdown/plain text.
 A downloaded PDF was rejected because its completed resource type was missing
 from the cache reader. The bounded fix retains native message/resource, size,
