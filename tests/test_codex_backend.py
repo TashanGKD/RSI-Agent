@@ -931,7 +931,7 @@ class CodexBackendTests(unittest.TestCase):
                             loop.cycle()
                         self.assertFalse((Path(self.config['state']) / 'inputs' / (article_key + '.json')).exists())
                         self.jobs.update(route_key, state='completed',
-                            result='{"speak":false,"text":"","work_index":null}')
+                            result='{"speak":true,"text":"Read the article","work_index":null}')
                     with self.assertRaises(PublicationPending):
                         loop.cycle()
                     self.assertEqual(self.backend.last_input_key, article_key)
@@ -971,6 +971,44 @@ class CodexBackendTests(unittest.TestCase):
                     _, receipt = self.backend.exchange(f'/desktop-deliveries/{article_key}/{THREAD}/{turn}')
                     self.assertEqual((receipt['state'], receipt.get('text')), ('sent', answer))
                     self.assertEqual(self.jobs.get(article_key)['result'], output)
+
+    def test_quiet_link_does_not_create_a_child_or_discard_an_existing_one(self):
+        from trigger.group_reply import GroupLoop
+        group = {'account': 'self', 'peer': 'group@chatroom', 'owner_peer': 'owner',
+                 'name': 'Fixture group', 'scope': {'mode': 'invited-group-text', 'since': 100, 'introduction': False}}
+        page = {'state': 'ready', 'url': 'https://example.com/article', 'text': 'Observed page.'}
+        for existing_child in (False, True):
+            with self.subTest(existing_child=existing_child):
+                native_id = '51' if existing_child else '50'
+                event = {'account': 'self', 'peer': group['peer'], 'sender': 'member',
+                         'sender_name': 'Member', 'mentioned': False, 'kind': 1, 'created': 120,
+                         'server_id': native_id, 'text': 'Shared https://example.com/article'}
+                def native(value):
+                    if value['op'] == 'read':
+                        return {'events': [event]}
+                    raise AssertionError('Quiet batch cannot send')
+                loop = GroupLoop(self.root / (native_id + '.sqlite'), group, self.backend, native)
+                self.addCleanup(loop.close)
+                with patch('trigger.group_reply.linked_pages', return_value=[page]):
+                    with self.assertRaises(PublicationPending):
+                        loop.cycle()
+                    key = self.backend.last_input_key
+                    self.jobs.update(key, state='completed', result='{"speak":false,"text":"","work_index":null}')
+                    if existing_child:
+                        with self.assertRaises(PublicationPending):
+                            self.backend.read_pages([page])
+                        child_key = self.backend.last_input_key
+                        child = self.jobs.get(child_key)
+                    expected = 'model_review' if existing_child else 'quiet'
+                    self.assertEqual(loop.cycle()['state'], expected)
+                    self.assertIsNone(loop.value('model_batch'))
+                    self.assertEqual(self.backend.has_original_input([native_id], stage='link-reading'), existing_child)
+                    if existing_child:
+                        self.assertEqual(self.jobs.get(child_key), child)
+                    loop.close()
+                    restarted = GroupLoop(self.root / (native_id + '.sqlite'), group, self.backend, native)
+                    self.addCleanup(restarted.close)
+                    self.assertEqual(restarted.cycle()['state'], 'idle')
 
     def test_native_group_schema_keeps_original_work_index_and_image(self):
         self.backend.bind('self', 'group@chatroom');self.backend.use_request(['44', '45'])

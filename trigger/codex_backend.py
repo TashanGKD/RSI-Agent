@@ -53,8 +53,10 @@ class CodexBackend:
     def use_request(self, identities):
         self.request = [str(i) for i in identities]
 
-    def has_original_input(self, identities, *, mode='chat'):
+    def has_original_input(self, identities, *, mode='chat', stage=None):
         identity = [self.scope, [str(i) for i in identities], mode]
+        if stage is not None:
+            identity.append(stage)
         key = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
         path = Path(self.config['state']) / 'inputs' / (key + '.json')
         return path.exists() or path.is_symlink()

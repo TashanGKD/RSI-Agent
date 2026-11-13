@@ -310,7 +310,10 @@ class GroupLoop(ReplyLoop):
                         or len(decision['text'].encode()) > 6000
                         or (decision['speak'] and decision.get('work_index') is None and not decision['text'].strip())):
                     raise ValueError('Invalid text-only participation decision.')
-                if pages and decision.get('work_index') is None:
+                if (pages and not decision['speak'] and decision.get('work_index') is None
+                        and self.model.has_original_input(identities, stage='link-reading')):
+                    raise OriginalReview('Quiet decision already has an original link-reading request.')
+                if pages and decision['speak'] and decision.get('work_index') is None:
                     link_followup = True
                     decision['text'] = self.model.read_pages(pages)
         except (OriginalReview, PublicationPending) as error:
@@ -337,7 +340,7 @@ class GroupLoop(ReplyLoop):
             if not isinstance(reply, str) or not reply.strip() or '\0' in reply or len(reply.encode()) > 6000:
                 raise ValueError('Bounded completed owner work result required.')
             decision.update(speak=True, text=reply)
-        elif pages:
+        elif pages and decision['speak']:
             reply = decision['text']
             if not isinstance(reply, str) or not reply.strip() or '\0' in reply or len(reply.encode()) > 6000:
                 raise ValueError('Bounded completed page-reading result required.')

@@ -471,6 +471,35 @@ class GroupTests(unittest.TestCase):
         read.assert_called_once()
         self.model.read_pages.assert_called_with([page])
 
+    def test_quiet_link_batch_keeps_original_receipt_across_restart(self):
+        self.model.backend = 'local-codex'
+        self.model.engineering = True
+        self.group['owner_peer'] = 'owner'
+        self.model.last_delivery_key = 'a' * 64
+        self.model.has_original_input.return_value = False
+        self.model.complete.return_value = {'message': {'content':
+            '{"speak":false,"text":"","work_index":null}'}}
+        self.model.read_pages.side_effect = AssertionError('quiet must not start a second turn')
+        self.batch['events'] = [self.event(text='Shared https://example.com/article'),
+                                self.event(2, text='Confirmed.')]
+        page = {'state': 'ready', 'url': 'https://example.com/article', 'text': 'Observed page.'}
+        loop = self.loop()
+        with patch('trigger.group_reply.linked_pages', return_value=[page]):
+            self.assertEqual(loop.cycle()['state'], 'quiet')
+        self.assertEqual(loop.counts(), {'quiet': 2})
+        self.assertIsNone(loop.db.execute("SELECT v FROM participation WHERE k='model_batch'").fetchone())
+        report = json.loads(loop.db.execute("SELECT desktop_report FROM inbox WHERE id='2'").fetchone()[0])
+        self.assertEqual(report['id'], 'a' * 64)
+        self.assertEqual(report['state'], 'quiet')
+        self.assertIsNone(report['native_request_id'])
+        loop.close()
+        self.assertEqual(self.loop().cycle()['state'], 'idle')
+        self.model.publish_delivery.assert_called_once_with(report)
+        self.model.complete.assert_called_once()
+        self.model.read_pages.assert_not_called()
+        self.model.engineer.assert_not_called()
+        self.assertFalse(any(c['op'] == 'submit' for c in self.calls))
+
     def test_group_member_bilibili_is_context_in_the_original_quiet_decision(self):
         self.model.backend = 'local-codex'
         url = 'https://www.bilibili.com/video/BV1zJiGBREPB/'
