@@ -279,8 +279,9 @@ def finish(d,j):
      # copy/clear a foreign draft just to close a temporary chat.
      from types import SimpleNamespace
      from .recipes import screen
-     cfg={'header_box':[own['x']+1,own['y']+35,own['x']+own['width']-1,own['y']+82],'editor':[own['x']+280,own['y']+554],'send':[own['x']+own['width']-50,own['y']+own['height']-32]}
-     d._file_helper().require_empty_editor(SimpleNamespace(cfg=cfg,ui=SimpleNamespace(screenshot=lambda:screen(d))))
+     image=screen(d)
+     cfg=popout_binding({},own,image)
+     d._file_helper().require_empty_editor(SimpleNamespace(cfg=cfg,ui=SimpleNamespace(screenshot=lambda:image)))
      activate(c,own)
      if d.app_windows()!=windows:return False
      c.click(own['x']+own['width']-16,own['y']+14)
