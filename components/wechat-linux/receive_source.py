@@ -27,7 +27,8 @@ class SourceInbox:
         if self.incoming_senders is not None and (not only_incoming or not self.incoming_senders or len(self.incoming_senders)>1000):raise ValueError('bounded nonself group senders required')
         self.c.executescript('''CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY,v TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS acked(server_id TEXT PRIMARY KEY,at REAL NOT NULL);
-        CREATE TABLE IF NOT EXISTS batches(id TEXT PRIMARY KEY,hash TEXT NOT NULL,events TEXT NOT NULL,ids TEXT NOT NULL,state TEXT NOT NULL,at REAL NOT NULL,has_more INTEGER NOT NULL);''')
+        CREATE TABLE IF NOT EXISTS batches(id TEXT PRIMARY KEY,hash TEXT NOT NULL,events TEXT NOT NULL,ids TEXT NOT NULL,state TEXT NOT NULL,at REAL NOT NULL,has_more INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS content_errors(server_id TEXT PRIMARY KEY,kind INTEGER NOT NULL,code TEXT NOT NULL);''')
         binding=json.dumps([account,peer,only_incoming]);old=self.c.execute("select v from meta where k='binding'").fetchone()
         if old and old[0]!=binding:raise ValueError('source receipt binding mismatch')
         with self.c:self.c.execute("insert or ignore into meta values('binding',?)",(binding,))
@@ -97,7 +98,14 @@ class SourceInbox:
                     md5=sticker_md5(row['message_content'],self.decode,e['sender'] if self.peer.endswith('@chatroom') else None)
                     if md5:e['sticker']={'md5':md5}
                 if self.event_context:
-                    extra=self.event_context(row,e)
+                    from remote import TextDecodeError
+                    try:extra=self.event_context(row,e)
+                    except TextDecodeError as error:
+                        if kind!=49:raise
+                        # Keep the failed card's identity and diagnostic after ACK,
+                        # without blocking other messages or admitting partial XML.
+                        extra={'decode_error':error.code}
+                        self.c.execute('insert or ignore into content_errors values(?,?,?)',(sid(row['server_id']),kind,error.code))
                     if set(extra)&set(e):raise ValueError('source identity/context collision')
                     e.update(extra)
                 encoded=json.dumps(e,ensure_ascii=False,sort_keys=True)

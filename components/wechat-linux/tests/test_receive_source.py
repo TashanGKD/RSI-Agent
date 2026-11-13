@@ -58,6 +58,21 @@ class SourceTests(unittest.TestCase):
     def test_arbitrary_ack_is_rejected(self):
         with self.assertRaises(ValueError):self.n.ack('../../file','x'*64,['100'])
         with self.assertRaises(ValueError):self.n.ack('a'*32,'b'*64,['0'])
+    def test_card_decode_error_is_durable_but_unrelated_errors_still_block(self):
+        from remote import decode_text
+        self.native.execute('insert into Msg_pair values(1,100,49,1,100,1000,?)',(b'\xff',));self.native.commit()
+        self.n.event_context=lambda row,event:{'card':decode_text(row['message_content'])}
+        batch=self.n.read()
+        self.assertEqual(batch['events'][0]['decode_error'],'TEXT_UTF8_INVALID')
+        self.assertEqual(batch,self.n.read())
+        self.ack(batch)
+        self.assertEqual(tuple(self.n.c.execute('select * from content_errors').fetchone()),('100',49,'TEXT_UTF8_INVALID'))
+        self.row(2,200,'next')
+        def broken(row,event):raise ValueError('native identity changed')
+        self.n.event_context=broken
+        with self.assertRaisesRegex(ValueError,'native identity changed'):self.n.read()
+        self.assertEqual(self.n.c.execute('select count(*) from content_errors').fetchone()[0],1)
+        self.assertFalse(self.n.c.execute("select 1 from acked where server_id='200'").fetchone())
     def test_conflicting_bodies_under_one_server_id_are_not_guessed(self):
         self.row(1,100,'first');self.row(2,100,'different')
         with self.assertRaises(ValueError):self.n.read()
