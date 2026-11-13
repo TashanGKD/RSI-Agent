@@ -228,12 +228,18 @@ class Jobs:
                        [*fields.values(), identity])
 
     def claim(self, mode):
-        with self.connect() as db:
-            db.execute('BEGIN IMMEDIATE')
-            row = db.execute("SELECT * FROM jobs WHERE state='queued' AND json_extract(body,'$.mode')=? ORDER BY rowid LIMIT 1", (mode,)).fetchone()
-            if row:
-                db.execute("UPDATE jobs SET state='starting',updated=? WHERE id=? AND state='queued'", (time.time(), row['id']))
-                return dict(row)
+        try:
+            with self.connect() as db:
+                db.execute('BEGIN IMMEDIATE')
+                row = db.execute("SELECT * FROM jobs WHERE state='queued' AND json_extract(body,'$.mode')=? ORDER BY rowid LIMIT 1", (mode,)).fetchone()
+                if row:
+                    db.execute("UPDATE jobs SET state='starting',updated=? WHERE id=? AND state='queued'", (time.time(), row['id']))
+                    return dict(row)
+        except sqlite3.OperationalError as exc:
+            if (getattr(exc, 'sqlite_errorcode', 0) & 0xff) != sqlite3.SQLITE_BUSY:
+                raise
+            # The claim transaction rolled back. The consumer can poll again.
+            return None
 
     def review_interrupted(self):
         with self.connect() as db:
