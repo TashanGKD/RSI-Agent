@@ -173,6 +173,41 @@ class ReplyLoopTests(unittest.TestCase):
         context.assert_called_once_with('')
         self.assertFalse(self.model.reply.call_args.kwargs['allow_engineering'])
 
+    def test_failed_image_goes_to_original_codex_turn_not_a_canned_resend(self):
+        self.model.backend = 'local-codex'
+        self.model.has_original_input.side_effect = [False, True]
+        self.model.last_delivery_key = 'a' * 64
+        self.model.reply.side_effect = [PublicationPending('original queued'), '这张图读取失败了。']
+        self.batch['events'] = [event(kind=3, text='<img aeskey="private-cache-token"/>')]
+        image_reads = []
+
+        def io(request):
+            if request['op'] == 'image':
+                image_reads.append(request['server_id'])
+                return {'state': 'media_attention', 'code': 'IMAGE_CANDIDATE_AMBIGUOUS'}
+            return self.io(request)
+
+        loop = ReplyLoop(self.path, self.owner, self.model, io)
+        self.addCleanup(loop.close)
+        with self.assertRaises(PublicationPending):
+            loop.cycle()
+        self.assertEqual(loop.counts(), {'new': 1})
+        self.assertFalse(self.effects)
+        call = self.model.reply.call_args
+        diagnostic = json.loads(call.args[1][-1]['content'])
+        self.assertEqual(diagnostic, {'attachment_status': 'unavailable',
+            'code': 'IMAGE_CANDIDATE_AMBIGUOUS', 'source_id': '1', 'kind': 'image'})
+        self.assertNotIn('private-cache-token', str(call))
+        self.assertFalse(call.kwargs['allow_engineering'])
+        self.assertEqual(call.kwargs['images'], [])
+        self.assertEqual(loop.cycle()['state'], 'sent')
+        self.assertEqual(image_reads, ['1'])
+        row = loop.db.execute('SELECT * FROM inbox').fetchone()
+        self.assertEqual(row['desktop_job'], 'a' * 64)
+        self.assertEqual(row['reply'], '这张图读取失败了。')
+        self.assertEqual(list(self.effects), ['1'])
+        self.assertEqual(loop.cycle()['state'], 'idle')
+
     def test_new_owner_voice_is_transcribed_once_and_keeps_original_chat_reply(self):
         self.model.backend = 'local-codex'
         self.model.reply.side_effect = [PublicationPending('waiting'), 'Voice reply']

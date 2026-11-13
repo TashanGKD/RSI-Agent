@@ -246,9 +246,9 @@ class ReplyLoop:
                                    else image_part(self.io, row['id'])]
                 except MediaPending:
                     return {'state': 'media_pending', 'counts': self.counts()}
-                except MediaUnavailable:
-                    attachment_error = ('收到论文《' + row['pdf_name'] + '》的文件消息了，目前还没拿到可核验的 PDF。'
-                        if row['pdf_name'] else '这张图还没读出来。单独再发一张原图，我再看看。')
+                except MediaUnavailable as error:
+                    attachment_error = {'attachment_status': 'unavailable', 'code': str(error),
+                                        'source_id': row['id'], 'kind': 'pdf' if row['pdf_name'] else 'image'}
             history = []
             query = "SELECT COALESCE(NULLIF(voice_text,''),text) AS text,reply FROM inbox WHERE state='sent'"
             cutoff, memory = 0, []
@@ -264,6 +264,11 @@ class ReplyLoop:
             if self.context:
                 history = self.context(row['text'] if row['kind'] == 1 else '') + history
             history = memory + history
+            if attachment_error:
+                history += [{'role': 'system', 'content':
+                    '本条附件未取得可核验的内容。以下是原消息的读取状态，不是图片或文档正文。'
+                    '不要猜内容，不要求用户重发来替系统重试，也不要声称已经修复；必要时简短说明读取失败。'},
+                    {'role': 'user', 'content': json.dumps(attachment_error, ensure_ascii=False)}]
             pages = linked_pages(self.db, row['id'], row['text'], row['link_url']) if (
                 not self.friend and (row['kind'] == 1 or row['link_url'])) else []
             if self.friend and (video := video_link(row['text'], row['link_url'])):
@@ -279,7 +284,7 @@ class ReplyLoop:
                 elif media:
                     prompt = ('请看这份论文《' + row['pdf_name'] + '》，结合正文回答。' if row['pdf_name']
                               else row['text'] or '看看这张图，接着对话回答。')
-                    reply = attachment_error or self.model.reply(prompt, history, images=attachments, allow_engineering=False)
+                    reply = self.model.reply(prompt, history, images=attachments, allow_engineering=False)
                 elif row['kind'] == 34:
                     reply = self.model.reply('[微信语音转写]\n' + voice_text, history, allow_engineering=False)
                 elif self.friend:
@@ -295,7 +300,7 @@ class ReplyLoop:
             if not isinstance(reply, str) or not reply.strip() or '\0' in reply or len(reply.encode()) > 16384:
                 raise ValueError('Model reply does not satisfy the text-only sender contract.')
             with self.db:
-                job = self.desktop_job() if not attachment_error else None
+                job = self.desktop_job()
                 self.db.execute("UPDATE inbox SET reply=?,state='pending',desktop_job=? WHERE id=?",
                                 (reply, job, row['id']))
             row = self.db.execute('SELECT * FROM inbox WHERE id=?', (row['id'],)).fetchone()
