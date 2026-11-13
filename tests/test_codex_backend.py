@@ -2,6 +2,7 @@ import base64
 import hashlib
 import json
 from pathlib import Path
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -463,6 +464,37 @@ class DesktopRelayTests(unittest.TestCase):
                 self.assertTrue(engineering.startswith('【微信任务 · 微信私聊 · '))
                 self.assertIn('发送状态和已发送的原文', chat.split('\n\n', 1)[0])
                 self.assertNotIn('用一句话结束本轮', engineering)
+
+    def test_busy_claim_preserves_the_original_image_until_desktop_handoff(self):
+        with tempfile.TemporaryDirectory() as td:
+            jobs = Jobs(td)
+            data = b'original verified image bytes'
+            request = dict(packet(), scope=['self', 'group@chatroom'], messages=[
+                {'role': 'user', 'content': [
+                    {'type': 'text', 'text': 'Look'},
+                    {'type': 'image_url', 'image_url': {
+                        'url': 'data:image/png;base64,' + base64.b64encode(data).decode()}}]}])
+            original = jobs.accept(request)
+            connect = sqlite3.connect
+            for transaction in ('BEGIN IMMEDIATE', 'BEGIN'):
+                with self.subTest(transaction=transaction), jobs.connect() as blocker:
+                    blocker.execute(transaction)
+                    blocker.execute('SELECT id FROM jobs').fetchall()
+                    with patch('receiver.codex_worker.sqlite3.connect',
+                               side_effect=lambda path, timeout: connect(path, timeout=0)):
+                        self.assertIsNone(jobs.claim('chat'))
+                    self.assertEqual(jobs.get(request['id']), original)
+
+            with patch('receiver.codex_worker.subprocess.run', return_value=queued()) as command:
+                notify_desktop({'codex': 'existing-codex', 'desktop_thread_id': THREAD,
+                                'desktop_all_requests': True}, jobs, jobs.claim('chat'))
+            command.assert_called_once()
+            task = jobs.desktop_task(request['id'], THREAD)
+            self.assertEqual(task['input_sha256'], original['digest'])
+            self.assertEqual(task['body'], request)
+            self.assertEqual(task['desktop_message_id'], MESSAGE)
+            self.assertEqual(Path(task['images'][0]['path']).read_bytes(), data)
+            self.assertIsNone(jobs.claim('chat'))
 
     def test_chat_images_are_original_bound_local_files_and_tampering_is_rejected(self):
         with tempfile.TemporaryDirectory() as td:
