@@ -104,6 +104,38 @@ class QuotedTextTests(unittest.TestCase):
                    **{k: batch[k] for k in ('batch_id', 'batch_hash', 'ack_ids')}}, self.members)
         self.assertEqual(read_group(self.root, self.binding, {'op': 'read'}, self.members)['events'], [])
 
+    def test_oversized_card_preserves_error_and_allows_following_text(self):
+        import linux_tool
+        from remote import decode_text
+        self.enterContext(patch.object(linux_tool, 'decode', decode_text))
+        with sqlite3.connect(self.native) as db:
+            db.execute('UPDATE ' + self.table + ' SET message_content=? WHERE server_id=3',
+                       (self.card(title='x' * 32768),))
+            db.execute('INSERT INTO ' + self.table + ' VALUES(?,?,?,?,?,?,?,?)',
+                       (4, 4, 1, 2, 141, 4, 'What is the useful next step?', ''))
+        batch = read_group(self.root, self.binding, {'op': 'read'}, self.members)
+        self.assertEqual(batch['ack_ids'], ['3', '4'])
+        bad, good = batch['events']
+        self.assertEqual(bad['decode_error'], 'TEXT_OVER_BUDGET')
+        self.assertEqual(bad['text'], '')
+        self.assertNotIn('link', bad)
+        self.assertEqual(good['text'], 'What is the useful next step?')
+        self.assertEqual(read_group(self.root, self.binding, {'op': 'read'}, self.members), batch)
+        loop = self.loop()
+        with loop.db:
+            loop.save('last_spoken', '0')
+        self.assertEqual(loop.cycle()['state'], 'pending')
+        messages = json.loads(self.model.complete.call_args.args[0][-1]['content'])['new_messages']
+        self.assertEqual([m['text'] for m in messages], [good['text']])
+        self.assertEqual(loop.cycle()['state'], 'sent')
+        self.assertEqual(list(self.effects), ['4'])
+        self.model.complete.assert_called_once()
+        source = next(self.root.glob('group-source-*.sqlite'))
+        with sqlite3.connect(source) as db:
+            self.assertEqual(db.execute('SELECT server_id,kind,code FROM content_errors').fetchall(),
+                             [('3', 49, 'TEXT_OVER_BUDGET')])
+        self.assertEqual(read_group(self.root, self.binding, {'op': 'read'}, self.members)['events'], [])
+
     def test_received_quote_enters_model_and_reuses_original_send_after_restart(self):
         loop = self.loop()
         self.assertEqual(loop.cycle()['state'], 'pending')

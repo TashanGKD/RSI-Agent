@@ -17,6 +17,14 @@ attachment failures use the original Codex chat and delivery binding with an
 explicit unavailable diagnostic instead of sending a hard-coded resend request.
 Check the PR activation receipt and a new native image before claiming delivery.
 
+A native kind-49 card exceeding the bounded text decoder stopped the entire
+group intake before existing Codex results could resume. SourceInbox now isolates
+that card's decode error in its original batch and a durable `content_errors`
+receipt, retained after ACK. Other messages continue; partial card content is
+not admitted and unrelated identity/runtime errors still block. The real source
+copy reproduced baseline failure and candidate intake. Check the release receipt
+for activation and subsequent native delivery; this does not fix image export.
+
 When a Microsoft Store update removes the configured Windows Codex executable,
 the receiver can resolve the same registered Store package. During the install
 gap, original work stays queued. Verify the running worker's source and
