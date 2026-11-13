@@ -190,7 +190,7 @@ def render(items, day):
 def remote(settings, mode, day, parts):
     operator = json.loads(Path(settings["operator"]).read_text(encoding="utf-8-sig"))
     ssh, host = operator["ssh"], operator["remote"]
-    data = {"release": host["current"], "python_path": host["python_path"],
+    data = {"release": settings.get("release", host["current"]), "python_path": host["python_path"],
             "installation": host["private_config"], "binding": host["owner_binding"],
             "account": settings["account"], "groups": settings["groups"],
             "mode": mode, "day": day, "parts": parts}
