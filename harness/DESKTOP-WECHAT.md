@@ -281,3 +281,18 @@ turn or output is rejected. Completion only readies the original model result
 for its original V2 sender; it is not a send receipt. Do not manually send another
 WeChat reply. No old input or synthetic production probe substitutes for genuine
 native visible-input/completion/send acceptance.
+
+### Scheduled public astronomy news
+
+`scripts/astro_news_digest.py` reads the public platform feed for the 24 hours
+ending at 10:00 Beijing time. It keeps each title, source, publication date
+and original link together and includes a short source summary when it fits.
+Only the configured, native-verified groups can receive it. Keep the account,
+group identities and operator settings outside Git. Use `check` to verify both
+native bindings and `preview` to verify feed output without posting.
+
+The daily scheduler calls `send` with the private configuration. The sender
+freezes the date's text in that private directory and verifies each native
+receipt in order. `status --day YYYY-MM-DD` reads the original receipts.
+If a result is uncertain, keep the same date, recipient and V2 request ID.
+Disabling the scheduler pauses future batches while preserving existing receipts.
