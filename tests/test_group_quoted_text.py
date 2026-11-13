@@ -86,6 +86,24 @@ class QuotedTextTests(unittest.TestCase):
             loop.save('last_spoken', time.time())
         return loop
 
+    def test_native_channels_card_retains_cover_metadata_before_ack(self):
+        card = ('member:\n<msg><appmsg><type>51</type><title>Shared video</title><finderFeed>'
+                '<objectId>123</objectId><mediaCount>1</mediaCount><desc>Cover caption</desc>'
+                '<mediaList><media><coverUrl>https://wxapp.tc.qq.com/example.jpg</coverUrl>'
+                '</media></mediaList></finderFeed></appmsg></msg>')
+        with sqlite3.connect(self.native) as db:
+            db.execute('UPDATE ' + self.table + ' SET local_type=?,message_content=? WHERE server_id=3',
+                       ((51 << 32) | 49, card))
+        batch = read_group(self.root, self.binding, {'op': 'read'}, self.members)
+        event, = batch['events']
+        self.assertEqual(event['image_kind'], 'finder_cover')
+        self.assertIn('Cover caption', event['text'])
+        self.assertNotIn('<appmsg>', event['text'])
+        self.assertEqual(read_group(self.root, self.binding, {'op': 'read'}, self.members)['events'], [event])
+        read_group(self.root, self.binding, {'op': 'ack',
+                   **{k: batch[k] for k in ('batch_id', 'batch_hash', 'ack_ids')}}, self.members)
+        self.assertEqual(read_group(self.root, self.binding, {'op': 'read'}, self.members)['events'], [])
+
     def test_received_quote_enters_model_and_reuses_original_send_after_restart(self):
         loop = self.loop()
         self.assertEqual(loop.cycle()['state'], 'pending')

@@ -66,6 +66,11 @@ The original share-card delivery remains a separate queue reconciliation
 problem. Match its native admission, desktop turn and V2 outcome using the
 original batch and ACK. The older DeepSeek gate rollout is recorded in D023.
 
+Group WeChat Channels cards take their cover descriptor from the bound native
+card during capture, before source acknowledgement. Only the bounded caption and
+cover kind enter the consumer; the cover bytes still require the original
+media path. Verify a fresh real card through the group inbox and Codex.
+
 Ordinary photo export accepts decoded bytes matching the exact native message
 MD5 even when the default Save filename changes. Converted files still require
 the native time and local ID in the official filename. Export failures retain

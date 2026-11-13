@@ -136,6 +136,11 @@ def read_group(root, value, request, members):
                     extra['link'] = link
                 elif name := pdf_name(raw):
                     extra['pdf_name'] = name
+                else:
+                    from .finder_cover import descriptor
+                    cover = descriptor(raw)
+                    if cover:
+                        extra.update(finder_caption=cover['caption'], image_kind='finder_cover')
         return extra
 
     if request['op'] == 'ack':
@@ -179,8 +184,8 @@ def read_group(root, value, request, members):
             for event in result.get('events', []):
                 if event['text'].startswith(event['sender'] + ':\n'):
                     event['text'] = event['text'][len(event['sender']) + 2:]
-                from .finder_cover import annotate
-                annotate(event)
+                if event.get('image_kind') == 'finder_cover':
+                    event['text'] = event.pop('finder_caption')
             result['context'] = history
             return result
         finally:
