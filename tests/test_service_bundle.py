@@ -94,7 +94,12 @@ class LinuxDesktopBootstrapTests(unittest.TestCase):
                        '-auth', str(root / 'Xauthority')]
             process = subprocess.Popen(command, stdout=log, stderr=log)
             try:
-                self.runtime.wait_ready(root, display, seconds=8)
+                try:
+                    self.runtime.wait_ready(root, display, seconds=8)
+                except ValueError as error:
+                    log.seek(0)
+                    self.fail(f'{error}; Xvnc exit={process.poll()}; '
+                              + log.read().decode(errors='replace')[-4000:])
                 self.assertIsNone(process.poll())
                 for name in ('Xauthority', 'vnc.sock'):
                     self.assertEqual(stat.S_IMODE((root / name).stat().st_mode), 0o600)
