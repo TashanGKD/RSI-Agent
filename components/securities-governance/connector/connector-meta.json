@@ -1,0 +1,13 @@
+{
+  "name": "证券智能体治理评测",
+  "name_en": "Securities Eval",
+  "source": "securities-governance-eval",
+  "description": "读取经授权的证券材料，提交问答和执行记录评测，复核版本差异。",
+  "description_en": "Read authorized financial evidence and score recorded agent workflows.",
+  "type": "mcp",
+  "version": "0.1.0",
+  "examples_zh": ["读取研究公告的指定证据位置", "比较两个智能体版本的逐题评测结果"],
+  "examples_en": ["Read a registered filing citation", "Compare two evaluated agent versions"],
+  "auth_mode": "token",
+  "minWorkbuddyVersion": "4.23.0"
+}
