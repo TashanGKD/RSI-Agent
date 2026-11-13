@@ -20,6 +20,11 @@ evaluation entrypoints. Preserve a baseline and candidate comparison.
 For a live installation, first inspect it without input. `doctor` checks
 dependencies; `audit` checks the actual visible client, traced process and
 service persistence. A successful structural audit is still not a send test.
+Run the release's `audit` for every active owner/group reply service. Require
+both its configured WorkingDirectory and actual PID cwd to match that release;
+`REPLY_SERVICE_SOURCE_MISMATCH` is an incomplete activation even when current and
+the group service are new. Reconcile in-flight originals before activating the
+missed worker. Preserve completed failure replies; do not replay the old image.
 Keep authenticated configuration on the host. Never copy keys, raw messages or
 full desktop images into memory or a PR. Do not repeat the one-shot live send.
 

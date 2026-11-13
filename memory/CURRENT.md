@@ -8,6 +8,15 @@ the original job and result. See the [repository entrypoint](../README.md) for
 code and operator commands. The independent SCNET group gate is disabled on the
 current deployment. Use the live release and process records to verify activation.
 
+A private image failure exposed a missed owner-service upgrade: the group
+process had the image locator fixes while the owner process still imported an
+older release. The owner was aligned with the reviewed group release, retaining
+the failed original and all receipts. Audit now compares both active services'
+configured and actual process source against the audited release. New private
+attachment failures use the original Codex chat and delivery binding with an
+explicit unavailable diagnostic instead of sending a hard-coded resend request.
+Check the PR activation receipt and a new native image before claiming delivery.
+
 When a Microsoft Store update removes the configured Windows Codex executable,
 the receiver can resolve the same registered Store package. During the install
 gap, original work stays queued. Verify the running worker's source and
