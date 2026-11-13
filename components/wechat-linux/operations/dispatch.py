@@ -14,7 +14,7 @@ def identifiers(xs,limit=MAX_BATCH):
 def metadata(j,raw,batch_id,position,seen,ordered):
  from .assets import descriptor,INLINE_BYTES
  if raw is None:raw={}
- if not isinstance(raw,dict) or set(raw)-{'kind','after','expected_asset','supersedes','unit'}:raise ValueError('unsupported dispatch fields')
+ if not isinstance(raw,dict) or set(raw)-{'kind','after','expected_asset','supersedes','unit','group_reply_source'}:raise ValueError('unsupported dispatch fields')
  unit=raw.get('unit')
  if unit is not None:ident(unit)
  kind=raw.get('kind','delivery')
@@ -28,7 +28,14 @@ def metadata(j,raw,batch_id,position,seen,ordered):
   descriptor(j['client'],expected['name'],expected['bytes'],expected['sha256'])
   # Frozen asset ID and actual name/bytes/SHA are checked when it is present;
   # its uploader attribution need not be the submitting employee label.
- return {'kind':kind,'after':after,'expected_asset':expected,'supersedes':sup,'batch_id':batch_id,'position':position,'unit':unit}
+ value={'kind':kind,'after':after,'expected_asset':expected,'supersedes':sup,'batch_id':batch_id,'position':position,'unit':unit}
+ if 'group_reply_source' in raw:
+  source=raw['group_reply_source']
+  if (j['client']!='rsi-group' or not j['peer'].endswith('@chatroom') or j['action']!='send_text' or not ordered
+      or not isinstance(source,str) or len(source.encode())>6000 or source==j['payload']['text']
+      or source.strip()!=j['payload']['text']):raise ValueError('exact group reply slice with boundary whitespace required')
+  value['group_reply_source']=source
+ return value
 
 def decode_spec(row):
  value=json.loads(row['spec'])

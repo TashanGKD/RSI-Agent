@@ -143,6 +143,22 @@ class DesktopRelayTests(unittest.TestCase):
             self.assertEqual(shown['reply_sha256'], hashlib.sha256(text.encode()).hexdigest())
             self.assertEqual(jobs.get(request['id'])['result'], text)
 
+    def test_trimmed_group_payloads_bind_source_slices_to_frozen_reply(self):
+        from receiver.codex_worker import native_part_texts
+        rid = 'rsi-group-test'
+        first = {'request_id': rid, 'source_text': '第一段。 \n\n',
+                 'expected_text': '第一段。', 'actual_text': '第一段。'}
+        second = {'request_id': rid + '-part-2',
+                  'expected_text': '第二段。', 'actual_text': '第二段。'}
+        original = first['source_text'] + second['expected_text']
+        receipt = {'state': 'sent', 'native_request_id': rid, 'native_parts': [first, second]}
+        self.assertEqual(native_part_texts(receipt, original), ['第一段。', '第二段。'])
+        self.assertEqual(native_part_texts(dict(receipt, native_parts=[first]), first['source_text']), ['第一段。'])
+        for changed in (dict(first, source_text='第一段。\n'), dict(first, source_text=' 第一 段。'),
+                        dict(first, actual_text='第一段。 ')):
+            with self.assertRaises(ValueError):
+                native_part_texts(dict(receipt, native_parts=[changed, second]), original)
+
     def test_partial_group_receipt_displays_only_the_proven_native_prefix(self):
         with tempfile.TemporaryDirectory() as td:
             jobs = Jobs(td)

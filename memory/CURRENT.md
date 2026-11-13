@@ -50,6 +50,11 @@ can restore a newly mapped official auxiliary window when its process and the
 original window set are proved. A rejected receipt remains in its outbox while
 later receipts can progress independently.
 
+Group replies use paragraph and sentence boundaries. Before native admission
+each bubble drops its edge whitespace, with exact source slices retained for
+receipt verification. Validate the next real multipart reply by its original
+Codex turn and ordered native text receipts.
+
 PR #34 is merged and activated. The dedicated desktop target has completed real
 private and group turns with matching original V2 sends. Other completed group
 turns have pending native effects. Check the private `unified_wechat_thread`

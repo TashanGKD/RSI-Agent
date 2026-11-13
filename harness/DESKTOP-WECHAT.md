@@ -153,30 +153,25 @@ least 15 minutes. This requires a newer message waiting in the same group. The
 original input and any late completion remain available for review, and the
 newer messages can proceed through their own requests.
 
-New group text submitted through `trigger.group_io` is split by a conservative
-300 UTF-16-unit readability budget, preferring sentence/paragraph boundaries.
-This is not a Tencent-published threshold or a guarantee against folding on a
-particular Android/iOS version, font size or display. Public searches on
-2026-11-11 did not establish a reproducible universal chat-bubble threshold;
-Moments' line limits, quoted previews and transport byte limits are different.
-Short replies stay unchanged. URLs and common emoji sequences stay intact.
-An indivisible sequence longer than the target may still fold. A space followed
-by a line break inside the reply travels with the next text when split there.
-Separators stay on an adjacent bubble to avoid invalid blank native messages. The
-complete 6000-byte reply limit remains. To fit V2's 20-job cap, a full reply first
-falls back to hard boundaries at 300 units, then widens the budget in 50-unit
-steps only if protected atoms still require it. Thus 300 is a target, not a hard
-per-bubble maximum. Legal full-length replies must not block later group intake
-merely because preferred sentence breaks would create more than 20 parts.
+New group text submitted through `trigger.group_io` uses a 300 UTF-16-unit
+readability target. It packs whole paragraphs first and breaks oversized
+paragraphs only at complete sentence boundaries. Blank lines mark paragraphs.
+An indivisible sentence can exceed the target. If more than 20 parts would be
+needed, widen the target instead of cutting a sentence. The full reply limit is
+6000 UTF-8 bytes. This target has not been established as a mobile folding limit.
+
+Remove whitespace at the outer edges of each bubble before admission. When that
+changes a payload, the ordered dispatch retains its exact `group_reply_source`
+slice. Internal formatting remains part of the native payload.
 
 The existing V2 `admit(ordered=true)` transaction freezes all parts and their
 dependencies. The first native request keeps its original ID; later IDs derive
 once from that ID and their part number. No ID changes on retries or restarts.
-Concatenating the frozen part payloads reproduces the full reply exactly. Native
-acceptance retains the existing V2 text-comparison rules, including its explicit
-single-terminal-LF case. Settled multipart receipts carry original ordered
-`native_parts` (request ID, expected text, actual text). The receiver verifies
-their reconstruction and permits only the same terminal-LF difference. `sent`
+Concatenating the frozen source slices, or the original payloads for older
+batches, reproduces the full reply exactly. Native acceptance uses the existing
+text-comparison rules. The receipt supplies the native expected and actual text
+and, where trimmed, the exact `source_text` slice. The receiver validates the
+source reconstruction, boundary trim and native result independently. `sent`
 requires acceptance of all parts. `partial` records the accepted prefix after
 a proven failure before input, settled navigation, and an unattempted remainder.
 Its unsent parts have `actual_text=null`. The failed original stays in the V2

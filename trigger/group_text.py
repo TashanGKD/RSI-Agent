@@ -1,89 +1,77 @@
 """Readable group text, frozen once in the existing ordered V2 batch ledger."""
 import hashlib
 import re
-import unicodedata
 
 from .reply_io import original_status, status
 
 # A readability policy, not an official/mobile-tested WeChat folding threshold.
 PART_UNITS = 300
-URL = re.compile(r'https?://[^\s<>，。；！？「」“”]+')
-SPACE_BREAK = re.compile(r'(?<![ \t])[ \t]+\r?\n\s*')
+URL = re.compile(r'https?://[^\s<>，。！？「」“”]+')
+PARAGRAPH_BREAK = re.compile(r'(?:\r?\n[^\S\r\n]*){2,}')
+SENTENCE_END = re.compile(r"""[。！？!?]+[”’」』）)\]】"'》]*|\.+[”’」』）)\]】"'》]*(?=\s|$)""")
+ABBREVIATION = re.compile(r'\b(?:e\.g|i\.e|et al|figs?|eqs?|refs?|vs|dr|mr|mrs|ms|prof|no|[a-z])\.$', re.I)
 
 
-def atoms(text):
-    """Keep URLs, common emoji sequences, combining marks and CRLF intact."""
-    index = 0
-    while index < len(text):
-        start = index
-        separator = SPACE_BREAK.match(text, index)
-        if separator:
-            # Keep an internal space-plus-newline on the next text atom.
-            index = separator.end()
-            if index == len(text):
-                yield text[start:]
-                break
-        match = URL.match(text, index)
-        end = match.end() if match else index + 1
-        if not match:
-            regional = 0x1f1e6 <= ord(text[index]) <= 0x1f1ff
-            if regional and end < len(text) and 0x1f1e6 <= ord(text[end]) <= 0x1f1ff:
-                end += 1
-            while end < len(text):
-                char = text[end]
-                if (unicodedata.category(char).startswith('M') or char == '\u200d'
-                        or text[end - 1] == '\u200d' or 0x1f3fb <= ord(char) <= 0x1f3ff
-                        or 0xe0020 <= ord(char) <= 0xe007f
-                        or (char == '\n' and text[end - 1] == '\r')):
-                    end += 1
-                else:
-                    break
+def units(text):
+    return len(text.strip().encode('utf-16-le')) // 2
+
+
+def split_at(text, offsets):
+    start = 0
+    for end in offsets:
         yield text[start:end]
-        index = end
-
-
-def partition(pieces, sizes, budget, prefer_boundaries):
-    result, start, leading = [], 0, ''
-    while start < len(pieces):
-        end, size, preferred = start, 0, []
-        while end < len(pieces) and size + sizes[end] <= budget:
-            size += sizes[end]
-            end += 1
-            if size >= budget // 2 and (pieces[end - 1][-1] in '\n。！？；.!?; '
-                    or (end < len(pieces) and SPACE_BREAK.match(pieces[end]))):
-                preferred.append(end)
-        if end == start:
-            # Keep indivisible URLs/emoji intact even above the readability target.
-            end += 1
-        elif end < len(pieces) and preferred and prefer_boundaries:
-            end = preferred[-1]
-        part = ''.join(pieces[start:end])
-        if not part.strip():
-            # Blank native messages are invalid. Preserve separators on an adjacent bubble.
-            if result:
-                result[-1] += part
-            else:
-                leading += part
-        else:
-            result.append(leading + part)
-            leading = ''
         start = end
-    return result
+    if start < len(text):
+        yield text[start:]
+
+
+def sentences(paragraph):
+    # Mask URLs without shifting offsets or treating punctuation in a URL as a cut.
+    masked = URL.sub(lambda match: 'x' * len(match[0]), paragraph)
+    ends = []
+    for mark in SENTENCE_END.finditer(masked):
+        if mark[0].startswith('.') and ABBREVIATION.search(masked[:mark.start() + 1]):
+            continue
+        # Keep a directly following source URL with the sentence it supports.
+        if URL.match(paragraph[mark.end():].lstrip()):
+            continue
+        ends.append(mark.end())
+    return list(split_at(paragraph, ends))
+
+
+def pack(chunks, budget):
+    parts = []
+    current = ''
+    for chunk in chunks:
+        if current.strip() and chunk.strip() and units(current + chunk) > budget:
+            parts.append(current)
+            current = ''
+        current += chunk
+    if current:
+        parts.append(current)
+    return parts
 
 
 def split_text(text):
-    pieces = list(atoms(text))
-    sizes = [len(p.encode('utf-16-le')) // 2 for p in pieces]
-    result = partition(pieces, sizes, PART_UNITS, True)
-    if len(result) > 20:
-        # Full 6000-byte replies must remain sendable within V2's 20-job limit.
-        # First drop preferred breaks; widen only if protected atoms still need it.
-        budget = PART_UNITS
-        result = partition(pieces, sizes, budget, False)
-        while len(result) > 20:
-            budget += 50
-            result = partition(pieces, sizes, budget, False)
-    return result
+    """Return source slices, keeping every sentence and separator in order."""
+    paragraphs = list(split_at(text, (m.end() for m in PARAGRAPH_BREAK.finditer(text)
+                                     if text[:m.start()].strip())))
+    budget = PART_UNITS
+    while True:
+        parts = []
+        short = []
+        for paragraph in paragraphs:
+            if units(paragraph) <= budget:
+                short.append(paragraph)
+            else:
+                parts.extend(pack(short, budget))
+                short.clear()
+                parts.extend(pack(sentences(paragraph), budget))
+        parts.extend(pack(short, budget))
+        if len(parts) <= 20:
+            return parts
+        # Widen the target instead of cutting sentences to fit the V2 batch cap.
+        budget += 50
 
 
 def part_id(rid, index):
@@ -107,9 +95,11 @@ def originals(api, client, rid, peer):
         rows = api.s.c.execute('SELECT j.request_id FROM jobs j JOIN dispatch_metadata d ON d.job_id=j.id '
             "WHERE j.client=? AND json_extract(d.spec,'$.batch_id')=? "
             "ORDER BY json_extract(d.spec,'$.position') LIMIT 21", (client, rid)).fetchall()
-        if not 2 <= len(rows) <= 20:
+        if not 1 <= len(rows) <= 20:
             raise ValueError('Original group batch is incomplete.')
         jobs = [api.s.get(client, row[0]) for row in rows]
+        if len(jobs) == 1 and 'group_reply_source' not in jobs[0]['dispatch']:
+            raise ValueError('Original group batch is incomplete.')
         frozen = []
         for index, job in enumerate(jobs):
             meta = job['dispatch']
@@ -123,7 +113,15 @@ def originals(api, client, rid, peer):
             raise ValueError('Original group batch content changed.')
     if any(j['peer'] != peer or j['action'] != 'send_text' for j in jobs):
         raise ValueError('Original group request changed.')
+    for job in jobs:
+        source = job.get('dispatch', {}).get('group_reply_source')
+        if source is not None and source.strip() != job['payload']['text']:
+            raise ValueError('Original group reply source does not match its payload.')
     return jobs
+
+
+def original_text(jobs):
+    return ''.join(job.get('dispatch', {}).get('group_reply_source', job['payload']['text']) for job in jobs)
 
 
 def untouched_part(store, job):
@@ -153,19 +151,23 @@ def native_text_parts(jobs, sent):
                 return None
             if comparison.get('expectedText') != expected or text_mode(expected, actual) is None:
                 raise ValueError('Original group native text comparison changed.')
-        parts.append({'request_id': job['request_id'], 'expected_text': expected, 'actual_text': actual})
+        part = {'request_id': job['request_id'], 'expected_text': expected, 'actual_text': actual}
+        source = job.get('dispatch', {}).get('group_reply_source')
+        if source is not None:
+            part['source_text'] = source
+        parts.append(part)
     return parts
 
 
 def aggregate(api, jobs, client, rid):
     parts = [original_status(api, job, client) for job in jobs]
-    if len(parts) == 1:
+    if len(parts) == 1 and 'group_reply_source' not in jobs[0].get('dispatch', {}):
         return parts[0]
     sent = sum(p['outcome'] == 'sent' for p in parts)
     index = next((i for i, p in enumerate(parts) if p['outcome'] != 'sent' or p['cleanup_pending']), len(parts) - 1)
     current = parts[index]
     result = dict(current, request_id=rid,
-        reply_sha256=hashlib.sha256(''.join(j['payload']['text'] for j in jobs).encode()).hexdigest(),
+        reply_sha256=hashlib.sha256(original_text(jobs).encode()).hexdigest(),
         parts_total=len(parts), parts_sent=sent, parts=parts,
         recoverable_preinput_failure=sent == 0 and current['recoverable_preinput_failure'])
     if sent == len(parts):
@@ -201,20 +203,23 @@ def handle(api, client, rid, peer, op, text, policy, advance):
                 raise ValueError('Original group batch root is missing.')
             parts = split_text(text)
             items = [{'job': {'client': client, 'request_id': part_id(rid, index),
-                'peer': peer, 'action': 'send_text', 'payload': {'text': part},
+                'peer': peer, 'action': 'send_text', 'payload': {'text': part.strip()},
                 'execution_mode': 'verified_fast'}} for index, part in enumerate(parts)]
-            if len(parts) == 1:
+            for part, item in zip(parts, items):
+                if part != part.strip():
+                    item['dispatch'] = {'group_reply_source': part}
+            if len(parts) == 1 and 'dispatch' not in items[0]:
                 api.call({'op': 'submit', **items[0]})
             else:
                 api.call({'op': 'admit', 'client': client, 'batch_id': rid, 'items': items, 'ordered': True})
             jobs = originals(api, client, rid, peer)
         else:
             raise ValueError('Original group batch is incomplete.')
-    if op == 'submit' and ''.join(j['payload']['text'] for j in jobs) != text:
+    if op == 'submit' and original_text(jobs) != text:
         raise ValueError('Original group reply changed.')
     result = aggregate(api, jobs, client, rid)
     if op == 'advance':
-        if len(jobs) == 1:
+        if len(jobs) == 1 and 'group_reply_source' not in jobs[0].get('dispatch', {}):
             return advance(api, jobs[0], policy)
         if result['state'] in ('queued', 'confirmed'):
             current = next(j for j in jobs if status(api.view(j))['outcome'] != 'sent')
