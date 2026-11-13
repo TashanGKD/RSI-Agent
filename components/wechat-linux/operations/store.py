@@ -123,7 +123,7 @@ class Store:
      if old['hash']!=digest(j):raise Conflict('immutable job conflict')
      meta=self.c.execute('SELECT spec,hash FROM dispatch_metadata WHERE job_id=?',(old['id'],)).fetchone()
      if meta:
-      original=json.loads(meta['spec']);logical=('kind','after','expected_asset','supersedes','unit')
+      original=json.loads(meta['spec']);logical=('kind','after','expected_asset','supersedes','unit','group_reply_source')
       if digest(original)!=meta['hash'] or any(original.get(k)!=m.get(k) for k in logical) or (original.get('unit') and original['batch_id']!=m['batch_id']):raise Conflict('immutable dispatch conflict')
      elif explicit:raise Conflict('legacy scheduling cannot be retrofitted')
      pending.append((j,m,old['id']));continue

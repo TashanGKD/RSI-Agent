@@ -27,16 +27,20 @@ def native_part_texts(receipt, expected):
     """Validate original group parts without changing the frozen full-reply digest."""
     parts = receipt.get('native_parts')
     partial = receipt['state'] == 'partial'
-    if receipt['state'] not in ('sent', 'partial') or not isinstance(parts, list) or not 2 <= len(parts) <= 20:
+    if receipt['state'] not in ('sent', 'partial') or not isinstance(parts, list) or not 1 <= len(parts) <= 20:
         raise ValueError('Completed bounded group parts required.')
-    texts = []
+    texts, source = [], []
     for index, part in enumerate(parts):
         rid = receipt['native_request_id'] + ('-part-' + str(index + 1) if index else '')
-        if (not isinstance(part, dict) or set(part) != {'request_id', 'expected_text', 'actual_text'}
+        if (not isinstance(part, dict) or set(part) - {'source_text'} != {'request_id', 'expected_text', 'actual_text'}
                 or part['request_id'] != rid or not isinstance(part['expected_text'], str)
                 or not part['expected_text'].strip() or '\0' in part['expected_text']):
             raise ValueError('Original ordered native parts required.')
         before, after = part['expected_text'], part['actual_text']
+        original = part.get('source_text', before)
+        if 'source_text' in part and (not isinstance(original, str) or original == before or original.strip() != before):
+            raise ValueError('Native payload must match its source slice apart from boundary whitespace.')
+        source.append(original)
         if partial and after is None:
             continue
         if index != len(texts) or not isinstance(after, str) or not after.strip() or '\0' in after:
@@ -47,7 +51,7 @@ def native_part_texts(receipt, expected):
         texts.append(after)
     if partial and not 0 < len(texts) < len(parts):
         raise ValueError('Partial delivery needs accepted and unsent parts.')
-    if ''.join(p['expected_text'] for p in parts) != expected:
+    if (len(parts) == 1 and 'source_text' not in parts[0]) or ''.join(source) != expected:
         raise ValueError('Native parts do not reconstruct the frozen original.')
     return texts
 

@@ -21,25 +21,25 @@ class SplitTests(unittest.TestCase):
         self.assertEqual(''.join(parts), text)
         self.assertTrue(all(len(p.encode('utf-16-le')) // 2 <= 300 for p in parts))
 
-    def test_emoji_combining_marks_and_crlf_are_not_broken(self):
-        for atom in ('👩🏽\u200d🔬', '🇨🇳', 'e\u0301', '❤️', '\r\n'):
-            text = '文' * 299 + atom + '尾' * 310
-            parts = split_text(text)
-            self.assertEqual(''.join(parts), text)
-            self.assertTrue(any(atom in p for p in parts), repr(atom))
+    def test_paragraph_break_precedes_a_later_sentence_break(self):
+        first = '甲' * 139 + '。'
+        second = '乙' * 129 + '。' + '丙' * 99 + '。'
+        self.assertEqual(split_text(first + '\n\n' + second), [first + '\n\n', second])
 
-    def test_internal_space_and_line_break_move_with_the_next_text(self):
-        for prefix, separator in [('甲' * 200, ' \n'), ('甲' * 299, ' \t\r\n')]:
-            with self.subTest(separator=separator):
-                suffix = '乙' * 110
-                self.assertEqual(split_text(prefix + separator + suffix), [prefix, separator + suffix])
+    def test_long_paragraph_splits_only_after_complete_sentences(self):
+        first = '甲' * 198 + '！”'
+        second = 'A result with p=0.01 and e.g. Fig. 2 is described here, ' + '乙' * 199 + '。'
+        self.assertEqual(split_text(first + ' ' + second), [first, ' ' + second])
 
-    def test_url_is_kept_clickable_even_when_it_exceeds_the_readability_budget(self):
+    def test_oversized_sentence_and_its_link_stay_whole(self):
         url = 'https://example.org/?source=' + 'x' * 350
-        text = '来源：\n' + url + '\n结论。'
-        parts = split_text(text)
-        self.assertEqual(''.join(parts), text)
-        self.assertIn(url, parts)
+        sentence = '文' * 299 + '👩🏽\u200d🔬' + url + '。'
+        self.assertEqual(split_text(sentence + '\r\n\r\n结论。'),
+                         [sentence + '\r\n\r\n', '结论。'])
+
+    def test_line_break_without_sentence_end_stays_inside_the_bubble(self):
+        text = '甲' * 200 + ' \n' + '乙' * 110 + '。'
+        self.assertEqual(split_text(text), [text])
 
     def test_full_budget_and_long_links_do_not_produce_empty_or_excess_parts(self):
         url = 'https://example.org/?q=' + 'x' * 300
@@ -77,7 +77,7 @@ class GroupPartsTests(unittest.TestCase):
         config.write_text(json.dumps(self.policy))
         config.chmod(0o600)
         self.rid = CLIENT + '-' + hashlib.sha256(b'wxid_fixture_self\0fixture@chatroom\0' + b'1').hexdigest()
-        self.text = '甲' * 300 + '乙' * 300 + '丙' * 80
+        self.text = ('甲' * 299 + '。') + ('乙' * 299 + '。') + ('丙' * 79 + '。')
         self.members = {'wxid_fixture_self': 'Self', 'wxid_fixture_owner': 'Owner'}
 
     def call(self, op, server_id='1', **extra):
@@ -199,7 +199,7 @@ class GroupPartsTests(unittest.TestCase):
         partial, = [call.args[0] for call in model.publish_delivery.call_args_list if call.args[0]['state'] == 'partial']
         self.assertEqual(partial['native_request_id'], self.rid)
         self.assertEqual(partial['reply_sha256'], hashlib.sha256(self.text.encode()).hexdigest())
-        self.assertEqual([part['actual_text'] for part in partial['native_parts']], ['甲' * 300, None, None])
+        self.assertEqual([part['actual_text'] for part in partial['native_parts']], ['甲' * 299 + '。', None, None])
         self.api.s.cancel(CLIENT, jobs[2]['request_id'])
         self.assertEqual(self.call('status')['native_parts'], partial['native_parts'])
 
@@ -269,17 +269,48 @@ class GroupPartsTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.call('status')
 
-    def test_native_part_texts_retain_per_bubble_terminal_lf_differences(self):
-        text = '甲' * 200 + '\n' + '乙' * 200
+    def test_native_payloads_trim_boundaries_and_receipt_keeps_source(self):
+        text = '甲' * 199 + '。 \n\n' + '乙' * 199 + '。  '
         self.call('submit', text=text)
+        jobs = self.jobs()
+        self.assertEqual([j['payload']['text'] for j in jobs], ['甲' * 199 + '。', '乙' * 199 + '。'])
+        self.assertEqual(''.join(j['dispatch']['group_reply_source'] for j in jobs), text)
+        for job in jobs:
+            self.accept(job)
+        result = self.call('status')
+        self.assertEqual(result['outcome'], 'sent')
+        self.assertEqual(''.join(p['source_text'] for p in result['native_parts']), text)
+        self.assertEqual([p['actual_text'] for p in result['native_parts']],
+                         ['甲' * 199 + '。', '乙' * 199 + '。'])
+        self.assertEqual(result['reply_sha256'], hashlib.sha256(text.encode()).hexdigest())
+        with self.assertRaises(ValueError):
+            self.call('submit', text=text.rstrip())
+
+    def test_short_reply_with_padding_preserves_original_digest(self):
+        text = '  收到。 \n'
+        self.call('submit', text=text)
+        job, = self.jobs()
+        self.assertEqual(job['payload']['text'], '收到。')
+        self.assertEqual(job['request_id'], self.rid)
+        self.accept(job)
+        receipt = self.call('status')
+        self.assertEqual(receipt['reply_sha256'], hashlib.sha256(text.encode()).hexdigest())
+        self.assertEqual(receipt['native_parts'], [
+            {'request_id': self.rid, 'expected_text': '收到。', 'actual_text': '收到。', 'source_text': text}])
+
+    def test_existing_bubbles_with_terminal_lf_still_reconcile(self):
+        from trigger.group_text import part_id
+        chunks = ['甲' * 200 + '\n', '乙' * 200]
+        self.api.call({'op': 'admit', 'client': CLIENT, 'batch_id': self.rid, 'ordered': True,
+            'items': [{'job': {'client': CLIENT, 'request_id': part_id(self.rid, i),
+                'peer': self.binding['group_peer'], 'action': 'send_text', 'payload': {'text': chunk},
+                'execution_mode': 'verified_fast'}} for i, chunk in enumerate(chunks)]})
         for job in self.jobs():
             expected = job['payload']['text']
-            self.accept(job, textComparison={'expectedText': expected,
-                        'actualText': expected.removesuffix('\n')})
-        result = self.call('status')
-        self.assertEqual(''.join(p['expected_text'] for p in result['native_parts']), text)
+            self.accept(job, textComparison={'expectedText': expected, 'actualText': expected.removesuffix('\n')})
+        result = self.call('submit', text=''.join(chunks))
+        self.assertEqual(result['outcome'], 'sent')
         self.assertEqual([p['actual_text'] for p in result['native_parts']], ['甲' * 200, '乙' * 200])
-        self.assertEqual(result['reply_sha256'], hashlib.sha256(text.encode()).hexdigest())
 
     def test_missing_native_part_text_proof_is_not_reported_as_the_full_sent_body(self):
         self.call('submit', text=self.text)
@@ -337,7 +368,8 @@ class GroupPartsTests(unittest.TestCase):
         result = self.call('submit', text=text)
         self.assertEqual(result['state'], 'queued')
         self.assertLessEqual(len(self.jobs()), 20)
-        self.assertEqual(''.join(j['payload']['text'] for j in self.jobs()), text)
+        self.assertEqual(''.join(j.get('dispatch', {}).get('group_reply_source', j['payload']['text'])
+                                 for j in self.jobs()), text)
 
 
 if __name__ == '__main__':
