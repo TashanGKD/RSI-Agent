@@ -45,6 +45,12 @@ are per peer and use local Codex chat without owner memory or engineering.
 Current friendship is checked before native sending. Keep the original owner
 and group state and verify new replies against their original V2 receipts.
 
+A completed group quiet decision must not create a page-reading follow-up merely
+because its frozen batch contains links. The group loop retains the original
+decision and publishes its quiet receipt; positive replies still read pages.
+An already frozen child stays `model_review` with its original inputs and ACK;
+it is not discarded or restarted. Do not replay it to verify a new release.
+
 An initial group chat request explicitly returned in Codex review now isolates
 its original batch as model_review. Subsequent group messages can proceed. The
 original packet, ACK and worker review are retained for reconciliation.
