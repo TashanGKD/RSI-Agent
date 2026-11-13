@@ -30,7 +30,7 @@ RSI Agent 用可见的 Codex 会话分工。任务按范围进入对应会话，
 | 本人私聊接入与回传 | [owner_reply.py](trigger/owner_reply.py)、[reply_io.py](trigger/reply_io.py) |
 | 群聊接入与回传 | [group_reply.py](trigger/group_reply.py)、[group_io.py](trigger/group_io.py)、[群聊准入](harness/GROUP-ADMISSION.md) |
 | 固定原始请求并投递 | [codex_backend.py](trigger/codex_backend.py) |
-| 图片与 PDF 原件校验 | [media_io.py](trigger/media_io.py)、[微信图像适配](components/wechat-linux/operations/images.py) |
+| 图片与 PDF/Markdown/文本原件校验 | [media_io.py](trigger/media_io.py)、[微信图像适配](components/wechat-linux/operations/images.py) |
 
 用已配置的私有文件检查触发器。两个 `check` 都不发送微信消息。
 
