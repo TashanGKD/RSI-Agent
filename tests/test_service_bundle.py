@@ -80,6 +80,16 @@ class LinuxDesktopBootstrapTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'readiness timed out'):
                 self.runtime.wait_ready(folder, ':193', seconds=.2)
 
+    def test_slow_display_query_can_finish_within_total_readiness_deadline(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            probe = root / 'xdpyinfo'
+            probe.write_text('#!' + sys.executable + '\nimport time\ntime.sleep(1.2)\n')
+            probe.chmod(0o700)
+            with socket.socket(socket.AF_UNIX) as server, patch.dict(os.environ, PATH=str(root)):
+                server.bind(str(root / 'vnc.sock'))
+                self.runtime.wait_ready(root, ':193', seconds=2)
+
     def test_real_private_xvnc_startup_and_x_authorization(self):
         # An unused display and an owned child only: no WeChat, real profile or live service.
         number = next(n for n in range(193, 250)

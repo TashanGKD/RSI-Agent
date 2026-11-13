@@ -46,7 +46,8 @@ def wait_ready(root, display, seconds=20):
         if (root / 'vnc.sock').is_socket():
             try:
                 result = subprocess.run(['xdpyinfo', '-display', display], env=env,
-                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=1)
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                    timeout=min(3, max(.01, end - time.monotonic())))
                 if result.returncode == 0:
                     return
             except subprocess.TimeoutExpired:
