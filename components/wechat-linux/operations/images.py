@@ -1,7 +1,7 @@
 """Conservative native-context image reads via the existing host/UI executor.
 No model, caller pointer, raw XML output, private CDN/key handling or new queue.
 """
-import base64,hashlib,io,json,re,subprocess,time
+import base64,hashlib,io,json,os,re,subprocess,time
 from collections import Counter
 from contextlib import contextmanager
 from .runtime import BeforeEffect
@@ -283,6 +283,15 @@ def export(driver,j):
     fingerprint=getattr(exc,'image_toolbar_fingerprint',None)
     if stage=='save-control' and isinstance(fingerprint,str) and re.fullmatch('[a-f0-9]{64}',fingerprint):
      reason='Unrecognized save-control toolbar '+fingerprint+'.'
+     toolbar=getattr(exc,'image_toolbar',None)
+     if (toolbar is not None and toolbar.mode=='RGB' and toolbar.size==(640,44)
+         and hashlib.sha256(toolbar.tobytes()).hexdigest()==fingerprint):
+      path=driver.previews/(j['id']+'-save-toolbar.png')
+      try:
+       with os.fdopen(os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600),'wb') as out:toolbar.save(out,format='PNG')
+       reason+=' Private control evidence: '+path.name+'.'
+      except OSError:
+       reason+=' Control evidence could not be stored; existing evidence retained.'
     raise ImageReadError('IMAGE_EXPORT_NOT_PROVEN',reason+' No bytes returned.',clean=clean(driver,j)) from None
   else:
    raise ImageReadError('IMAGE_SOURCE_MISMATCH','No candidate proved the original image source.')

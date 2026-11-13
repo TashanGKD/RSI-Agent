@@ -321,6 +321,36 @@ class ImageExecutionTests(unittest.TestCase):
    self.assertIs(adapter.locked,locked);self.assertNotIn('raw XML',str(e.exception));self.assertEqual(e.exception.code,'IMAGE_EXPORT_NOT_PROVEN')
    self.assertIn('save-control',str(e.exception));self.assertIn('a'*64,str(e.exception))
 
+ def test_unknown_toolbar_evidence_survives_without_changing_failure_or_old_files(self):
+  import types
+  from unittest.mock import Mock,patch
+  import image_client
+  for existing in (False,True):
+   with self.subTest(existing=existing),tempfile.TemporaryDirectory() as td:
+    d,j,c,im,r=self.fixture(td)
+    viewer={'id':'0x4000','title':'Photos and Videos','x':20,'y':10,'width':827,'height':500}
+    capture=Image.new('RGB',(900,550),'red')
+    capture.paste((240,240,240),(20,10,660,54))
+    try:image_client.viewer_save_proof(viewer,capture)
+    except image_client.UnrecognizedSaveToolbar as failure:original=failure
+    original.image_export_stage='save-control'
+    path=d.previews/(j['id']+'-save-toolbar.png')
+    if existing:path.write_bytes(b'keep original evidence')
+    adapter=types.SimpleNamespace(locked=object(),dispatch=Mock(side_effect=original))
+    with patch.dict('sys.modules',{'image_client':adapter}),patch('operations.images.load_context',return_value=c),patch('operations.recipes.screen',return_value=im):
+     with self.assertRaises(images.ImageReadError) as error:images.export(d,j)
+    self.assertEqual(error.exception.code,'IMAGE_EXPORT_NOT_PROVEN')
+    self.assertTrue(error.exception.clean)
+    adapter.dispatch.assert_called_once()
+    if existing:
+     self.assertEqual(path.read_bytes(),b'keep original evidence')
+    else:
+     with Image.open(path) as saved:
+      self.assertEqual((saved.mode,saved.size),('RGB',(640,44)))
+      self.assertEqual(hashlib.sha256(saved.tobytes()).hexdigest(),original.image_toolbar_fingerprint)
+     self.assertEqual(path.stat().st_mode&0o077,0)
+     self.assertIn(path.name,str(error.exception))
+
 class ImageRoutingTests(unittest.TestCase):
  def test_uncached_image_in_native_only_group_uses_proven_session_binding(self):
   import os,types

@@ -25,6 +25,13 @@ attachment failures use the original Codex chat and delivery binding with an
 explicit unavailable diagnostic instead of sending a hard-coded resend request.
 Check the PR activation receipt and a new native image before claiming delivery.
 
+An unrecognized image Save toolbar previously retained only its hash after
+the owned viewer closed. The failure now carries the exact 640-by-44 RGB crop
+into a private, original-job diagnostic; existing files are never overwritten.
+The original export remains failed and normal cleanup still runs. This supplies
+the evidence needed to diagnose a future rendering difference, not a new Save
+layout or acceptance of image delivery. Historical failures are not replayed.
+
 A native kind-49 card exceeding the bounded text decoder stopped the entire
 group intake before existing Codex results could resume. SourceInbox now isolates
 that card's decode error in its original batch and a durable `content_errors`
