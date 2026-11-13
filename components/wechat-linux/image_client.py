@@ -116,6 +116,7 @@ def viewer_save_proof(viewer,image):
     if layout is None:
         error=UnrecognizedSaveToolbar('current Save/QR toolbar is not a calibrated inactive layout')
         error.image_toolbar_fingerprint=prefix
+        error.image_toolbar=toolbar
         raise error
     box=[x,y,x+w,y+44]
     return {'point':[x+layout[1],y+21],'layout':layout[0],'prefixSHA256':prefix,

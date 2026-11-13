@@ -57,6 +57,8 @@ class ClientImageTests(unittest.TestCase):
                 x,y=viewer['x'],viewer['y']
                 prefix=im.crop((x,y,x+640,y+44))
                 self.assertEqual(error.exception.image_toolbar_fingerprint,hashlib.sha256(prefix.tobytes()).hexdigest())
+                self.assertEqual(error.exception.image_toolbar.size,(640,44))
+                self.assertEqual(error.exception.image_toolbar.tobytes(),prefix.tobytes())
         return control
 
     def test_unknown_save_toolbar_closes_only_original_viewer_without_toolbar_click(self):

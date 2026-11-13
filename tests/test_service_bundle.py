@@ -80,6 +80,16 @@ class LinuxDesktopBootstrapTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'readiness timed out'):
                 self.runtime.wait_ready(folder, ':193', seconds=.2)
 
+    def test_slow_display_query_can_finish_within_total_readiness_deadline(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            probe = root / 'xdpyinfo'
+            probe.write_text('#!' + sys.executable + '\nimport time\ntime.sleep(1.2)\n')
+            probe.chmod(0o700)
+            with socket.socket(socket.AF_UNIX) as server, patch.dict(os.environ, PATH=str(root)):
+                server.bind(str(root / 'vnc.sock'))
+                self.runtime.wait_ready(root, ':193', seconds=2)
+
     def test_real_private_xvnc_startup_and_x_authorization(self):
         # An unused display and an owned child only: no WeChat, real profile or live service.
         number = next(n for n in range(193, 250)
@@ -94,7 +104,19 @@ class LinuxDesktopBootstrapTests(unittest.TestCase):
                        '-auth', str(root / 'Xauthority')]
             process = subprocess.Popen(command, stdout=log, stderr=log)
             try:
-                self.runtime.wait_ready(root, display, seconds=8)
+                try:
+                    self.runtime.wait_ready(root, display, seconds=8)
+                except ValueError as error:
+                    log.seek(0)
+                    try:
+                        probe = subprocess.run(['xdpyinfo', '-display', display],
+                            env=dict(os.environ, XAUTHORITY=str(root / 'Xauthority')),
+                            capture_output=True, text=True, timeout=3)
+                        detail = f'xdpyinfo exit={probe.returncode}: {probe.stderr[-1000:]}'
+                    except subprocess.TimeoutExpired:
+                        detail = 'xdpyinfo timed out'
+                    self.fail(f'{error}; Xvnc exit={process.poll()}; {detail}; '
+                              + log.read().decode(errors='replace')[-4000:])
                 self.assertIsNone(process.poll())
                 for name in ('Xauthority', 'vnc.sock'):
                     self.assertEqual(stat.S_IMODE((root / name).stat().st_mode), 0o600)
