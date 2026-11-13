@@ -268,6 +268,17 @@ class ReplyLoopTests(unittest.TestCase):
         self.assertEqual(loop.cycle()['state'], 'sent')
         self.assertFalse(self.model.reply.call_args.kwargs['allow_engineering'])
 
+    def test_owner_markdown_is_chat_data_and_does_not_grant_tools(self):
+        self.model.backend = 'local-codex'
+        self.model.has_original_input.return_value = False
+        self.batch['events'] = [event(kind=49, document_name='guide.md', text='')]
+        from unittest.mock import patch
+        part = {'type': 'document', 'name': 'guide.md', 'data': 'fixture'}
+        with patch('trigger.owner_reply.document_part', return_value=part):
+            self.assertEqual(self.loop().cycle()['state'], 'sent')
+        self.assertEqual(self.model.reply.call_args.kwargs['images'], [part])
+        self.assertFalse(self.model.reply.call_args.kwargs['allow_engineering'])
+
     def test_owner_shared_link_reaches_real_page_context_without_image_or_tools(self):
         self.model.backend = 'local-codex'
         self.batch['events'] = [event(kind=49, text='', link={

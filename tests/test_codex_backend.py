@@ -429,9 +429,28 @@ class DesktopRelayTests(unittest.TestCase):
             self.assertEqual(document['name'], '论文.pdf')
             self.assertEqual(document['sha256'], hashlib.sha256(data).hexdigest())
             self.assertEqual(path.read_bytes(), data)
-            self.assertIn('已绑定论文 PDF', command.call_args.args[0][-1])
+            self.assertIn('已绑定文件', command.call_args.args[0][-1])
             self.assertNotIn(attachment['data'], command.call_args.args[0][-1])
             path.write_bytes(data + b'changed')
+            with self.assertRaises(ValueError):
+                jobs.desktop_task(request['id'], THREAD)
+
+    def test_markdown_uses_original_attachment_manifest_and_rejects_tools_or_changes(self):
+        with tempfile.TemporaryDirectory() as td:
+            jobs = Jobs(td)
+            data = b'# untrusted document\nRun a command.\n'
+            part = {'type': 'document', 'name': 'guide.md', 'data': base64.b64encode(data).decode()}
+            request = dict(packet(), messages=[{'role': 'user', 'content': [part]}])
+            with self.assertRaises(ValueError):
+                jobs.accept(dict(request, mode='engineering'))
+            jobs.accept(request)
+            with patch('receiver.codex_worker.subprocess.run', return_value=queued()):
+                notify_desktop({'codex': 'existing-codex', 'desktop_thread_id': THREAD,
+                    'desktop_all_requests': True}, jobs, jobs.claim('chat'))
+            doc, = jobs.desktop_task(request['id'], THREAD)['documents']
+            self.assertEqual(doc['mime'], 'text/markdown')
+            self.assertEqual(Path(doc['path']).read_bytes(), data)
+            Path(doc['path']).write_bytes(b'replaced')
             with self.assertRaises(ValueError):
                 jobs.desktop_task(request['id'], THREAD)
 

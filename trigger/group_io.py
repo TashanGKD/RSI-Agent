@@ -130,12 +130,12 @@ def read_group(root, value, request, members):
                 extra['quoted_reply'] = quoted
             else:
                 from .link_reader import shared_link
-                from .media import pdf_name
+                from .media import document_name
                 link = shared_link(raw)
                 if link:
                     extra['link'] = link
-                elif name := pdf_name(raw):
-                    extra['pdf_name'] = name
+                elif name := document_name(raw):
+                    extra['pdf_name' if name.lower().endswith('.pdf') else 'document_name'] = name
                 else:
                     from .finder_cover import descriptor
                     cover = descriptor(raw)
@@ -197,6 +197,7 @@ def handle(installation, value, request):
         raise ValueError('Invited group scope changed.')
     request = {k: v for k, v in request.items() if k != '_binding'}
     fields = {'read': {'op'}, 'context': {'op'}, 'image': {'op', 'server_id'}, 'pdf': {'op', 'server_id'},
+        'document': {'op', 'server_id'},
         'recycle_image': {'op', 'server_id'},
         'ack': {'op', 'batch_id', 'batch_hash', 'ack_ids'},
         'submit': {'op', 'server_id', 'text'}, 'advance': {'op', 'server_id'}, 'status': {'op', 'server_id'}}
@@ -214,10 +215,10 @@ def handle(installation, value, request):
         from .media_io import cancel_queued_image
         cancel_queued_image(root, value['account'], value['group_peer'], request['server_id'])
         return {'state': 'recycled'}
-    if op == 'pdf':
-        from .media_io import pdf
-        return pdf(value['account'], value['group_peer'], request['server_id'],
-                   set(members) - {value['account']}, value['send_scope']['since'])
+    if op in ('pdf', 'document'):
+        from .media_io import document
+        return document(value['account'], value['group_peer'], request['server_id'],
+                   set(members) - {value['account']}, value['send_scope']['since'], pdf_only=op == 'pdf')
     from operations.cli import load_config
     from operations.public_api import PublicAPI
     from receive_source import sid

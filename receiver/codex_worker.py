@@ -66,8 +66,8 @@ def validate(value):
             or any(not isinstance(x, str) or not x.isdecimal() for x in value['request'])):
         raise ValueError('Original native Codex request required.')
     _, inputs = blocks(value['messages'])
-    if any(part['type'] == 'pdf' for part in inputs) and value['mode'] != 'chat':
-        raise ValueError('PDFs are conversation data only.')
+    if any(part['type'] in ('pdf', 'document') for part in inputs) and value['mode'] != 'chat':
+        raise ValueError('Documents are conversation data only.')
     if value['schema'] is not None and not isinstance(value['schema'], dict):
         raise ValueError('Explicit response schema required.')
 
@@ -105,6 +105,16 @@ def blocks(messages):
                             or len(data) > 10000000 or not data.startswith(b'%PDF-')):
                         raise ValueError('Only bounded original PDF bytes can cross the model port.')
                     inputs.append({'type': 'pdf', 'name': name, 'data': data})
+                elif part['type'] == 'document':
+                    name = part['name']
+                    data = base64.b64decode(part['data'], validate=True)
+                    if (not isinstance(name, str) or not 1 <= len(name.encode()) <= 180
+                            or not name.lower().endswith(('.md', '.txt'))
+                            or any(not c.isprintable() or c in '/\\' for c in name)
+                            or not data or len(data) > 1000000 or b'\0' in data):
+                        raise ValueError('Only bounded original Markdown/text bytes can cross the model port.')
+                    data.decode('utf-8-sig')
+                    inputs.append({'type': 'document', 'name': name, 'data': data})
                 else:
                     raise ValueError('Unsupported Codex content block.')
         else:
@@ -126,6 +136,12 @@ def desktop_attachments(folder, messages):
             data = part['data']
             documents.append(({'path': (folder / ('document-' + str(index) + '.pdf')).as_posix(),
                 'name': part['name'], 'sha256': hashlib.sha256(data).hexdigest(), 'mime': 'application/pdf'}, data))
+        elif part['type'] == 'document':
+            data = part['data']
+            extension = Path(part['name']).suffix.lower()
+            documents.append(({'path': (folder / ('document-' + str(index) + extension)).as_posix(),
+                'name': part['name'], 'sha256': hashlib.sha256(data).hexdigest(),
+                'mime': 'text/markdown' if extension == '.md' else 'text/plain'}, data))
     return images, documents
 
 
@@ -403,8 +419,8 @@ def run_codex(config, jobs, row):
     cwd = workspace(config, request)
     folder = Path(config['state']) / identity
     system, inputs = blocks(request['messages'])
-    if any(part['type'] == 'pdf' for part in inputs):
-        raise ValueError('Bound PDF files require the dedicated desktop conversation.')
+    if any(part['type'] in ('pdf', 'document') for part in inputs):
+        raise ValueError('Bound documents require the dedicated desktop conversation.')
     overrides = tool_overrides(request['mode'], config['user_config'])
     command = [config['codex']]
     for key, value in overrides.items():
@@ -544,7 +560,7 @@ def notify_desktop(config, jobs, row):
         + chat_handoff + '\n' + preview
         + '\n\n[原消息与回传记录](<' + original.as_posix() + '>)'
         + ''.join('\n[已绑定图片](<' + image['path'] + '>)' for image, _ in images)
-        + ''.join('\n[已绑定论文 PDF](<' + document['path'] + '>)' for document, _ in documents))
+        + ''.join('\n[已绑定文件](<' + document['path'] + '>)' for document, _ in documents))
     proof = {'state': 'submitting', 'id': request['id'], 'input_sha256': row['digest'],
              'thread_id': target, 'message_sha256': hashlib.sha256(message.encode()).hexdigest()}
     journal.write_text(json.dumps(proof, indent=2), encoding='utf-8');journal.chmod(0o600)

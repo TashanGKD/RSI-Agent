@@ -8,6 +8,14 @@ the original job and result. See the [repository entrypoint](../README.md) for
 code and operator commands. The independent SCNET group gate is disabled on the
 current deployment. Use the live release and process records to verify activation.
 
+Document intake accepts source-bound cached PDF and UTF-8 Markdown/plain text.
+A downloaded PDF was rejected because its completed resource type was missing
+from the cache reader. The bounded fix retains native message/resource, size,
+MD5 and hardlink checks; it does not search by filename alone. Text files remain
+chat data and use the same frozen attachment manifest. Upgrade the receiver
+before the trigger and verify fresh native intake separately from fixture tests
+or reading a historical cache. Original completed replies must not be replayed.
+
 A private image failure exposed a missed owner-service upgrade: the group
 process had the image locator fixes while the owner process still imported an
 older release. The owner was aligned with the reviewed group release, retaining

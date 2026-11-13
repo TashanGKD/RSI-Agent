@@ -20,7 +20,7 @@ def cached(peer,server,resource,raw):
   args=[peer,signed(server)]
   if resource is not None:sql+=' and d.resource_id=?';args.append(resource)
   rows=c.execute(sql+' limit 65',args).fetchall()
-  rows=[x for x in rows if x['size']==meta['size'] and x['status']==1 and x['type'] in (3735555,3407875)]
+  rows=[x for x in rows if x['size']==meta['size'] and x['status']==1 and x['type'] in (3735555,3407875,3342339,3801091)]
   if len(rows)!=1:raise ValueError('no unique completed ordinary-file resource; use official client to download first')
   row=rows[0];packed=bytes(row['packed_info'] or b'');rid=row['resource_id']
   if len(packed)>16384:raise ValueError('resource metadata over budget')

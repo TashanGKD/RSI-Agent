@@ -384,6 +384,32 @@ class GroupTests(unittest.TestCase):
         self.assertEqual(payload[1], document)
         self.assertEqual(json.loads(payload[0]['text'])['new_messages'][0]['pdf_status'], 'verified')
 
+    def test_group_markdown_freezes_bytes_and_retains_unavailable_reason(self):
+        self.model.backend = 'local-codex'
+        self.batch['events'] = [self.event(kind=49, document_name='guide.md', text='')]
+        loop = self.loop()
+        document = {'type': 'document', 'name': 'guide.md', 'data': 'fixture'}
+        with patch('trigger.group_reply.document_part', return_value=document) as read:
+            loop.cycle()
+            read.assert_called_once_with(loop.io, '1', 'guide.md')
+        payload = self.model.complete.call_args.args[0][1]['content']
+        self.assertEqual(payload[1], document)
+        self.assertEqual(json.loads(payload[0]['text'])['new_messages'][0]['document_status'], 'verified')
+        self.model.has_original_input.return_value = True
+        with patch('trigger.group_reply.document_part', side_effect=AssertionError('must retain frozen input')):
+            loop.cycle()
+        self.batch['events'] = [self.event(2, kind=49, document_name='broken.txt', text='')]
+        self.model.has_original_input.return_value = False
+        from trigger.media import MediaUnavailable
+        with patch('trigger.group_reply.document_part', side_effect=MediaUnavailable('DOCUMENT_UTF8_REQUIRED')):
+            loop.cycle()
+        payload = self.model.complete.call_args.args[0][1]['content']
+        if isinstance(payload, list):
+            payload = payload[0]['text']
+        event = json.loads(payload)['new_messages'][0]
+        self.assertEqual(event['attachment_error'], 'DOCUMENT_UTF8_REQUIRED')
+        self.assertEqual(event['document_status'], 'unavailable')
+
     def test_finder_cover_enters_image_input_and_ordinary_link_does_not(self):
         self.model.backend = 'local-codex'
         self.batch['events'] = [self.event(kind=49, image_kind='finder_cover', text='视频号封面：示例简介'),

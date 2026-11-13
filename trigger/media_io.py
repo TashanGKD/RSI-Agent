@@ -4,7 +4,7 @@ import hashlib
 from pathlib import Path
 
 from .reply_io import advance, request_id
-from .media import pdf_name
+from .media import document_name, text_document, MediaUnavailable
 
 CLIENT = 'rsi-vision'
 
@@ -35,6 +35,10 @@ def cancel_queued_image(root, account, peer, server):
 
 
 def pdf(account, peer, server, allowed_senders, since):
+    return document(account, peer, server, allowed_senders, since, pdf_only=True)
+
+
+def document(account, peer, server, allowed_senders, since, *, pdf_only=False):
     from linux_tool import ACCOUNT, decode, native, signed
     from operations.exports import cached
     from receive_source import sid
@@ -56,17 +60,23 @@ def pdf(account, peer, server, allowed_senders, since):
         raw = decode(encoded)
         if raw.startswith(sender + ':\n'):
             raw = raw[len(sender) + 2:]
-    name = pdf_name(raw)
-    if not name:
-        return {'state': 'media_attention', 'code': 'PDF_SOURCE_UNPROVEN'}
+    prefix = 'PDF' if pdf_only else 'DOCUMENT'
+    name = document_name(raw)
+    if not name or name.lower().endswith('.pdf') != pdf_only:
+        return {'state': 'media_attention', 'code': prefix + '_SOURCE_UNPROVEN'}
     try:
         data, proof = cached(peer, server, None, raw)
     except (OSError, ValueError):
-        return {'state': 'media_attention', 'code': 'PDF_CACHE_UNAVAILABLE'}
+        return {'state': 'media_attention', 'code': prefix + '_CACHE_UNAVAILABLE'}
     if (proof['name'] != name or proof['sourceId'] != server or not proof['nativeMessageMD5Matched']
-            or not proof['resourceCacheBindingVerified'] or not data.startswith(b'%PDF-')):
-        return {'state': 'media_attention', 'code': 'PDF_BYTES_UNPROVEN'}
-    return {'state': 'pdf_ready', 'name': name, 'data': base64.b64encode(data).decode(),
+            or not proof['resourceCacheBindingVerified'] or pdf_only and not data.startswith(b'%PDF-')):
+        return {'state': 'media_attention', 'code': prefix + '_BYTES_UNPROVEN'}
+    if not pdf_only:
+        try:
+            text_document(data)
+        except MediaUnavailable as error:
+            return {'state': 'media_attention', 'code': str(error)}
+    return {'state': 'pdf_ready' if pdf_only else 'document_ready', 'name': name, 'data': base64.b64encode(data).decode(),
             'sha256': hashlib.sha256(data).hexdigest(), 'source_verified': True}
 
 

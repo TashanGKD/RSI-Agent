@@ -86,15 +86,15 @@ def source(root, owner, request):
             if event['kind'] != 49:
                 return {}
             from .link_reader import shared_link
-            from .media import pdf_name
+            from .media import document_name
             raw = decode(row['message_content'])
             if raw.startswith(event['sender'] + ':\n'):
                 raw = raw[len(event['sender']) + 2:]
             link = shared_link(raw)
             if link:
                 return {'link': link}
-            name = pdf_name(raw)
-            return {'pdf_name': name} if name else {}
+            name = document_name(raw)
+            return {('pdf_name' if name.lower().endswith('.pdf') else 'document_name'): name} if name else {}
 
         inbox = SourceInbox(path, lambda: db, table, owner['account'], peer, decode,
                             str(scope['since']), only_incoming=True, event_context=context)
@@ -241,6 +241,7 @@ def handle(installation, owner, request):
     request = {key: value for key, value in request.items() if key != '_binding'}
     op = request.get('op')
     fields = {'read': {'op'}, 'image': {'op', 'server_id'}, 'pdf': {'op', 'server_id'},
+              'document': {'op', 'server_id'},
               'ack': {'op', 'batch_id', 'batch_hash', 'ack_ids'},
               'submit': {'op', 'server_id', 'text'}, 'advance': {'op', 'server_id'}}
     if 'friend_peer' in owner:
@@ -262,12 +263,12 @@ def handle(installation, owner, request):
     if op == 'voice':
         from .voice_input import read_owner_voice
         return read_owner_voice(peer, request['server_id'], owner['send_scope']['since'])
-    if op == 'pdf':
-        from .media_io import pdf
+    if op in ('pdf', 'document'):
+        from .media_io import document
         scope = owner['send_scope']
         if scope['mode'] not in ('owner-private-text', FRIEND_MODE):
             raise ValueError('PDFs require a continuous private scope.')
-        return pdf(owner['account'], peer, request['server_id'], {peer}, scope['since'])
+        return document(owner['account'], peer, request['server_id'], {peer}, scope['since'], pdf_only=op == 'pdf')
     from operations.cli import load_config
     from operations.public_api import PublicAPI
     from receive_source import sid
