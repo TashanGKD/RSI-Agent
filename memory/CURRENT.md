@@ -8,6 +8,15 @@ the original job and result. See the [repository entrypoint](../README.md) for
 code and operator commands. The independent SCNET group gate is disabled on the
 current deployment. Use the live release and process records to verify activation.
 
+A mixed image/text/link batch ranked a large text bubble before the actual image.
+The first candidate opened no viewer and stopped export before the second frozen
+point was tried. A proved absent viewer can now advance within the original
+bounded candidate list only after the original windows are restored; the next
+attempt rechecks the frozen pane. Ambiguous/existing viewers and changed panes
+still stop. Source byte/filename checks are unchanged. Use a fresh native mixed
+batch to verify image bytes, actual Codex reading and original delivery; the
+historical completed reply remains unchanged.
+
 An original owner engineering result was sent in two native group parts while
 the desktop still showed pending: both ends omitted engineering delivery binding.
 Completed engineering replies now retain their desktop key and use the same
