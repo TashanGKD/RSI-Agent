@@ -9,7 +9,7 @@ import socket
 import ssl
 import subprocess
 import sys
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qs, urljoin, urlsplit
 from xml.etree import ElementTree as ET
 
 from rsi_agent.config import ROOT
@@ -20,6 +20,8 @@ BILIBILI_HOSTS = {'bilibili.com', 'www.bilibili.com', 'm.bilibili.com'}
 BILIBILI_SHORT = 'b23.tv'
 BILIBILI_ID = r'(?:BV[0-9A-Za-z]{10}|av[1-9][0-9]{0,19})'
 BILIBILI_HEADERS = {'User-Agent': 'RSI-Agent-LinkReader/0.1', 'Accept-Encoding': 'identity'}
+XIAOHONGSHU_HOSTS = {'xiaohongshu.com', 'www.xiaohongshu.com'}
+XIAOHONGSHU_SHORT = 'xhslink.com'
 # Public article request headers as used by wechat-article-reader.
 # https://github.com/Rudy-114/wechat-article-reader
 WECHAT_HEADERS = {
@@ -32,7 +34,8 @@ WECHAT_HEADERS = {
 
 def address(url):
     parts = urlsplit(url)
-    if (parts.scheme == 'http' and parts.hostname in (BILIBILI_HOSTS | {WECHAT_HOST, BILIBILI_SHORT})
+    if (parts.scheme == 'http' and parts.hostname in
+            (BILIBILI_HOSTS | {WECHAT_HOST, BILIBILI_SHORT, XIAOHONGSHU_SHORT})
             and not parts.username and not parts.password and parts.port in (None, 80)):
         parts = parts._replace(scheme='https', netloc=parts.hostname)
     if (len(url) > 2048 or parts.scheme != 'https' or not parts.hostname
@@ -50,6 +53,19 @@ def bilibili_video(url):
     if parts.hostname in BILIBILI_HOSTS:
         return re.fullmatch('/video/' + BILIBILI_ID + '/?', parts.path) is not None
     return parts.hostname == BILIBILI_SHORT and re.fullmatch(r'/[0-9A-Za-z]{1,24}/?', parts.path) is not None
+
+
+def xiaohongshu_note_id(parts):
+    if parts.hostname in XIAOHONGSHU_HOSTS:
+        match = re.fullmatch(r'/(?:explore|discovery/item)/([a-f0-9]{24})/?', parts.path)
+        if match:
+            return match[1]
+
+
+def xiaohongshu_link(parts):
+    return xiaohongshu_note_id(parts) is not None or (
+        parts.hostname == XIAOHONGSHU_SHORT
+        and re.fullmatch(r'/(?:a|o)/[0-9A-Za-z]{1,32}/?', parts.path) is not None)
 
 
 def urls(text, *, video_only=False):
@@ -84,7 +100,7 @@ def shared_link(raw):
         original = apps[0].findtext('url') or ''
         url = address(original).geturl()
         kind = apps[0].findtext('type')
-        if kind != '5' and (kind != '4' or not bilibili_video(url)):
+        if kind != '5' and (kind != '4' or not (bilibili_video(url) or xiaohongshu_link(address(url)))):
             return None
     except (ET.ParseError, ValueError):
         return None
@@ -219,12 +235,86 @@ def fetch_bilibili(url):
                     else 'BILIBILI_METADATA_UNAVAILABLE')
 
 
+class NoteMetadata(HTMLParser):
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.values = {}
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'meta':
+            attrs = dict(attrs)
+            field = attrs.get('property')
+            if field in ('og:url', 'og:title', 'og:description') and attrs.get('content'):
+                self.values.setdefault(field, attrs['content'].strip())
+
+
+def xiaohongshu_response(parts):
+    connection = public_connection(parts, 4)
+    try:
+        target = parts.path + ('?' + parts.query if parts.query else '')
+        connection.request('GET', target, headers={
+            'User-Agent': 'RSI-Agent-LinkReader/0.1',
+            'Accept': 'text/html', 'Accept-Encoding': 'identity'})
+        response = connection.getresponse()
+        if response.status in (301, 302, 303, 307, 308):
+            return response.getheader('Location', ''), None, None
+        if response.status != 200:
+            raise ValueError('XIAOHONGSHU_HTTP_' + str(response.status))
+        if response.headers.get_content_type() != 'text/html':
+            raise ValueError('XIAOHONGSHU_METADATA_UNAVAILABLE')
+        raw = response.read(1_000_001)
+        if len(raw) > 1_000_000:
+            raise ValueError('XIAOHONGSHU_PAGE_TOO_LARGE')
+        return None, raw, response.headers.get_content_charset() or 'utf-8'
+    finally:
+        connection.close()
+
+
+def fetch_xiaohongshu(url, parts):
+    base = {'url': url, 'kind': 'xiaohongshu_note'}
+    note_id = xiaohongshu_note_id(parts)
+    try:
+        for hop in range(3):
+            location, raw, charset = xiaohongshu_response(parts)
+            if location is None:
+                page = NoteMetadata()
+                page.feed(raw.decode(charset, errors='replace'))
+                fields = page.values
+                canonical = address(fields.get('og:url', '')) if fields.get('og:url') else None
+                if not note_id or canonical is None or xiaohongshu_note_id(canonical) != note_id or not fields.get('og:title'):
+                    raise ValueError('XIAOHONGSHU_METADATA_UNAVAILABLE')
+                return dict(base, state='ready', content_scope='metadata',
+                            canonical_url=f'https://www.xiaohongshu.com/explore/{note_id}',
+                            title=fields['og:title'][:200], description=fields.get('og:description', '')[:8000],
+                            source_sha256=hashlib.sha256(raw).hexdigest())
+            if not location:
+                raise ValueError('XIAOHONGSHU_REDIRECT_UNSUPPORTED')
+            redirected = address(urljoin(parts.geturl(), location))
+            if redirected.hostname in XIAOHONGSHU_HOSTS:
+                if redirected.path.rstrip('/') == '/login':
+                    raise ValueError('XIAOHONGSHU_LOGIN_REQUIRED')
+                if redirected.path == '/404' or redirected.path.startswith('/404/'):
+                    raise ValueError('XIAOHONGSHU_NOTE_UNAVAILABLE')
+            redirected_id = xiaohongshu_note_id(redirected)
+            if not redirected_id or (note_id and note_id != redirected_id):
+                raise ValueError('XIAOHONGSHU_REDIRECT_UNSUPPORTED')
+            if hop == 2 or redirected == parts:
+                raise ValueError('XIAOHONGSHU_REDIRECT_LIMIT')
+            parts, note_id = redirected, redirected_id
+    except (OSError, ValueError, LookupError, http.client.HTTPException) as error:
+        code = str(error)
+        return dict(base, state='unavailable', code=code if re.fullmatch('XIAOHONGSHU_[A-Z0-9_]+', code)
+                    else 'XIAOHONGSHU_METADATA_UNAVAILABLE')
+
+
 def fetch(url):
     if bilibili_video(url):
         return fetch_bilibili(url)
     connection = None
     try:
         parts = address(url)
+        if xiaohongshu_link(parts):
+            return fetch_xiaohongshu(url, parts)
         wechat = parts.hostname == WECHAT_HOST
         connection = public_connection(parts, 10)
         target = (parts.path or '/') + ('?' + parts.query if parts.query else '')

@@ -15,6 +15,73 @@ from rsi_agent.config import WECHAT_LINUX
 
 
 class LinkReaderTests(unittest.TestCase):
+    def test_xiaohongshu_short_share_reads_note_metadata_without_video_claim(self):
+        short = 'https://xhslink.com/a/Example'
+        card = '<msg><appmsg><type>4</type><title>Video</title><url>http://xhslink.com/a/Example</url></appmsg></msg>'
+        self.assertEqual(shared_link(card)['url'], short)
+        note = 'https://www.xiaohongshu.com/discovery/item/0123456789abcdef01234567?xsec_token=fixture'
+        first, second = Mock(), Mock()
+        first.getresponse.return_value = Mock(status=302)
+        first.getresponse.return_value.getheader.return_value = note
+        headers = Message()
+        headers['Content-Type'] = 'text/html; charset=utf-8'
+        second.getresponse.return_value = Mock(status=200, headers=headers)
+        second.getresponse.return_value.read.return_value = (
+            b'<meta property="og:title" content="Public note">'
+            b'<meta property="og:description" content="Public summary">'
+            b'<meta property="og:url" content="https://www.xiaohongshu.com/explore/0123456789abcdef01234567">'
+            b'<main>Site menu</main>')
+        with patch('trigger.link_reader.public_connection', side_effect=[first, second]) as connect:
+            result = fetch(short)
+        self.assertEqual(result['state'], 'ready')
+        self.assertEqual(result['kind'], 'xiaohongshu_note')
+        self.assertEqual(result['content_scope'], 'metadata')
+        self.assertEqual(result['title'], 'Public note')
+        self.assertEqual(result['description'], 'Public summary')
+        self.assertEqual(result['url'], short)
+        self.assertNotIn('text', result)
+        self.assertEqual(connect.call_count, 2)
+        self.assertTrue(second.request.call_args.args[1].endswith('?xsec_token=fixture'))
+        first.close.assert_called_once()
+        second.close.assert_called_once()
+
+    def test_xiaohongshu_login_or_untrusted_redirect_stops_before_second_fetch(self):
+        note = 'https://www.xiaohongshu.com/discovery/item/0123456789abcdef01234567?xsec_token=fixture'
+        for location, code in (
+            ('/login?redirectPath=example', 'XIAOHONGSHU_LOGIN_REQUIRED'),
+            ('/404/sec_test', 'XIAOHONGSHU_NOTE_UNAVAILABLE'),
+            ('', 'XIAOHONGSHU_REDIRECT_UNSUPPORTED'),
+            ('https://example.com/explore/0123456789abcdef01234567', 'XIAOHONGSHU_REDIRECT_UNSUPPORTED'),
+            ('/explore/aaaaaaaaaaaaaaaaaaaaaaaa', 'XIAOHONGSHU_REDIRECT_UNSUPPORTED'),
+        ):
+            with self.subTest(location=location):
+                connection = Mock()
+                connection.getresponse.return_value = Mock(status=302)
+                connection.getresponse.return_value.getheader.return_value = location
+                with patch('trigger.link_reader.public_connection', return_value=connection) as connect:
+                    result = fetch(note)
+                self.assertEqual(result['state'], 'unavailable')
+                self.assertEqual(result['code'], code)
+                connect.assert_called_once()
+
+    def test_xiaohongshu_web_shell_and_mismatched_metadata_are_unavailable(self):
+        note = 'https://www.xiaohongshu.com/explore/0123456789abcdef01234567'
+        headers = Message()
+        headers['Content-Type'] = 'text/html'
+        for raw in (
+            b'<title>Generic website title</title><main>Please log in</main>',
+            b'<meta property="og:title" content="Other note">'
+            b'<meta property="og:url" content="https://www.xiaohongshu.com/explore/aaaaaaaaaaaaaaaaaaaaaaaa">',
+        ):
+            with self.subTest(raw=raw):
+                connection = Mock()
+                connection.getresponse.return_value = Mock(status=200, headers=headers)
+                connection.getresponse.return_value.read.return_value = raw
+                with patch('trigger.link_reader.public_connection', return_value=connection):
+                    result = fetch(note)
+                self.assertEqual(result['state'], 'unavailable')
+                self.assertEqual(result['code'], 'XIAOHONGSHU_METADATA_UNAVAILABLE')
+
     def test_bilibili_card_fetches_only_verified_metadata_for_the_exact_part(self):
         url = 'https://www.bilibili.com/video/BV1zJiGBREPB/?p=2&share_source=fixture'
         card = '<msg><appmsg><type>4</type><title>Video</title><url>' + url.replace('&', '&amp;') + '</url></appmsg></msg>'
