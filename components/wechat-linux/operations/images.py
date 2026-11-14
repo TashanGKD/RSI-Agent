@@ -277,6 +277,7 @@ def export(driver,j):
     stage=getattr(exc,'image_export_stage',None)
     if source_probe and stage=='viewer':
      restore_auxiliary_window(driver,j,require_guard)
+     if getattr(exc,'image_viewer_missing',False) is True and clean(driver,j):continue
     reason='Official image export did not prove the expected source.'
     if stage in ('viewer','save-control','save-dialog','filename','export','verification'):
      reason='Official image export failed at '+stage+'.'

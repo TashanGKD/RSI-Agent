@@ -231,6 +231,40 @@ class ImageExecutionTests(unittest.TestCase):
    self.assertEqual([x.args[1]['point'] for x in call.call_args_list],[[120,150],[155,155]])
    self.assertTrue(all('verify_source_filename' not in x.args[1] for x in call.call_args_list))
 
+ def test_non_image_candidate_continues_only_after_original_scene_is_restored(self):
+  import types
+  from unittest.mock import Mock,patch
+  from image_client import ImageFilenameMismatch
+  for condition in ('unchanged','restored','pane_changed','window_changed','unproven'):
+   with self.subTest(condition=condition),tempfile.TemporaryDirectory() as td:
+    d,j,c,im,result=self.fixture(td)
+    j['payload']['representation']='visible';c['sourceMode']='inbound'
+    j['preview']['context']=images.digest(c)
+    j['preview'].pop('imagePoint')
+    points=[[120,150],[155,155]];j['preview']['imageSourcePoints']=points
+    initial=j['preview']['imageWindows']
+    error=ValueError('no viewer opened');error.image_export_stage='viewer'
+    if condition!='unproven':error.image_viewer_missing=True
+    def dispatch(tool,request,*,ui):
+     if request['point']==points[0]:
+      if condition=='pane_changed':im.putpixel((2,2),(123,45,67))
+      if condition in ('restored','window_changed'):d.app_windows.return_value=initial+[{'id':'new'}]
+      raise error
+     return result
+    def restore(*args):
+     if condition=='restored':d.app_windows.return_value=initial
+    call=Mock(side_effect=dispatch)
+    adapter=types.SimpleNamespace(locked=None,dispatch=call,ImageFilenameMismatch=ImageFilenameMismatch)
+    with patch.dict('sys.modules',{'image_client':adapter}),patch('operations.images.load_context',return_value=c), \
+         patch('operations.recipes.screen',return_value=im),patch('operations.images.restore_auxiliary_window',side_effect=restore):
+     if condition in ('unchanged','restored'):
+      data,proof=images.export(d,j)
+      self.assertEqual(data,sample());self.assertTrue(proof['nativeMessageMD5Matched'])
+      self.assertEqual([v.args[1]['point'] for v in call.call_args_list],points)
+     else:
+      with self.assertRaises(images.ImageReadError):images.export(d,j)
+      call.assert_called_once()
+
  def test_failed_viewer_probe_releases_the_next_reply(self):
   import types
   from unittest.mock import Mock,patch

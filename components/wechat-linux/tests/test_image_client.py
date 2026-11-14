@@ -3,6 +3,32 @@ from pathlib import Path
 import image_client
 
 class ClientImageTests(unittest.TestCase):
+    def test_missing_viewer_is_distinct_from_existing_or_ambiguous_windows(self):
+        from contextlib import contextmanager
+        from unittest.mock import Mock,patch
+        from PIL import Image
+        for state in ('missing','existing','ambiguous'):
+            with self.subTest(state=state),tempfile.TemporaryDirectory() as td:
+                control=Mock();queries=[]
+                def one(title,optional=False):
+                    if title!='Photos and Videos':return None
+                    queries.append(optional)
+                    if state=='existing':return {'id':'existing'}
+                    if state=='ambiguous' and len(queries)>1:raise ValueError('ambiguous viewer')
+                    return None
+                control.one.side_effect=one
+                im=Image.new('RGB',(600,450),'white');ui=Mock();ui.screenshot.return_value=im
+                @contextmanager
+                def held(_):yield lambda:None
+                request={'action':'image','point':[200,250],'context_sha256':hashlib.sha256(im.tobytes()).hexdigest()}
+                with patch('linux_tool.ROOT',Path(td)),patch('image_client.source',return_value=({},{})), \
+                     patch('image_client.locked',held),patch('image_client.Controls',return_value=control), \
+                     patch('image_client.viewport',return_value=[0,0,600,450]):
+                    with self.assertRaises(ValueError) as error:image_client.dispatch(Mock(),request,ui=ui)
+                self.assertEqual(getattr(error.exception,'image_viewer_missing',False),state=='missing')
+                self.assertEqual(control.click.call_count,0 if state=='existing' else 2)
+                control.key.assert_not_called();control.close.assert_called_once()
+
     def rejected_viewer(self, changed=False, foreign=False):
         from contextlib import contextmanager
         from unittest.mock import Mock,patch

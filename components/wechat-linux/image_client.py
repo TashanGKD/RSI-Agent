@@ -308,7 +308,11 @@ def dispatch(tool,r,*,ui=None):
         try:
             if control.one('Save',True) or control.one('Photos and Videos',True):raise ValueError('close an existing native image/save window before this read')
             control.click(*point);control.wait(120);control.click(*point);control.wait(800)
-            viewer=control.one('Photos and Videos')
+            viewer=control.one('Photos and Videos',True)
+            if viewer is None:
+                error=ValueError('image candidate did not open a viewer')
+                error.image_viewer_missing=True
+                raise error
             from operations.windows import window_identity
             from operations.lease import birth
             viewer_identity=window_identity(viewer);viewer_birth=birth(viewer_identity['pid'])
