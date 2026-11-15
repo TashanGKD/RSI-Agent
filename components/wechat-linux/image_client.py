@@ -7,7 +7,7 @@ from rsi_runtime_env import display, xauthority
 import base64,ctypes,fcntl,hashlib,io,json,os,re,subprocess,sys,tempfile,time
 from pathlib import Path
 import xml.etree.ElementTree as ET
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 
 def source_info(raw,kind):
     if kind!=3 or not isinstance(raw,str) or len(raw.encode())>32768 or re.search(r'<!\s*(DOCTYPE|ENTITY)',raw,re.I):raise ValueError('bounded native image XML required')
@@ -26,8 +26,12 @@ def validate_point(point,viewport):
     if not l<point[0]<r or not t<point[1]<b:raise ValueError('point must stay inside chat message pane, away from editor and controls')
     return point
 
+class ImageSceneChanged(ValueError):
+    pass
+
+
 def check_context(pixels,wanted):
-    if not isinstance(wanted,str) or not re.fullmatch('[a-f0-9]{64}',wanted) or hashlib.sha256(pixels).hexdigest()!=wanted:raise ValueError('chat context changed; inspect a fresh image_prepare result')
+    if not isinstance(wanted,str) or not re.fullmatch('[a-f0-9]{64}',wanted) or hashlib.sha256(pixels).hexdigest()!=wanted:raise ImageSceneChanged('chat context changed before image input')
 
 def verify_export(path,expected,root):
     from attachments import read_bound
@@ -289,11 +293,12 @@ def restore_main_focus(control):
     main=control.one('Weixin',True)
     if main:control.focus(main)
 
-def dispatch(tool,r,*,ui=None):
+def dispatch(tool,r,*,ui=None,guard=None):
     from linux_tool import ROOT
     from sender import UI
     target,metadata=source(tool,r);ui=ui if ui is not None else UI(ROOT)
-    with locked(ROOT) as require_guard:
+    with (locked(ROOT) if guard is None else nullcontext(guard)) as require_guard:
+        require_guard()
         ui.preflight(r,target);cfg=ui.config(target);box=viewport(cfg);im=ui.screenshot();context=im.crop(tuple(box))
         if r['action']=='image_prepare':
             b=io.BytesIO();context.save(b,format='PNG')
@@ -307,6 +312,8 @@ def dispatch(tool,r,*,ui=None):
         stage='viewer'
         try:
             if control.one('Save',True) or control.one('Photos and Videos',True):raise ValueError('close an existing native image/save window before this read')
+            require_guard()
+            check_context(ui.screenshot().crop(tuple(box)).tobytes(),r.get('context_sha256'))
             control.click(*point);control.wait(120);control.click(*point);control.wait(800)
             viewer=control.one('Photos and Videos',True)
             if viewer is None:
@@ -326,7 +333,6 @@ def dispatch(tool,r,*,ui=None):
             if visible:
                 stage='filename'
                 require_guard();control.focus(dialog);filename=control.filename(dialog)
-                if r.get('verify_source_filename'):verify_filename(filename,metadata)
             stage='export'
             with tempfile.TemporaryDirectory(prefix='image-',dir=export_root) as td:
                 folder=Path(td);out=folder/'image'

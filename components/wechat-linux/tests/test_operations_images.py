@@ -171,7 +171,7 @@ class ImageExecutionTests(unittest.TestCase):
     d,j,c,im,r=self.fixture(td)
     binding=j['preview']['uiBinding']
     if native:binding['nativeTargetProof']={'peer':PEER}
-    def dispatch(tool,request,*,ui):
+    def dispatch(tool,request,*,ui,guard):
      ui.preflight(request,{'username':PEER})
      return r
     adapter=types.SimpleNamespace(locked=Mock(),dispatch=dispatch)
@@ -204,24 +204,6 @@ class ImageExecutionTests(unittest.TestCase):
    self.assertEqual(proof['representation'],'original')
    self.assertEqual(proof['sourceIdentityMethod'],'native-message-md5')
    self.assertNotIn('officialDefaultFilename',proof)
- def test_filename_fallback_checks_each_candidate_before_returning_an_image(self):
-  import types
-  from unittest.mock import Mock,patch
-  from image_client import ImageFilenameMismatch
-  with tempfile.TemporaryDirectory() as td:
-   d,j,c,im,r=self.fixture(td)
-   j['payload']['representation']='visible';c['sourceMode']='inbound'
-   j['preview']['context']=images.digest(c)
-   j['preview'].pop('imagePoint')
-   j['preview']['imageFilenamePoints']=[[120,150],[155,155]]
-   call=Mock(side_effect=[ImageFilenameMismatch('different source'),r])
-   adapter=types.SimpleNamespace(locked=object(),dispatch=call,ImageFilenameMismatch=ImageFilenameMismatch)
-   with patch.dict('sys.modules',{'image_client':adapter}),patch('operations.images.load_context',return_value=c),patch('operations.recipes.screen',return_value=im):
-    data,proof=images.export(d,j)
-   self.assertEqual(data,sample());self.assertEqual(proof['messagesSent'],0)
-   self.assertEqual([x.args[1]['point'] for x in call.call_args_list],[[120,150],[155,155]])
-   self.assertTrue(all(x.args[1]['verify_source_filename'] for x in call.call_args_list))
-
  def test_new_inbound_export_uses_byte_or_filename_proof_per_candidate(self):
   import types
   from unittest.mock import Mock,patch
@@ -231,10 +213,12 @@ class ImageExecutionTests(unittest.TestCase):
    j['payload']['representation']='visible';c['sourceMode']='inbound'
    j['preview']['context']=images.digest(c)
    j['preview'].pop('imagePoint')
-   j['preview']['imageSourcePoints']=[[120,150],[155,155]]
+   j['preview']['imageSourcePoints']=[[15,15]]
+   j['preview']['imagePaneSHA256']='0'*64
    call=Mock(side_effect=[ImageFilenameMismatch('different source'),result])
    adapter=types.SimpleNamespace(locked=object(),dispatch=call,ImageFilenameMismatch=ImageFilenameMismatch)
-   with patch.dict('sys.modules',{'image_client':adapter}),patch('operations.images.load_context',return_value=c),patch('operations.recipes.screen',return_value=im):
+   with patch.dict('sys.modules',{'image_client':adapter}),patch('operations.images.load_context',return_value=c),patch('operations.recipes.screen',return_value=im), \
+        patch('operations.images.inbound_candidates',return_value=[[120,150],[155,155]]):
     data,proof=images.export(d,j)
    self.assertEqual(data,sample())
    self.assertTrue(proof['nativeMessageMD5Matched'])
@@ -252,11 +236,12 @@ class ImageExecutionTests(unittest.TestCase):
     j['payload']['representation']='visible';c['sourceMode']='inbound'
     j['preview']['context']=images.digest(c)
     j['preview'].pop('imagePoint')
-    points=[[120,150],[155,155]];j['preview']['imageSourcePoints']=points
+    points=[[120,150],[155,155]]
+    refreshed=[[172,165]]
     initial=j['preview']['imageWindows']
     error=ValueError('no viewer opened');error.image_export_stage='viewer'
     if condition!='unproven':error.image_viewer_missing=True
-    def dispatch(tool,request,*,ui):
+    def dispatch(tool,request,*,ui,guard):
      if request['point']==points[0]:
       if condition=='pane_changed':im.putpixel((2,2),(123,45,67))
       if condition in ('restored','window_changed'):d.app_windows.return_value=initial+[{'id':'new'}]
@@ -264,14 +249,17 @@ class ImageExecutionTests(unittest.TestCase):
      return result
     def restore(*args):
      if condition=='restored':d.app_windows.return_value=initial
+    def candidates(frame,pane,context):
+     return refreshed if frame.getpixel((2,2))==(123,45,67) else points
     call=Mock(side_effect=dispatch)
     adapter=types.SimpleNamespace(locked=None,dispatch=call,ImageFilenameMismatch=ImageFilenameMismatch)
     with patch.dict('sys.modules',{'image_client':adapter}),patch('operations.images.load_context',return_value=c), \
-         patch('operations.recipes.screen',return_value=im),patch('operations.images.restore_auxiliary_window',side_effect=restore):
-     if condition in ('unchanged','restored'):
+         patch('operations.recipes.screen',return_value=im),patch('operations.images.inbound_candidates',side_effect=candidates), \
+         patch('operations.images.restore_auxiliary_window',side_effect=restore):
+     if condition in ('unchanged','restored','pane_changed'):
       data,proof=images.export(d,j)
       self.assertEqual(data,sample());self.assertTrue(proof['nativeMessageMD5Matched'])
-      self.assertEqual([v.args[1]['point'] for v in call.call_args_list],points)
+      self.assertEqual([v.args[1]['point'] for v in call.call_args_list],points[:1]+refreshed if condition=='pane_changed' else points)
      else:
       with self.assertRaises(images.ImageReadError):images.export(d,j)
       call.assert_called_once()
@@ -292,9 +280,9 @@ class ImageExecutionTests(unittest.TestCase):
    failure.image_export_stage='viewer'
    adapter=types.SimpleNamespace(locked=None,ImageFilenameMismatch=ImageFilenameMismatch)
    def dispatch(*args,**kwargs):
-    with adapter.locked(driver.root):
-     driver.app_windows.return_value=initial+[{'id':'auxiliary'}]
-     raise failure
+    kwargs['guard']()
+    driver.app_windows.return_value=initial+[{'id':'auxiliary'}]
+    raise failure
    def restore(current,original,guard):
     self.assertIs(current,driver)
     self.assertEqual(original['id'],failed['id'])
@@ -323,11 +311,27 @@ class ImageExecutionTests(unittest.TestCase):
     result=store.get('test','image')['result']
     self.assertEqual(result['code'],'IMAGE_EXPORT_NOT_PROVEN')
     self.assertTrue(result['noSend'])
-    self.assertEqual(driver.check_lease.call_count,2)
+    self.assertGreaterEqual(driver.check_lease.call_count,2)
     self.assertEqual(executor.step(),{'state':'awaiting_confirmation','job':following['id']})
     driver.execute.assert_called_once()
    finally:
     store.close()
+
+ def test_adapter_rechecks_motion_before_using_a_live_point(self):
+  from unittest.mock import patch
+  import image_client
+  with tempfile.TemporaryDirectory() as td:
+   driver,job,source,frame,result=self.fixture(td)
+   source['sourceMode']='inbound';job['payload']['representation']='visible'
+   job['preview']['context']=images.digest(source)
+   shifted=frame.copy();shifted.putpixel((2,2),(5,10,15))
+   with patch('operations.images.load_context',return_value=source), \
+        patch('operations.recipes.screen',side_effect=[frame,frame,shifted,shifted]), \
+        patch('operations.images.inbound_candidates',side_effect=[[[120,150]],[[172,165]]]), \
+        patch.object(image_client,'dispatch',side_effect=[image_client.ImageSceneChanged('frame moved'),result]) as call:
+    self.assertEqual(images.export(driver,job)[0],sample())
+   self.assertEqual([attempt.args[1]['point'] for attempt in call.call_args_list],[[120,150],[172,165]])
+   self.assertNotEqual(*[attempt.args[1]['context_sha256'] for attempt in call.call_args_list])
 
  def test_wrong_source_export_receipt_is_rejected(self):
   with tempfile.TemporaryDirectory() as td:

@@ -1,5 +1,11 @@
 # Current checkpoint
 
+Automatic inbound image reads bind the exact native source and window at
+confirmation, then locate and refresh candidates under the original lease. A
+new message can move the image between attempts. Old coordinates are discarded
+and the current pane is rechecked before opening the viewer. Only verified
+image bytes are returned. Historical failed inputs and replies are retained.
+
 A pale inbound screenshot was omitted because its one-pixel rounded outline
 connects at diagonal corners. The inbound locator now includes those connections
 when forming candidates. Candidate bounds and source proof still apply. Verify a
