@@ -42,6 +42,7 @@ class GroupLoop(ReplyLoop):
         self.recycle_since = None
         self.reply_gate = None
         self.db.execute('CREATE TABLE IF NOT EXISTS participation(k TEXT PRIMARY KEY,v TEXT NOT NULL)')
+        self.db.execute('CREATE TABLE IF NOT EXISTS expired_desktop(id TEXT PRIMARY KEY,retry_at REAL NOT NULL DEFAULT 0)')
         if 'follows_self' not in {r[1] for r in self.db.execute('PRAGMA table_info(inbox)')}:
             self.db.execute('ALTER TABLE inbox ADD COLUMN follows_self INTEGER NOT NULL DEFAULT 0')
         if group['scope'].get('introduction') is False and self.value('introduction') is None:
@@ -85,7 +86,8 @@ class GroupLoop(ReplyLoop):
             "AND created>=? AND created<?", (self.recycle_since, cutoff)))
         if not stale:
             return
-        active = set(json.loads(self.value('model_batch', '[]')))
+        identities = json.loads(self.value('model_batch', '[]'))
+        active = set(identities)
         # A frozen batch is indivisible. Wait until every member is expired.
         expired_batch = bool(active) and active <= stale.keys()
         if expired_batch and self.images and getattr(self.model, 'engineering', False) is True:
@@ -97,12 +99,31 @@ class GroupLoop(ReplyLoop):
                     self.io({'op': 'recycle_image', 'server_id': key})
         with self.db:
             if expired_batch:
+                if self.images:
+                    self.db.executemany('INSERT OR IGNORE INTO expired_desktop(id) VALUES(?)',
+                                        [(job,) for job in self.model.expired_group_jobs(identities)])
                 self.db.execute("DELETE FROM participation WHERE k='model_batch'")
             self.db.executemany("UPDATE inbox SET state='recycled' WHERE id=?",
                                 [(key,) for key in retired])
 
+    def flush_expired_delivery(self):
+        row = self.db.execute('SELECT id FROM expired_desktop WHERE retry_at<=? ORDER BY rowid LIMIT 1',
+                              (time.time(),)).fetchone()
+        if row is None:
+            return
+        try:
+            self.model.publish_delivery({'id': row['id'], 'state': 'not_sent', 'native_request_id': None,
+                                         'reply_sha256': None, 'code': 'GROUP_INPUT_EXPIRED'})
+        except ModelError:
+            with self.db:
+                self.db.execute('UPDATE expired_desktop SET retry_at=? WHERE id=?', (time.time() + 5, row['id']))
+        else:
+            with self.db:
+                self.db.execute('DELETE FROM expired_desktop WHERE id=?', (row['id'],))
+
     def cycle(self):
         self.flush_delivery()
+        self.flush_expired_delivery()
         if self.value('introduction') == 'attention':
             return {'state': 'attention', 'counts': self.counts()}
         stopped = self.db.execute("SELECT id,reply,desktop_job FROM inbox WHERE state='attention' ORDER BY created,id LIMIT 1").fetchone()

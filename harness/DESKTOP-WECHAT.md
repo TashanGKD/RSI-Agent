@@ -148,8 +148,11 @@ activation epoch in seconds. Unanswered ordinary inputs received from that
 cutoff move to `recycled` after 15 minutes and stay in the inbox for audit.
 A frozen model batch expires together when every member is older than 15
 minutes. Existing engineering packets and replies already pending native
-delivery retain their original lifecycle. Late results of recycled batches
-stay bound to their original requests and have no native send.
+delivery retain their original lifecycle. Recycling queues a status receipt for
+any frozen Codex chat or link-reading request in that batch. After completion,
+its original desktop status reports `not_sent` with `GROUP_INPUT_EXPIRED` and
+no native request ID. The frozen result is retained. Existing delivery receipts
+take precedence over a later expiry report.
 
 A group batch can enter model review when its routing decision has completed
 and its read-only link turn has waited in the acknowledged Codex queue for at

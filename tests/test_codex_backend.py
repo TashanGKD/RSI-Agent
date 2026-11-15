@@ -793,10 +793,17 @@ class CodexBackendTests(unittest.TestCase):
         self.assertEqual(json.loads(self.jobs.get(fresh)['body'])['request'], ['46'])
         self.assertEqual(loop.counts(), {'new': 1, 'recycled': 2})
 
+        # Publish from a restarted loop before the old Codex turn completes.
+        restarted = GroupLoop(self.root / 'recycle.sqlite', group, self.backend, native)
+        self.addCleanup(restarted.close)
+        restarted.flush_expired_delivery()
         self.backend.exchange('/desktop-completions', {'id': original, 'input_sha256': saved['digest'],
             'thread_id': THREAD, 'turn_id': 'late-fixture-turn',
             'text': '{"speak":true,"text":"Old answer","work_index":null}'})
         self.assertEqual(self.jobs.get(original)['body'], saved['body'])
+        expired = self.backend.exchange(f'/desktop-deliveries/{original}/{THREAD}/late-fixture-turn')[1]
+        self.assertEqual(expired, {'id': original, 'state': 'not_sent', 'native_request_id': None,
+                                   'reply_sha256': None, 'code': 'GROUP_INPUT_EXPIRED'})
         self.jobs.update(fresh, state='completed', result='{"speak":true,"text":"Fresh answer","work_index":null}')
         with patch('trigger.group_reply.time.time', return_value=1027):
             self.assertEqual(loop.cycle()['state'], 'pending')

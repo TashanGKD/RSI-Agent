@@ -99,6 +99,9 @@ Groups that enable `recycle_since` retain expired ordinary inputs as
 `recycled` and let newer inputs proceed after 15 minutes. The original
 packet and native ACK stay available. Published engineering requests and
 replies already waiting for native delivery keep their existing lifecycle.
+Recycled batches with a frozen Codex request now record `not_sent` with
+`GROUP_INPUT_EXPIRED` for that original desktop turn. Previously a late result
+could remain pending even though the trigger never admitted a native send.
 An expired photo can leave an untouched native export in the shared queue.
 Cancel that exact carrier when recycling the source. A rejected image probe
 can restore a newly mapped official auxiliary window when its process and the
