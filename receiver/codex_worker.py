@@ -311,6 +311,18 @@ class Jobs:
         with self.connect() as db:
             db.execute('BEGIN IMMEDIATE')
             row = db.execute('SELECT * FROM jobs WHERE id=?', (value['id'],)).fetchone()
+            if value['code'] == 'GROUP_INPUT_EXPIRED':
+                if (value['state'] != 'not_sent' or 'native_parts' in value
+                        or value['native_request_id'] is not None or value['reply_sha256'] is not None):
+                    raise ValueError('Group expiry cannot claim a native send.')
+                if row is None:
+                    return {'state': 'not_bound'}
+                body = json.loads(row['body'])
+                if body['mode'] != 'chat' or not body['scope'][1].endswith('@chatroom'):
+                    raise ValueError('Original group chat required for expiry.')
+                db.execute('INSERT OR IGNORE INTO delivery_receipts VALUES(?,?)',
+                           (value['id'], encoded(value).decode()))
+                return {'state': 'recorded'}
             if not row or row['state'] != 'completed':
                 raise ValueError('Original completed reply required.')
             body = json.loads(row['body'])

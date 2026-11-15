@@ -53,13 +53,22 @@ class CodexBackend:
     def use_request(self, identities):
         self.request = [str(i) for i in identities]
 
-    def has_original_input(self, identities, *, mode='chat', stage=None):
+    def original_input_path(self, identities, *, mode='chat', stage=None):
         identity = [self.scope, [str(i) for i in identities], mode]
         if stage is not None:
             identity.append(stage)
         key = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
-        path = Path(self.config['state']) / 'inputs' / (key + '.json')
+        return Path(self.config['state']) / 'inputs' / (key + '.json')
+
+    def has_original_input(self, identities, *, mode='chat', stage=None):
+        path = self.original_input_path(identities, mode=mode, stage=stage)
         return path.exists() or path.is_symlink()
+
+    def expired_group_jobs(self, identities):
+        for stage in (None, 'link-reading'):
+            path = self.original_input_path(identities, stage=stage)
+            if private_file(path):
+                yield path.stem
 
     def exchange(self, route, value=None, *, timeout=8):
         data = None if value is None else json.dumps(value, ensure_ascii=False).encode()
@@ -88,16 +97,13 @@ class CodexBackend:
     def _run(self, messages, mode, stage=None, schema=None):
         if not self.scope or not self.request:
             raise ModelError('Native account, peer and original request IDs required.')
-        identity = [self.scope, self.request, mode]
-        if stage:
-            identity.append(stage)
-        key = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
+        path = self.original_input_path(self.request, mode=mode, stage=stage)
+        key = path.stem
         self.last_input_key = key
-        folder = Path(self.config['state']) / 'inputs'
+        folder = path.parent
         folder.mkdir(mode=0o700, exist_ok=True)
         if folder.is_symlink() or folder.stat().st_mode & 0o077:
             raise ModelError('Private frozen Codex inputs required.')
-        path = folder / (key + '.json')
         if not path.exists():
             preferences = Path(self.config['preferences_file']).read_text()
             packet = {'id': key, 'mode': mode, 'scope': self.scope, 'request': self.request,
