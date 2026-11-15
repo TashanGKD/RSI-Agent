@@ -96,6 +96,17 @@ class VisibleImageTests(unittest.TestCase):
    draw.rectangle((70,y,316,y+95),fill='white')
   self.assertEqual(images.inbound_candidates(im,[60,0,420,480],{}),[[193,377],[193,272],[193,167]])
 
+ def test_inbound_candidates_keep_a_pale_image_with_diagonal_rounded_corners(self):
+  background=(250,250,250)
+  im=Image.new('RGB',(500,400),background)
+  draw=ImageDraw.Draw(im)
+  draw.rectangle((80,0,330,115),fill=(228,228,228))
+  draw.line([(84,220),(276,220),(280,224),(280,376),(276,380),
+             (84,380),(80,376),(80,224),(84,220)],fill=(240,240,240))
+  draw.rectangle((95,220,190,237),fill=(225,225,225))
+  source={'thumbnailWidth':180,'thumbnailHeight':146}
+  self.assertEqual(images.inbound_candidates(im,[0,0,500,400],source),[[180,300],[205,57]])
+
  def test_inbound_candidates_prioritize_a_plausible_top_clipped_card(self):
   im=Image.new('RGB',(621,437),(249,249,249));draw=ImageDraw.Draw(im)
   draw.rectangle((70,0,229,143),fill='white')

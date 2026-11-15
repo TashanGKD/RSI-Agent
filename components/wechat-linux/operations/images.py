@@ -83,7 +83,7 @@ def validate_payload(data,expected_md5):
  except Exception:raise ImageReadError('IMAGE_NOT_DECODABLE','Export is not a complete image readable by installed decoder.') from None
  return dict(info,bytes=len(data),md5=expected_md5,sha256=hashlib.sha256(data).hexdigest())
 
-def _components(image,region,required_pixel=None):
+def _components(image,region,required_pixel=None,*,diagonal=False):
  im=image.crop(tuple(region)).convert('RGB');w,h=im.size
  top=region[1]
  if w*h>500000:raise ImageReadError('IMAGE_OVER_BUDGET','Visible locator region exceeds its budget.')
@@ -101,7 +101,12 @@ def _components(image,region,required_pixel=None):
   while stack:
    p=stack.pop();y,x=divmod(p,w);n+=1;x0=min(x0,x);x1=max(x1,x);y0=min(y0,y);y1=max(y1,y)
    contains_required=contains_required or p==required_index
-   for q in ([p-1] if x else [])+([p+1] if x+1<w else [])+([p-w] if y else [])+([p+w] if y+1<h else []):
+   horizontal=([-1] if x else [])+([1] if x+1<w else [])
+   vertical=([-w] if y else [])+([w] if y+1<h else [])
+   neighbors=horizontal+vertical
+   if diagonal:neighbors.extend(dx+dy for dx in horizontal for dy in vertical)
+   for offset in neighbors:
+    q=p+offset
     if mask[q]:mask[q]=0;stack.append(q)
   if x1-x0>=70 and y1-y0>=35 and n>=1500:
    yield x0+region[0],y0+top,x1+region[0],y1+top,contains_required,(region[0]+idx%w,top+idx//w)
@@ -148,7 +153,8 @@ def inbound_candidates(image,box,context):
  width,height=context.get('thumbnailWidth'),context.get('thumbnailHeight')
  expected=width/height if width and height else None
  candidates=[]
- for x0,y0,x1,y1,_,_ in _components(image,box):
+ # Pale cards can have a one-pixel outline joined only at diagonal corners.
+ for x0,y0,x1,y1,_,_ in _components(image,box,diagonal=True):
   w,h=x1-x0,y1-y0
   if not (l<x0 and x1<r-1 and y1<b-1 and h>=60 and w<=4*h):continue
   complete=y0>t
