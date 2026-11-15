@@ -3,9 +3,9 @@ No model, caller pointer, raw XML output, private CDN/key handling or new queue.
 """
 import base64,hashlib,io,json,os,re,subprocess,time
 from collections import Counter
-from contextlib import contextmanager
 from .runtime import BeforeEffect
 from .contract import digest
+from . import inbound_image
 
 class ImageReadError(BeforeEffect):
  def __init__(self,code,message,clean=True):super().__init__(message);self.code=code;self.clean=clean
@@ -52,7 +52,11 @@ def load_context(driver,j):
  peer=j['peer'];server=j['payload']['source_id'];table='Msg_'+hashlib.md5(peer.encode()).hexdigest();records=[];budget=0
  with native('message/message_0.db') as (db,receipt):
   if receipt.get('consistency')!='committed':raise ImageReadError('IMAGE_SOURCE_UNAVAILABLE','Native source snapshot is not committed.')
-  rows=db.execute('SELECT local_id,server_id,local_type,real_sender_id,create_time,message_content FROM '+table+' ORDER BY local_id DESC LIMIT 200').fetchall()
+  columns='SELECT local_id,server_id,local_type,real_sender_id,create_time,message_content FROM '+table
+  if j['payload'].get('source_mode')=='inbound':
+   rows=db.execute(columns+' WHERE server_id=? LIMIT 2',(signed(server),)).fetchall()
+  else:
+   rows=db.execute(columns+' ORDER BY local_id DESC LIMIT 200').fetchall()
   for row in reversed(rows):
    kind=int(row['local_type'])&0xffffffff;sid=str(row['server_id']&0xffffffffffffffff);sender=db.execute('SELECT user_name FROM Name2Id WHERE rowid=?',(row['real_sender_id'],)).fetchone()
    value={'peer':peer,'id':sid,'local':row['local_id'],'kind':kind,'sender':sender[0] if sender else None,'time':row['create_time']}
@@ -178,16 +182,16 @@ def prepare(driver,j):
  context=load_context(driver,j);navigation.begin(driver,j);driver._select(j);w=main_window(driver)
  if (w['width'],w['height']) not in ((905,667),(623,667)):raise ImageReadError('UNSUPPORTED_IMAGE_LAYOUT','A calibrated official main or conversation window is required.')
  cfg=driver.binding(j['peer']);pane=[cfg['header_box'][0],cfg['header_box'][3]+1,cfg['header_box'][2],cfg['editor'][1]-34];body=[pane[0]+60,pane[1],pane[2]-75,pane[3]]
- image=screen(driver)
+ preview=dict(driver.screenshot(j),imageRecipe=True,programRecipe=True,uiBinding=dict(cfg),imageContext=context,imagePane=pane,imageWindows=driver.app_windows(),context=digest(context),summary={'peer':j['peer'],'action':'save_attachment','source_id':context['sourceId'],'sender':context['sender'],'nativeMD5':context['nativeMD5'],'origin':'official-client-save-as-programmatic','cacheReused':False,'messagesSent':0})
  if context.get('sourceMode')=='inbound' and j['payload'].get('representation')=='visible':
-  points={'imageSourcePoints':inbound_candidates(image,pane,context)}
- else:
-  observed=rows(driver,body,contrast=160)
-  points={'imagePoint':locate_visible(image,body,observed,context,message_pane=pane)}
- # Do not bind a changed message pane to a frozen candidate.
+  # Confirmation binds the source and native window. Live coordinates are
+  # resolved only while executing under the original lease.
+  return preview
+ image=screen(driver)
+ point=locate_visible(image,body,rows(driver,body,contrast=160),context,message_pane=pane)
  pane_hash=hashlib.sha256(image.crop(tuple(pane)).tobytes()).hexdigest()
  if hashlib.sha256(screen(driver).crop(tuple(pane)).tobytes()).hexdigest()!=pane_hash:raise ImageReadError('IMAGE_CONTEXT_CHANGED','Message pane changed during preparation.')
- return dict(driver.screenshot(j),imageRecipe=True,programRecipe=True,uiBinding=dict(cfg),imageContext=context,imagePane=pane,**points,imagePaneSHA256=pane_hash,imageWindows=driver.app_windows(),context=digest(context),summary={'peer':j['peer'],'action':'save_attachment','source_id':context['sourceId'],'sender':context['sender'],'nativeMD5':context['nativeMD5'],'origin':'official-client-save-as-programmatic','cacheReused':False,'messagesSent':0})
+ return dict(preview,imagePoint=point,imagePaneSHA256=pane_hash)
 
 def clean(driver,j):
  if (j.get('preview') or {}).get('verifiedImageSourceRecipe'):return True # This recipe performs no UI input/navigation.
@@ -233,32 +237,45 @@ def restore_auxiliary_window(driver,j,require_guard):
   finally:control.close()
  except (OSError,ValueError,IndexError,subprocess.SubprocessError):return False
 
+def export_error(driver,j,error):
+ stage=getattr(error,'image_export_stage',None)
+ reason='Official image export did not prove the expected source.'
+ if stage in ('viewer','save-control','save-dialog','filename','export','verification'):
+  reason='Official image export failed at '+stage+'.'
+ fingerprint=getattr(error,'image_toolbar_fingerprint',None)
+ if stage=='save-control' and isinstance(fingerprint,str) and re.fullmatch('[a-f0-9]{64}',fingerprint):
+  reason='Unrecognized save-control toolbar '+fingerprint+'.'
+  toolbar=getattr(error,'image_toolbar',None)
+  if (toolbar is not None and toolbar.mode=='RGB' and toolbar.size==(640,44)
+      and hashlib.sha256(toolbar.tobytes()).hexdigest()==fingerprint):
+   path=driver.previews/(j['id']+'-save-toolbar.png')
+   try:
+    with os.fdopen(os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600),'wb') as out:toolbar.save(out,format='PNG')
+    reason+=' Private control evidence: '+path.name+'.'
+   except OSError:
+    reason+=' Control evidence could not be stored; existing evidence retained.'
+ raise ImageReadError('IMAGE_EXPORT_NOT_PROVEN',reason+' No bytes returned.',clean=clean(driver,j)) from None
+
+
 def export(driver,j):
  if (j.get('preview') or {}).get('verifiedImageSourceRecipe'):
   from .image_verified import export as qualified_export
   return qualified_export(driver,j)
  from . import navigation
  from .recipes import screen
- p=j['preview'];context=load_context(driver,j)
- if digest(context)!=p['context'] or context['peer']!=j['peer']:raise ImageReadError('IMAGE_CONTEXT_CHANGED','Native image context differs from the frozen request.')
- if not clean(driver,j):raise ImageReadError('IMAGE_CONTEXT_CHANGED','Official windows changed since the final preview.',clean=False)
- # Only frozen previews still carry the legacy filename-only probe.
- legacy_probe='imageFilenamePoints' in p
- source_probe=legacy_probe or 'imageSourcePoints' in p
- points=p.get('imageSourcePoints',p.get('imageFilenamePoints')) if source_probe else [p['imagePoint']]
- if source_probe and (context.get('sourceMode')!='inbound' or j['payload'].get('representation')!='visible'
-                      or not isinstance(points,list) or not 1<=len(points)<=MAX_INBOUND_CANDIDATES):
-  raise ImageReadError('IMAGE_SOURCE_MISMATCH','Bounded inbound source verification required.')
  import image_client
- held=driver.fds;expected=driver.lease
- def require_guard():
-  if not held or driver.fds is not held:raise ValueError('Original image input guard epoch changed.')
-  driver.check_lease(expected)
- @contextmanager
- def owned(root):
-  require_guard();yield require_guard
- old=image_client.locked;image_client.locked=owned
  from sender import UI
+ p=j['preview'];context=load_context(driver,j)
+ if digest(context)!=p['context'] or context['peer']!=j['peer']:
+  raise ImageReadError('IMAGE_CONTEXT_CHANGED','Native image context differs from the frozen request.')
+ lease, fds=driver.lease, driver.fds
+ def guard():
+  if not fds or driver.fds is not fds:raise ValueError('Original image input guard epoch changed.')
+  driver.check_lease(lease)
+ def verify_windows():
+  guard()
+  if not clean(driver,j):
+   raise ImageReadError('IMAGE_CLEANUP_UNPROVEN','Official windows differ from the original image operation.',clean=False)
  class SelectedImageUI(UI):
   def config(self,target):
    if target['username']!=j['peer']:raise ValueError('Exact selected image peer required.')
@@ -268,42 +285,35 @@ def export(driver,j):
    if binding.get('nativeTargetProof'):
     return navigation.verify_session(driver,binding,target['username'])
    return super().preflight(request,target)
- try:
-  for point in points:
-   if hashlib.sha256(screen(driver).crop(tuple(p['imagePane'])).tobytes()).hexdigest()!=p['imagePaneSHA256']:
-    raise ImageReadError('IMAGE_CONTEXT_CHANGED','Frozen message pane changed; no image is opened.')
-   request={'action':'image','peer':j['peer'],'server_id':context['sourceId'],'point':point,
-            'context_sha256':p['imagePaneSHA256'],'representation':j['payload'].get('representation','original')}
-   if legacy_probe:request['verify_source_filename']=True
-   try:
-    result=image_client.dispatch(driver.tool(),request,ui=SelectedImageUI(driver.root))
-    break
-   except ValueError as exc:
-    if source_probe and isinstance(exc,image_client.ImageFilenameMismatch) and clean(driver,j):continue
-    stage=getattr(exc,'image_export_stage',None)
-    if source_probe and stage=='viewer':
-     restore_auxiliary_window(driver,j,require_guard)
-     if getattr(exc,'image_viewer_missing',False) is True and clean(driver,j):continue
-    reason='Official image export did not prove the expected source.'
-    if stage in ('viewer','save-control','save-dialog','filename','export','verification'):
-     reason='Official image export failed at '+stage+'.'
-    fingerprint=getattr(exc,'image_toolbar_fingerprint',None)
-    if stage=='save-control' and isinstance(fingerprint,str) and re.fullmatch('[a-f0-9]{64}',fingerprint):
-     reason='Unrecognized save-control toolbar '+fingerprint+'.'
-     toolbar=getattr(exc,'image_toolbar',None)
-     if (toolbar is not None and toolbar.mode=='RGB' and toolbar.size==(640,44)
-         and hashlib.sha256(toolbar.tobytes()).hexdigest()==fingerprint):
-      path=driver.previews/(j['id']+'-save-toolbar.png')
-      try:
-       with os.fdopen(os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600),'wb') as out:toolbar.save(out,format='PNG')
-       reason+=' Private control evidence: '+path.name+'.'
-      except OSError:
-       reason+=' Control evidence could not be stored; existing evidence retained.'
-    raise ImageReadError('IMAGE_EXPORT_NOT_PROVEN',reason+' No bytes returned.',clean=clean(driver,j)) from None
-  else:
-   raise ImageReadError('IMAGE_SOURCE_MISMATCH','No candidate proved the original image source.')
- finally:image_client.locked=old
- if not clean(driver,j):raise ImageReadError('IMAGE_CLEANUP_UNPROVEN','Image export windows did not return to the verified initial state.',clean=False)
+ def probe(point,signature):
+  request={'action':'image','peer':j['peer'],'server_id':context['sourceId'],'point':point,
+           'context_sha256':signature,'representation':j['payload'].get('representation','original')}
+  return image_client.dispatch(driver.tool(),request,ui=SelectedImageUI(driver.root),guard=guard)
+ def recover(error):
+  if getattr(error,'image_export_stage',None)!='viewer':return False
+  restore_auxiliary_window(driver,j,guard)
+  return getattr(error,'image_viewer_missing',False) is True
+ inbound=context.get('sourceMode')=='inbound' and j['payload'].get('representation')=='visible'
+ if inbound:
+  pane=p['imagePane']
+  def points(image):
+   try:return inbound_candidates(image,pane,context)
+   except ImageReadError as error:
+    if error.code!='IMAGE_CANDIDATE_AMBIGUOUS':raise
+    return []
+  try:
+   result=inbound_image.capture(lambda:inbound_image.screenshot(screen(driver),pane),points,probe,recover,verify_windows)
+  except inbound_image.UnresolvedImage as error:
+   raise ImageReadError(error.code,str(error),clean=clean(driver,j)) from None
+  except ImageReadError:raise
+  except ValueError as error:export_error(driver,j,error)
+ else:
+  verify_windows()
+  if hashlib.sha256(screen(driver).crop(tuple(p['imagePane'])).tobytes()).hexdigest()!=p['imagePaneSHA256']:
+   raise ImageReadError('IMAGE_CONTEXT_CHANGED','Frozen manual image location changed.')
+  try:result=probe(p['imagePoint'],p['imagePaneSHA256'])
+  except ValueError as error:export_error(driver,j,error)
+  verify_windows()
  visible=j['payload'].get('representation')=='visible'
  if result.get('peer')!=context['peer'] or result.get('serverId')!=context['sourceId'] or result.get('senderId')!=context['sender'] or not result.get('contentReady'):raise ImageReadError('IMAGE_SOURCE_MISMATCH','Official export receipt does not match the frozen native image source.')
  if not visible and not result.get('messageMd5Matched'):raise ImageReadError('IMAGE_SOURCE_MISMATCH','Native original image MD5 is not proven.')
