@@ -1,5 +1,10 @@
 # Current checkpoint
 
+A pale inbound screenshot was omitted because its one-pixel rounded outline
+connects at diagonal corners. The inbound locator now includes those connections
+when forming candidates. Candidate bounds and source proof still apply. Verify a
+fresh pale image through the exported bytes, actual Codex view and original V2.
+
 RSI Agent uses one repository for the Linux WeChat trigger and the local Codex
 receiver. The receiver can split owner-private chat and admitted engineering
 from friend and group chat. Each job keeps the target recorded at handoff.
