@@ -272,13 +272,13 @@ def open_bubble(driver, job, fields, identity, local_id):
         c.close()
 
 
-def bound_window(driver, job, info):
+def bound_window(driver, job, info, extra=()):
     from .lease import birth
     from .navigation import prove_popout
     from .windows import window_identity
 
     window, baseline = info["window"], info["baseline"]
-    if (driver.app_windows() != sorted([*baseline, window], key=lambda w: w["id"])
+    if (driver.app_windows() != sorted([*baseline, window, *extra], key=lambda w: w["id"])
             or window_identity(baseline[0]) != info["host"]
             or birth(info["host"]["pid"]) != info["hostBirth"]
             or window_identity(window) != info["windowIdentity"]):
@@ -325,6 +325,75 @@ def click_retry(driver, job, attempt, fields, info):
 
         context_menu(driver, c, global_point(window, copy), "Resend", before_click=schedule)
         return {"state": "retry_scheduled", "automaticReplay": False}
+    finally:
+        c.close()
+
+
+# Official Linux client English confirmation body and both buttons, with
+# the window frame excluded. No chat text or private pixels are in the digest.
+RESEND_CONFIRMATION = "d3cef05ec9e87348e679090b757631029c8711d5d4144ccb052c40cc9128d6f0"
+
+
+def resend_dialog(driver, job, info):
+    import subprocess
+    from .windows import window_identity
+
+    expected = [*info["baseline"], info["window"]]
+    extra = [w for w in driver.app_windows() if w not in expected]
+    if len(extra) != 1:
+        raise ValueError("one original resend confirmation is required")
+    dialog = extra[0]
+    parent = bound_window(driver, job, info, extra=(dialog,))
+    if dialog["title"] != "wechat" or (dialog["width"], dialog["height"]) != (283, 148):
+        raise ValueError("unexpected official confirmation window")
+    identity = window_identity(dialog)
+    host = info["host"]
+    types = {"_NET_WM_WINDOW_TYPE_UTILITY", "_KDE_NET_WM_WINDOW_TYPE_OVERRIDE",
+             "_NET_WM_WINDOW_TYPE_NORMAL"}
+    if (identity["class"] != ["wechat", "wechat"] or identity["pid"] != host["pid"]
+            or identity["leader"] != host["leader"] or identity["transientFor"] != parent["id"].lower()
+            or set(identity["types"]) != types):
+        raise ValueError("official resend confirmation does not belong to the original window")
+    flags = subprocess.run(["xprop", "-id", dialog["id"], "_NET_WM_STATE"],
+                           capture_output=True, text=True, check=True, timeout=3)
+    if flags.stdout.strip() != "_NET_WM_STATE(ATOM) = _NET_WM_STATE_MODAL":
+        raise ValueError("official resend window is not the active modal kind")
+    return dialog, identity
+
+
+def resend_dialog_image(driver, dialog, sha):
+    frame = image_for(driver, dialog)
+    if (frame.size != (283, 148) or pixels(frame) != sha
+            or pixels(frame.crop((18, 26, 265, 121))) != RESEND_CONFIRMATION):
+        raise ValueError("exact official resend prompt and buttons were not proven")
+    return frame
+
+
+def confirm_retry(driver, job, attempt, request, info, scheduled):
+    from .forwarding import require_window_focus
+    from .recipes import controls
+
+    marker = receipt_path(driver.root, job, "confirmed")
+    if marker.exists() or marker.is_symlink():
+        return {"state": "confirmation_already_scheduled", "automaticReplay": False}
+    if scheduled.get("nativeControl") != "official-context-menu-resend":
+        raise ValueError("official original Resend menu selection required")
+    dialog, dialog_identity = resend_dialog(driver, job, info)
+    sha = request["scene_sha256"]
+    resend_dialog_image(driver, dialog, sha)
+    c = controls(driver)
+    try:
+        require_window_focus(c, dialog)
+        if failed_bubble(job, attempt, info["account"]) != info["failedLocalId"]:
+            raise ValueError("original native failed bubble changed before confirmation")
+        if resend_dialog(driver, job, info) != (dialog, dialog_identity):
+            raise ValueError("original confirmation window changed")
+        resend_dialog_image(driver, dialog, sha)
+        require_window_focus(c, dialog)
+        record(marker, dict(info, dialog=dialog, dialogIdentity=dialog_identity,
+                            confirmationSceneSHA256=sha, confirmationScheduledAt=time.time()))
+        c.click(*global_point(dialog, (80, 99)))
+        return {"state": "confirmation_scheduled", "automaticReplay": False}
     finally:
         c.close()
 
@@ -454,4 +523,8 @@ def restore(store, policy, request):
             record_info = read_record(path)
             if any(record_info.get(k) != v for k, v in info.items()):
                 raise ValueError("scheduled retry does not match the original recovery")
+        if op == "confirm_failed_text_retry":
+            if not scheduled:
+                raise ValueError("original retry has not reached the official menu")
+            return confirm_retry(driver, job, attempt, request, info, record_info)
         return finish(store, driver, job, info, driver.verify(job), retry_clicks=int(scheduled))

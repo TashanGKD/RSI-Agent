@@ -27,9 +27,14 @@ python3 -B -m operations.cli admin-request --execute --root "$OPERATIONS_ROOT" -
    failure icon. The continuous outgoing bubble edge and exact Copy text
    bind the location. Recovery locates the exact official Resend item at that
    same context-menu point.
-   Wait for reconciliation after `retry_scheduled` or an interrupted command.
-   The one-shot record is synced before the official retry click.
-3. `finish_failed_text_retry` takes the same `client` and `request_id`. Poll this
+   Keep the first menu marker and do not select the menu a second time.
+3. If the original popup opens the official Resend confirmation, use
+   `confirm_failed_text_retry` with the same `client` and `request_id` and the
+   `scene_sha256` of the confirmation window's full RGB crop. This verifies
+   its transient parent, process, focus, exact prompt and buttons, and the
+   original failed message. The separate one-shot record is durable before
+   the final confirmation click. Then check the original receipt.
+4. `finish_failed_text_retry` takes the same `client` and `request_id`. Poll this
    operation. It requires a unique server receipt and exact body. It checks
    that the recovery popout editor is empty before closing that owned popout.
    After verifying the current process and restored window set, it binds

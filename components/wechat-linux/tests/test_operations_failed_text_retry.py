@@ -269,10 +269,57 @@ class FailedTextRetryTests(unittest.TestCase):
         self.driver.acquire.assert_called_once()
         self.driver.release.assert_called_once()
 
+    def test_dialog_must_be_the_exact_official_transient_child(self):
+        self.info["host"]["leader"] = "0x11"
+        dialog = {"id": "0x14", "title": "wechat", "width": 283, "height": 148}
+        self.driver.app_windows.return_value = [self.baseline, self.window, dialog]
+        identity = {"class": ["wechat", "wechat"], "pid": self.host["pid"], "leader": "0x11",
+                    "transientFor": self.window["id"], "types": ["_NET_WM_WINDOW_TYPE_UTILITY",
+                    "_KDE_NET_WM_WINDOW_TYPE_OVERRIDE", "_NET_WM_WINDOW_TYPE_NORMAL"]}
+        proto = SimpleNamespace(stdout="_NET_WM_STATE(ATOM) = _NET_WM_STATE_MODAL\n")
+        with (patch.object(recovery, "bound_window", return_value=self.window),
+              patch("operations.windows.window_identity", return_value=identity),
+              patch("subprocess.run", return_value=proto)):
+            self.assertEqual(recovery.resend_dialog(self.driver, self.job, self.info), (dialog, identity))
+            identity["transientFor"] = self.baseline["id"]
+            with self.assertRaises(ValueError):
+                recovery.resend_dialog(self.driver, self.job, self.info)
+
+    def test_dialog_digest_rejects_a_different_button(self):
+        frame = Image.new("RGB", (283, 148), "white")
+        signature = recovery.pixels(frame.crop((18, 26, 265, 121)))
+        with patch.object(recovery, "RESEND_CONFIRMATION", signature):
+            with patch.object(recovery, "image_for", return_value=frame):
+                recovery.resend_dialog_image(self.driver, {}, recovery.pixels(frame))
+            frame.putpixel((80, 99), (0, 200, 120))
+            with (patch.object(recovery, "image_for", return_value=frame),
+                  self.assertRaises(ValueError)):
+                recovery.resend_dialog_image(self.driver, {}, recovery.pixels(frame))
+
+    def test_confirm_is_fenced_once_even_if_click_is_interrupted(self):
+        dialog = {"id": "0x14", "x": 110, "y": 58, "width": 283, "height": 148}
+        controls = Mock()
+        controls.click.side_effect = OSError("crash after one-shot confirmation record")
+        frame = {"scene_sha256": "a" * 64}
+        scheduled = {"nativeControl": "official-context-menu-resend"}
+        with (patch.object(recovery, "resend_dialog", return_value=(dialog, {})),
+              patch.object(recovery, "resend_dialog_image"),
+              patch.object(recovery, "failed_bubble", return_value=42),
+              patch("operations.recipes.controls", return_value=controls),
+              patch("operations.forwarding.require_window_focus")):
+            with self.assertRaises(OSError):
+                recovery.confirm_retry(self.driver, self.job, {}, frame, self.info, scheduled)
+            current = recovery.confirm_retry(self.driver, self.job, {}, frame, self.info, scheduled)
+            self.assertEqual(current["state"], "confirmation_already_scheduled")
+        controls.click.assert_called_once_with(190, 157)
+        saved = recovery.read_record(recovery.receipt_path(self.root, self.job, "confirmed"))
+        self.assertEqual(saved["failedLocalId"], 42)
+        self.assertEqual(saved["confirmationSceneSHA256"], frame["scene_sha256"])
+
     def test_operations_are_admin_only(self):
         api = PublicAPI(self.root / "state", {"account": "fixture-account", "clients": {}})
         self.addCleanup(api.close)
-        for op in ("open_failed_text_retry", "click_failed_text_retry", "finish_failed_text_retry"):
+        for op in ("open_failed_text_retry", "click_failed_text_retry", "confirm_failed_text_retry", "finish_failed_text_retry"):
             with self.subTest(op=op), self.assertRaises(PublicError):
                 api.call({"op": op, "client": "rsi-group", "request_id": "fixture"})
 
