@@ -344,7 +344,7 @@ def locate_source(driver,j,source):
   raise PreparationError('SOURCE_NOT_VISIBLE','Original message was not found in the bounded supported range; no caller pointer input is accepted.')
  finally:c.close()
 
-def context_menu(driver,c,point,item):
+def context_menu(driver,c,point,item,*,before_click=None):
  c.t.XTestFakeMotionEvent(c.d,-1,*point,0);c.x.XFlush(c.d);c.wait(100)
  c.t.XTestFakeButtonEvent(c.d,3,1,0);c.x.XFlush(c.d);c.wait(80)
  c.t.XTestFakeButtonEvent(c.d,3,0,0);c.x.XFlush(c.d);c.wait(300)
@@ -355,6 +355,7 @@ def context_menu(driver,c,point,item):
   windows=driver.app_windows();active=getattr(driver,'active_window',None);mains=[w for w in windows if (active and w['id']==active['id']) or (not active and w['title']=='Weixin')]
   if len(mains)==1:c.click(mains[0]['x']+400,mains[0]['y']+55);c.wait(100)
   raise PreparationError('MENU_NOT_SUPPORTED','The expected official context-menu item was not uniquely found.') from None
+ if before_click is not None:before_click(target)
  c.click(*target);c.wait(350)
 
 def final_step_preview(driver,j,step,**extra):

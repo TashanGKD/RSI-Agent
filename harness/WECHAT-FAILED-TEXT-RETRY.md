@@ -23,9 +23,10 @@ python3 -B -m operations.cli admin-request --execute --root "$OPERATIONS_ROOT" -
    current popout `scene_sha256`, `copy_point` and `retry_point`. For the popout
    digest, crop the RGB pixels to (0, 0, width, height - 145) so that the
    title and message area remain exact while the composer caret is excluded.
-   Choose a point on
-   the outgoing bubble's green background on the same row as the adjacent
-   red failure icon. Official Copy must return the frozen original exactly.
+   Choose a selectable text point in the same outgoing bubble as the red
+   failure icon. The continuous outgoing bubble edge and exact Copy text
+   bind the location. Recovery locates the exact official Resend item at that
+   same context-menu point.
    Wait for reconciliation after `retry_scheduled` or an interrupted command.
    The one-shot record is synced before the official retry click.
 3. `finish_failed_text_retry` takes the same `client` and `request_id`. Poll this
