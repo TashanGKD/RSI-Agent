@@ -20,7 +20,10 @@ python3 -B -m operations.cli admin-request --execute --root "$OPERATIONS_ROOT" -
    the window-cropped RGB pixels (`Image.convert('RGB').tobytes()`). Points are
    integer [x, y] offsets from the window's upper-left corner.
 2. `click_failed_text_retry` takes the same `client` and `request_id`, plus the
-   current popout `scene_sha256`, `copy_point` and `retry_point`. Choose a point on
+   current popout `scene_sha256`, `copy_point` and `retry_point`. For the popout
+   digest, crop the RGB pixels to (0, 0, width, height - 145) so that the
+   title and message area remain exact while the composer caret is excluded.
+   Choose a point on
    the outgoing bubble's green background on the same row as the adjacent
    red failure icon. Official Copy must return the frozen original exactly.
    Wait for reconciliation after `retry_scheduled` or an interrupted command.

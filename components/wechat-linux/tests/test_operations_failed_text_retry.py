@@ -65,6 +65,21 @@ class FailedTextRetryTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             recovery.verify_bubble(img, (146, 251), (119, 251))
 
+    def test_retry_scene_excludes_caret_but_fences_the_title_and_message(self):
+        frame = self.synthetic_bubble()
+        digest = recovery.retry_scene_pixels(frame)
+        caret = frame.copy()
+        ImageDraw.Draw(caret).rectangle((21, 536, 22, 557), fill=(0, 203, 123))
+        self.assertNotEqual(recovery.pixels(caret), recovery.pixels(frame))
+        with patch.object(recovery, "image_for", return_value=caret):
+            recovery.same_scene(self.driver, self.window, digest, retry=True)
+        for point in ((50, 51), (121, 251)):
+            changed = caret.copy()
+            changed.putpixel(point, (5, 10, 15))
+            with (self.subTest(point=point), patch.object(recovery, "image_for", return_value=changed),
+                  self.assertRaisesRegex(ValueError, "scene changed")):
+                recovery.same_scene(self.driver, self.window, digest, retry=True)
+
     def test_crash_after_scheduling_never_issues_another_click(self):
         img = self.synthetic_bubble()
         controls = Mock()

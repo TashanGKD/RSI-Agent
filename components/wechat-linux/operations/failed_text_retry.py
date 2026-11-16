@@ -150,9 +150,16 @@ def pixels(image):
     return hashlib.sha256(image.tobytes()).hexdigest()
 
 
-def same_scene(driver, window, sha):
+def retry_scene_pixels(image):
+    # The composer is below the validated message and icon coordinates. Keep
+    # title and message pixels exact without fencing on its blinking caret.
+    return pixels(image.crop((0, 0, image.width, image.height - 145)))
+
+
+def same_scene(driver, window, sha, *, retry=False):
     image = image_for(driver, window)
-    if pixels(image) != sha:
+    value = retry_scene_pixels(image) if retry else pixels(image)
+    if value != sha:
         raise ValueError("official recovery scene changed")
     return image
 
@@ -248,7 +255,7 @@ def open_bubble(driver, job, fields, identity, local_id):
         prove_popout(window, title, window_id, host)
         record(receipt_path(driver.root, job, "window"), dict(data, window=window, windowIdentity=window_id))
         return {"state": "retry_window_ready", "window": window,
-                "sceneSHA256": pixels(image_for(driver, window)), "failedLocalId": local_id}
+                "sceneSHA256": retry_scene_pixels(image_for(driver, window)), "failedLocalId": local_id}
     finally:
         c.close()
 
@@ -280,12 +287,12 @@ def click_retry(driver, job, attempt, fields, info):
         return {"state": "already_scheduled", "automaticReplay": False}
     window = bound_window(driver, job, info)
     copy, retry = point(fields["copy_point"], window), point(fields["retry_point"], window)
-    verify_bubble(same_scene(driver, window, fields["scene_sha256"]), copy, retry)
+    verify_bubble(same_scene(driver, window, fields["scene_sha256"], retry=True), copy, retry)
     c = controls(driver)
     try:
         activate(c, window)
         c.require_focus(window)
-        same_scene(driver, window, fields["scene_sha256"])
+        same_scene(driver, window, fields["scene_sha256"], retry=True)
         import gi
         gi.require_version("Gtk", "3.0")
         from gi.repository import Gdk, Gtk
@@ -296,7 +303,7 @@ def click_retry(driver, job, attempt, fields, info):
         if clipboard.wait_for_text() != attempt["text"]:
             raise ValueError("official bubble Copy differs from the frozen original")
         c.require_focus(bound_window(driver, job, info))
-        verify_bubble(same_scene(driver, window, fields["scene_sha256"]), copy, retry)
+        verify_bubble(same_scene(driver, window, fields["scene_sha256"], retry=True), copy, retry)
         if failed_bubble(job, attempt, info["account"]) != info["failedLocalId"]:
             raise ValueError("original native bubble changed before retry")
         record(marker, dict(info, retry=retry, copy=copy,
