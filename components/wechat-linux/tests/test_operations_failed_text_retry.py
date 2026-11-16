@@ -49,7 +49,11 @@ class FailedTextRetryTests(unittest.TestCase):
     def test_requires_red_icon_and_same_bubble_adjacency(self):
         img = self.synthetic_bubble()
         recovery.verify_bubble(img, (146, 251), (119, 251))
-        for copy, retry in [((146, 300), (119, 251)), ((146, 251), (130, 251)),
+        recovery.verify_bubble(img, (330, 321), (119, 251))
+        ImageDraw.Draw(img).rectangle((138, 355, 520, 360), fill="white")
+        with self.assertRaises(ValueError):
+            recovery.verify_bubble(img, (330, 400), (119, 251))
+        for copy, retry in [((146, 470), (119, 251)), ((146, 251), (130, 251)),
                             ((146, 251), (90, 251)), ((-2, 251), (119, 251))]:
             with self.subTest(copy=copy, retry=retry), self.assertRaises(ValueError):
                 recovery.verify_bubble(img, copy, retry)
@@ -91,6 +95,14 @@ class FailedTextRetryTests(unittest.TestCase):
         repository = ModuleType("gi.repository")
         repository.Gdk = SimpleNamespace(SELECTION_CLIPBOARD=1)
         repository.Gtk = SimpleNamespace(Clipboard=SimpleNamespace(get=lambda _: clipboard))
+        def menu(_, official, position, item, *, before_click=None):
+            self.assertEqual(position, (256, 311))
+            if item == "Resend":
+                target = (346, 334)
+                before_click(target)
+                self.assertTrue(recovery.receipt_path(self.root, self.job, "scheduled").is_file())
+                official.click(*target)
+
         fields = {"copy_point": [146, 251], "retry_point": [119, 251],
                   "scene_sha256": recovery.pixels(img)}
         with (patch.dict(sys.modules, {"gi": gi, "gi.repository": repository}),
@@ -98,12 +110,12 @@ class FailedTextRetryTests(unittest.TestCase):
               patch.object(recovery, "same_scene", return_value=img),
               patch.object(recovery, "failed_bubble", return_value=42),
               patch("operations.recipes.activate"),
-              patch("operations.recipes.context_menu"),
+              patch("operations.recipes.context_menu", side_effect=menu),
               patch("operations.recipes.controls", return_value=controls)):
             with self.assertRaises(OSError):
                 recovery.click_retry(self.driver, self.job, self.job["payload"], fields, self.info)
             result = recovery.click_retry(self.driver, self.job, self.job["payload"], fields, self.info)
-        controls.click.assert_called_once_with(229, 311)
+        controls.click.assert_called_once_with(346, 334)
         self.assertEqual(result["state"], "already_scheduled")
         saved = recovery.read_record(recovery.receipt_path(self.root, self.job, "scheduled"))
         self.assertEqual(saved["failedLocalId"], 42)

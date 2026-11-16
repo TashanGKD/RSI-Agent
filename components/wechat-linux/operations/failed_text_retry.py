@@ -167,9 +167,9 @@ def same_scene(driver, window, sha, *, retry=False):
 def verify_bubble(image, copy, retry):
     x, y = retry
     cx, cy = copy
-    if not (20 <= x < cx < image.width - 12 and 88 <= y < image.height - 145
-            and 19 <= cx - x <= 95 and abs(cy - y) <= 3):
-        raise ValueError("retry icon and copied message are not adjacent")
+    if not (20 <= x and x + 19 <= cx < image.width - 12
+            and 88 <= y < image.height - 145 and 88 <= cy < image.height - 145):
+        raise ValueError("retry icon and copied message must be in the same message pane")
     icon = image.crop((x - 8, y - 8, x + 9, y + 9))
     red = sum(r >= 210 and g <= 115 and b <= 130 for r, g, b in icon.getdata())
     def light_stroke(pixel):
@@ -182,10 +182,22 @@ def verify_bubble(image, copy, retry):
     stroke_rows = sum(any(light_stroke(stroke.getpixel((x, y))) for x in range(stroke.width))
                       for y in range(stroke.height))
     dot_pixels = sum(light_stroke(pixel) for pixel in dot.getdata())
-    bubble = image.crop((cx - 2, cy - 2, cx + 3, cy + 3))
-    green = sum(g >= 200 and g - max(r, b) >= 22 for r, g, b in bubble.getdata())
-    if red < 105 or stroke_rows < 4 or dot_pixels < 2 or green < 16:
-        raise ValueError("official red failure icon beside the outgoing bubble was not proven")
+    if red < 105 or stroke_rows < 4 or dot_pixels < 2:
+        raise ValueError("official red failure icon was not proven")
+
+    def outgoing(pixel):
+        r, g, b = pixel
+        return g >= 200 and g - max(r, b) >= 22
+
+    # The Copy menu must be opened on interactive text in the same bubble.
+    # Bind that point to the failure icon by the continuous outgoing left edge.
+    edge = next((i for i in range(x + 15, min(x + 76, cx - 2))
+                 if all(outgoing(image.getpixel((i + dx, y))) for dx in (0, 1, 2))), None)
+    if (edge is None
+            or not all(any(outgoing(image.getpixel((edge + dx, row))) for dx in (1, 2, 3, 4))
+                       for row in range(min(y, cy), max(y, cy) + 1))
+            or sum(outgoing(pixel) for pixel in image.crop((cx-4, cy-4, cx+5, cy+5)).getdata()) < 15):
+        raise ValueError("Copy point does not belong to the adjacent outgoing bubble")
 
 
 def global_point(window, pos):
@@ -304,11 +316,14 @@ def click_retry(driver, job, attempt, fields, info):
             raise ValueError("official bubble Copy differs from the frozen original")
         c.require_focus(bound_window(driver, job, info))
         verify_bubble(same_scene(driver, window, fields["scene_sha256"], retry=True), copy, retry)
-        if failed_bubble(job, attempt, info["account"]) != info["failedLocalId"]:
-            raise ValueError("original native bubble changed before retry")
-        record(marker, dict(info, retry=retry, copy=copy,
-                            retrySceneSHA256=fields["scene_sha256"], scheduledAt=time.time()))
-        c.click(*global_point(window, retry))
+        def schedule(target):
+            if failed_bubble(job, attempt, info["account"]) != info["failedLocalId"]:
+                raise ValueError("original native bubble changed before retry")
+            record(marker, dict(info, retry=retry, copy=copy, menuPoint=target,
+                                retrySceneSHA256=fields["scene_sha256"],
+                                nativeControl="official-context-menu-resend", scheduledAt=time.time()))
+
+        context_menu(driver, c, global_point(window, copy), "Resend", before_click=schedule)
         return {"state": "retry_scheduled", "automaticReplay": False}
     finally:
         c.close()
