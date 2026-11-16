@@ -165,10 +165,19 @@ def verify_bubble(image, copy, retry):
         raise ValueError("retry icon and copied message are not adjacent")
     icon = image.crop((x - 8, y - 8, x + 9, y + 9))
     red = sum(r >= 210 and g <= 115 and b <= 130 for r, g, b in icon.getdata())
-    white = sum(min(rgb) >= 237 for rgb in icon.crop((6, 3, 11, 14)).getdata())
+    def light_stroke(pixel):
+        r, g, b = pixel
+        # Qt may blend the narrow light glyph with the red background.
+        return r >= 235 and min(g, b) >= 160 and abs(g - b) <= 30
+
+    stroke = icon.crop((6, 3, 11, 9))
+    dot = icon.crop((6, 11, 11, 14))
+    stroke_rows = sum(any(light_stroke(stroke.getpixel((x, y))) for x in range(stroke.width))
+                      for y in range(stroke.height))
+    dot_pixels = sum(light_stroke(pixel) for pixel in dot.getdata())
     bubble = image.crop((cx - 2, cy - 2, cx + 3, cy + 3))
     green = sum(g >= 200 and g - max(r, b) >= 22 for r, g, b in bubble.getdata())
-    if red < 105 or white < 5 or green < 16:
+    if red < 105 or stroke_rows < 4 or dot_pixels < 2 or green < 16:
         raise ValueError("official red failure icon beside the outgoing bubble was not proven")
 
 
