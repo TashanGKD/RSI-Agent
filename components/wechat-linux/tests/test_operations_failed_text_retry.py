@@ -54,6 +54,17 @@ class FailedTextRetryTests(unittest.TestCase):
             with self.subTest(copy=copy, retry=retry), self.assertRaises(ValueError):
                 recovery.verify_bubble(img, copy, retry)
 
+    def test_official_antialiased_failure_glyph_requires_both_stroke_and_dot(self):
+        img = self.synthetic_bubble()
+        draw = ImageDraw.Draw(img)
+        draw.rectangle((117, 246, 121, 256), fill=(250, 73, 85))
+        draw.rectangle((118, 246, 119, 251), fill=(250, 214, 214))
+        draw.rectangle((118, 254, 119, 255), fill=(250, 175, 175))
+        recovery.verify_bubble(img, (146, 251), (119, 251))
+        draw.rectangle((117, 253, 122, 257), fill=(250, 73, 85))
+        with self.assertRaises(ValueError):
+            recovery.verify_bubble(img, (146, 251), (119, 251))
+
     def test_crash_after_scheduling_never_issues_another_click(self):
         img = self.synthetic_bubble()
         controls = Mock()
