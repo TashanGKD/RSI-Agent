@@ -87,6 +87,9 @@ class Executor:
    if not j:self.d.release();return {'state':'idle'}
    state=j['state']
    if state in ('unknown','needs_attention'):
+    from .failed_text_retry import pending
+    if state=='unknown' and getattr(self.s,'root',None) is not None and pending(self.s.root,j):
+     return {'state':'unknown','job':j['id'],'automaticReplay':False}
     p=j.get('preview') or {}
     if state=='needs_attention':
      recovered=self.recover_expired_preview(j)

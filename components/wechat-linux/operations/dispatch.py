@@ -59,6 +59,7 @@ def historical_empty_text_backup(store,p,value):
  return bool(j.get('action')=='send_text' and j.get('state')=='succeeded' and result.get('state')=='accepted' and not result.get('draftRecoveryPending') and not result.get('postActionPending') and value.get('peer')==j.get('peer') and value.get('payloadHash')==digest(j['payload']))
 
 def artifact_barrier(store):
+ from .failed_text_retry import retired_artifact
  # Bounded existing private journals; a missing optional sendClicks is NOT a barrier.
  for r in store.c.execute("SELECT result FROM jobs WHERE state='succeeded' AND result IS NOT NULL"):
   result=json.loads(r[0])
@@ -70,14 +71,14 @@ def artifact_barrier(store):
    s=p.lstat()
    if not stat.S_ISREG(s.st_mode) or s.st_uid!=os.getuid() or s.st_mode&0o077 or s.st_size>70000:return 'DRAFT_UNVERIFIED'
    value=json.loads(p.read_text())
-   if value.get('state')!='restored' and not historical_empty_text_backup(store,p,value):return 'DRAFT_RECOVERY_PENDING'
+   if value.get('state')!='restored' and not historical_empty_text_backup(store,p,value) and not retired_artifact(store,p,'composer'):return 'DRAFT_RECOVERY_PENDING'
   except (OSError,ValueError):return 'DRAFT_UNVERIFIED'
  for i,p in enumerate(store.root.glob('*-navigation.json')):
   if i>=10000:return 'NAVIGATION_BUDGET'
   try:
    s=p.lstat()
    if not stat.S_ISREG(s.st_mode) or s.st_uid!=os.getuid() or s.st_mode&0o077 or s.st_size>30000:return 'NAVIGATION_UNVERIFIED'
-   if json.loads(p.read_text()).get('state')!='settled':return 'NAVIGATION_RECOVERY_PENDING'
+   if json.loads(p.read_text()).get('state')!='settled' and not retired_artifact(store,p,'navigation'):return 'NAVIGATION_RECOVERY_PENDING'
   except (OSError,ValueError):return 'NAVIGATION_UNVERIFIED'
  return None
 

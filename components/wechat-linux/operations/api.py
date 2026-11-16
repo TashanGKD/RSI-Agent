@@ -14,6 +14,10 @@ class API:
   fields['download']={'client','asset'}
   fields['events']={'client','request_id'}
   fields['status']=set()
+  recovery={'client','request_id'}
+  fields['open_failed_text_retry']=recovery|{'recipient_absence_sha256','scene_sha256','select'}
+  fields['click_failed_text_retry']=recovery|{'scene_sha256','copy_point','retry_point'}
+  fields['finish_failed_text_retry']=recovery
   op=r.get('op')
   if op not in fields or set(r)-fields[op]-{'op'} or fields[op]-set(r):raise ValueError('unsupported operation or fields')
   if op=='capabilities':
@@ -41,6 +45,9 @@ class API:
    x=self.assets.put(client,r['name'],data,r['sha256']);x.pop('path',None);return x
   if op=='list':return {'jobs':self.s.list_jobs(client)}
   rid=ident(r['request_id'])
+  if op in ('open_failed_text_retry','click_failed_text_retry','finish_failed_text_retry'):
+   from .failed_text_retry import restore
+   return restore(self.s,self.policy.cfg,r)
   if op in ('confirm','assist','plan_step','refresh','repreview','retry_native'):self.policy.check(self.s.get(client,rid))
   if op=='get':return self.s.get(client,rid)
   if op=='events':
@@ -63,6 +70,9 @@ class API:
   if op=='reconcile':
    j=self.s.get(client,rid)
    if j['state'] in ('confirmed','executing','preparing'):raise ValueError('executor is active; wait for its outcome')
+   from .failed_text_retry import pending
+   if j['state']=='unknown' and pending(self.s.root,j):
+    return dict(j,readOnlyReconciliation={'state':'unknown','reason':'admin_native_retry_recovery_pending','automaticReplay':False})
    from .driver import NativeDriver
    proof=NativeDriver(self.s.root,self.policy.cfg).verify(j)
    from .original_deviation import verify as verify_original_deviation
