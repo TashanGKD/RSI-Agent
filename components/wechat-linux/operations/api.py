@@ -17,6 +17,7 @@ class API:
   recovery={'client','request_id'}
   fields['open_failed_text_retry']=recovery|{'recipient_absence_sha256','scene_sha256','select'}
   fields['click_failed_text_retry']=recovery|{'scene_sha256','copy_point','retry_point'}
+  fields['confirm_failed_text_retry']=recovery|{'scene_sha256'}
   fields['finish_failed_text_retry']=recovery
   op=r.get('op')
   if op not in fields or set(r)-fields[op]-{'op'} or fields[op]-set(r):raise ValueError('unsupported operation or fields')
@@ -45,7 +46,7 @@ class API:
    x=self.assets.put(client,r['name'],data,r['sha256']);x.pop('path',None);return x
   if op=='list':return {'jobs':self.s.list_jobs(client)}
   rid=ident(r['request_id'])
-  if op in ('open_failed_text_retry','click_failed_text_retry','finish_failed_text_retry'):
+  if op in ('open_failed_text_retry','click_failed_text_retry','confirm_failed_text_retry','finish_failed_text_retry'):
    from .failed_text_retry import restore
    return restore(self.s,self.policy.cfg,r)
   if op in ('confirm','assist','plan_step','refresh','repreview','retry_native'):self.policy.check(self.s.get(client,rid))
