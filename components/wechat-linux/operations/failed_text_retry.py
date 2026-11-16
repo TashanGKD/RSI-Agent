@@ -402,6 +402,7 @@ def restore(store, policy, request):
     from .driver import NativeDriver
 
     driver = NativeDriver(store.root, policy)
+    driver.work_class = "business"
     with exclusive(store, driver):
         job = store.get(request["client"], request["request_id"])
         if job["state"] == "succeeded" and (job.get("result") or {}).get("recoveryRetirementSHA256"):

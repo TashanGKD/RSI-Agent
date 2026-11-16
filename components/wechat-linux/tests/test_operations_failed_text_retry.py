@@ -212,6 +212,25 @@ class FailedTextRetryTests(unittest.TestCase):
             path = self.root / (first["id"] + "-" + tag + ".json")
             self.assertEqual(path.read_bytes(), original_bytes)
 
+    def test_original_recovery_uses_business_guard_with_an_unknown_queue_head(self):
+        request = {"op": "open_failed_text_retry", "client": self.job["client"],
+                   "request_id": self.job["request_id"]}
+        self.store.get.return_value = self.job
+
+        def require_business_class():
+            self.assertEqual(self.driver.work_class, "business")
+            return True
+
+        self.driver.acquire.side_effect = require_business_class
+        with (patch("operations.driver.NativeDriver", return_value=self.driver),
+              patch.object(recovery, "original", return_value=({}, self.info)),
+              patch.object(recovery, "failed_bubble", return_value=42),
+              patch.object(recovery, "open_bubble", return_value={"state": "ready"})):
+            self.assertEqual(recovery.restore(self.store, {"account": "fixture-account"}, request),
+                             {"state": "ready"})
+        self.driver.acquire.assert_called_once()
+        self.driver.release.assert_called_once()
+
     def test_operations_are_admin_only(self):
         api = PublicAPI(self.root / "state", {"account": "fixture-account", "clients": {}})
         self.addCleanup(api.close)
