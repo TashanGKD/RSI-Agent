@@ -12,16 +12,14 @@ class UnresolvedImage(ValueError):
         self.code = code
 
 
-def capture(frame, candidates, export, recover, verify_windows):
+def capture(frame, candidates, export, recover, verify_windows, seek_older=None):
     """A pixel change invalidates coordinates, not the native source ID."""
     attempted = set()
-    for _ in range(5):
+    attempt_budget = 9 if seek_older else 3
+    for pass_index in range(5):
         verify_windows()
         image, signature = frame()
         points = candidates(image)
-        if not points:
-            time.sleep(0.12)
-            continue
         for point in points:
             key = signature, tuple(point)
             if key in attempted:
@@ -29,7 +27,7 @@ def capture(frame, candidates, export, recover, verify_windows):
             verify_windows()
             if frame()[1] != signature:
                 break
-            if len(attempted) == 3:
+            if len(attempted) == attempt_budget:
                 raise UnresolvedImage('IMAGE_SOURCE_MISMATCH', 'No bounded candidate matched this image.')
             try:
                 result = export(point, signature)
@@ -46,7 +44,10 @@ def capture(frame, candidates, export, recover, verify_windows):
                 return result
         else:
             if frame()[1] == signature:
-                raise UnresolvedImage('IMAGE_SOURCE_MISMATCH', 'No visible candidate matched this image.')
+                if pass_index < 4 and seek_older and seek_older(signature):
+                    continue
+                if points or attempted:
+                    raise UnresolvedImage('IMAGE_SOURCE_MISMATCH', 'No visible candidate matched this image.')
         time.sleep(0.12)
     raise UnresolvedImage('IMAGE_CONTEXT_CHANGED', 'No stable image location within the read budget.')
 

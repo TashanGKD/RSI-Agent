@@ -161,6 +161,11 @@ def inbound_candidates(image,box,context):
  for x0,y0,x1,y1,_,_ in _components(image,box,diagonal=True):
   w,h=x1-x0,y1-y0
   if not (l<x0 and x1<r-1 and y1<b-1 and h>=60 and w<=4*h):continue
+  # The calibrated outgoing text bubble sits beside the right avatar and
+  # has a solid WeChat green fill. It is not an incoming image candidate.
+  if 50<=r-x1<=90:
+   bubble=image.crop((x0,y0,x1+1,y1+1)).convert('RGB')
+   if sum(pixel==(157,242,159) for pixel in bubble.getdata())>bubble.width*bubble.height/2:continue
   complete=y0>t
   shape_matches=expected and .8*expected<=w/h<=1.2*expected
   if complete:
@@ -200,23 +205,67 @@ def clean(driver,j):
  try:return bool(expected and driver.app_windows()==expected)
  except Exception:return False
 
-def restore_auxiliary_window(driver,j,require_guard):
+def image_navigation_matches(nav,expected):
+ from .lease import birth
+ from .windows import window_identity
+ stable=list(nav['beforeWindows'])
+ own=nav.get('ownPopout')
+ if nav['state']=='ready' and own and own not in stable:
+  if window_identity(own)!=nav['ownIdentity']:return False
+  stable.append(own)
+ elif nav['state']!='started' or own:return False
+ host=nav['mainIdentity']
+ return (sorted(stable,key=lambda w:w['id'])==expected and nav['main'] in stable
+         and window_identity(nav['main'])==host and birth(host['pid'])==nav['processBirth'])
+
+
+def scroll_inbound_history(driver,j,nav,verify_windows,expected_signature):
+ # Only a popout created by this operation can move. Usual navigation
+ # cleanup closes it, preserving the user's existing chat windows.
+ from . import navigation
+ from .recipes import activate,controls,screen
+ if not nav or nav['state']!='ready' or not nav.get('ownPopout'):return False
+ preview=j['preview'];window=nav['ownPopout'];pane=preview['imagePane']
+ verify_windows()
+ if not image_navigation_matches(nav,preview['imageWindows']):return False
+ binding=preview['uiBinding']
+ if binding.get('nativeTargetProof',{}).get('window')!=window:return False
+ navigation.verify_session(driver,binding,j['peer'])
+ left,top,right,bottom=pane
+ if not (window['x']<=left<right<=window['x']+window['width']
+         and window['y']<=top<bottom<=window['y']+window['height']):return False
+ control=controls(driver)
+ try:
+  activate(control,window)
+  control.require_focus(window)
+  verify_windows()
+  if inbound_image.screenshot(screen(driver),pane)[1]!=expected_signature:return False
+  control.t.XTestFakeMotionEvent(control.d,-1,(left+right)//2,(top+bottom)//2,0)
+  for _ in range(4):
+   control.t.XTestFakeButtonEvent(control.d,4,1,0)
+   control.t.XTestFakeButtonEvent(control.d,4,0,0)
+  control.x.XFlush(control.d)
+  control.wait(350)
+  verify_windows()
+  return True
+ finally:control.close()
+
+
+def restore_auxiliary_window(driver,j,require_guard,before_probe):
  """Hide only an AppEx window newly mapped during this guarded image probe."""
  from pathlib import Path
  from image_client import Controls
  from . import navigation
- from .lease import birth
- from .windows import window_identity
  expected=j['preview']['imageWindows']
- nav=navigation.load(driver.root,j)
- if not nav or nav['state']!='started' or nav['beforeWindows']!=expected:return False
+ if before_probe!=expected:return False
  try:
+  nav=navigation.load(driver.root,j)
+  if not nav or not image_navigation_matches(nav,expected):return False
   windows=driver.app_windows()
   added=[w for w in windows if w not in expected]
   if len(added)!=1 or any(w not in windows for w in expected):return False
   window=added[0];host=nav['mainIdentity']
   if window['title']!='WeChat' or nav['main'] not in expected:return False
-  if window_identity(nav['main'])!=host or birth(host['pid'])!=nav['processBirth']:return False
   def auxiliary():
    props=subprocess.run(['xprop','-id',window['id'],'WM_CLASS','_NET_WM_PID'],
                         capture_output=True,text=True,check=True,timeout=3).stdout
@@ -229,7 +278,8 @@ def restore_auxiliary_window(driver,j,require_guard):
   control=Controls(driver.root.parent)
   try:
    require_guard()
-   if driver.app_windows()!=windows or auxiliary()!=identity:return False
+   if (driver.app_windows()!=windows or auxiliary()!=identity
+       or not image_navigation_matches(nav,expected)):return False
    control.set_mapped(window,False)
    if clean(driver,j):return True
    if auxiliary()==identity:control.set_mapped(window,True)
@@ -285,15 +335,22 @@ def export(driver,j):
    if binding.get('nativeTargetProof'):
     return navigation.verify_session(driver,binding,target['username'])
    return super().preflight(request,target)
+ inbound=context.get('sourceMode')=='inbound' and j['payload'].get('representation')=='visible'
+ before_probe=None
  def probe(point,signature):
+  nonlocal before_probe
+  if inbound:
+   guard()
+   before_probe=driver.app_windows()
+   if before_probe!=p['imageWindows']:
+    raise ImageReadError('IMAGE_CLEANUP_UNPROVEN','Official windows changed before this image probe.',clean=False)
   request={'action':'image','peer':j['peer'],'server_id':context['sourceId'],'point':point,
            'context_sha256':signature,'representation':j['payload'].get('representation','original')}
   return image_client.dispatch(driver.tool(),request,ui=SelectedImageUI(driver.root),guard=guard)
  def recover(error):
-  if getattr(error,'image_export_stage',None)!='viewer':return False
-  restore_auxiliary_window(driver,j,guard)
-  return getattr(error,'image_viewer_missing',False) is True
- inbound=context.get('sourceMode')=='inbound' and j['payload'].get('representation')=='visible'
+  if getattr(error,'image_export_stage',None)!='viewer' or getattr(error,'image_viewer_missing',False) is not True:return False
+  if not clean(driver,j):restore_auxiliary_window(driver,j,guard,before_probe)
+  return True
  if inbound:
   pane=p['imagePane']
   def points(image):
@@ -302,7 +359,11 @@ def export(driver,j):
     if error.code!='IMAGE_CANDIDATE_AMBIGUOUS':raise
     return []
   try:
-   result=inbound_image.capture(lambda:inbound_image.screenshot(screen(driver),pane),points,probe,recover,verify_windows)
+   nav=navigation.load(driver.root,j)
+   seek=None
+   if nav and nav['state']=='ready' and nav.get('ownPopout'):
+    seek=lambda signature:scroll_inbound_history(driver,j,nav,verify_windows,signature)
+   result=inbound_image.capture(lambda:inbound_image.screenshot(screen(driver),pane),points,probe,recover,verify_windows,seek)
   except inbound_image.UnresolvedImage as error:
    raise ImageReadError(error.code,str(error),clean=clean(driver,j)) from None
   except ImageReadError:raise
