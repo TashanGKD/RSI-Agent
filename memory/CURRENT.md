@@ -14,6 +14,11 @@ target selection. Older attention records without the original probe witness
 remain for review. Verify fresh group bytes, the Codex turn and original V2
 delivery before treating the deployed change as live acceptance.
 
+A verified image export could still block the queue while closing its chat:
+the draft check counted a clipped message above the popout editor separator.
+When that calibrated separator is intact, only pixels below it are draft
+content. Real drafts and unfamiliar frames still require protection.
+
 A pale inbound screenshot was omitted because its one-pixel rounded outline
 connects at diagonal corners. The inbound locator now includes those connections
 when forming candidates. Candidate bounds and source proof still apply. Verify a

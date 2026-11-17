@@ -77,6 +77,31 @@ class HostInstallationTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'existing contents retained'):
                     require_empty_editor(ui)
 
+    def test_popout_checks_only_content_below_the_verified_editor_separator(self):
+        from PIL import Image, ImageDraw
+        from host_support.file_transport import require_empty_editor
+        from operations.navigation import popout_binding
+
+        window = {'x': 60, 'y': 90, 'width': 623, 'height': 667}
+        image = Image.new('RGB', (683, 757), (246, 246, 246))
+        draw = ImageDraw.Draw(image)
+        draw.line((180, 614, 582, 614), fill=(38, 40, 38))
+        draw.line((81, 616, 641, 616), fill=(222, 222, 222))
+        cfg = popout_binding({}, window, image)
+        ui = SimpleNamespace(cfg=cfg, ui=SimpleNamespace(screenshot=lambda: image))
+        require_empty_editor(ui)
+
+        # A draft below the separator must still block cleanup.
+        draw.line((180, 617, 582, 617), fill=(38, 40, 38))
+        with self.assertRaisesRegex(ValueError, 'existing contents retained'):
+            require_empty_editor(ui)
+
+        # Without the exact separator, do not reclassify any pixels.
+        draw.line((180, 617, 582, 617), fill=(246, 246, 246))
+        draw.point((180, 616), fill=(221, 221, 221))
+        with self.assertRaisesRegex(ValueError, 'existing contents retained'):
+            require_empty_editor(ui)
+
     def test_reparented_window_uses_absolute_screen_coordinates(self):
         raw = '  0x400019 "File Transfer": ("wechat" "wechat") 600x642+0+0  +393+300\n'
         window = parse_app_windows(raw)[0]

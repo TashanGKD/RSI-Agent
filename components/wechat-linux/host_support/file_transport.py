@@ -26,13 +26,14 @@ def require_empty_editor(ui):
     if type(content_top) is not int or not top<=content_top<=top+12:raise ValueError('editor content calibration changed')
     bottom = ui.cfg['send'][1] - 30
     im = ui.ui.screenshot().crop((box[0] + 20, content_top, box[2] - 40, bottom)).convert('RGB')
-    dark_pixels = sum(min(pixel) < 230 for pixel in im.getdata())
     frame_y = ui.cfg.get('editor_frame_y')
     if frame_y == top + 2 and content_top <= frame_y < bottom:
-        # The calibrated popout has one uniform light gray frame row.
+        # An exact full-width separator proves the draft starts below it.
+        # The strip above can contain the tail of the scrolled chat.
         row = frame_y - content_top
         if im.crop((0, row, im.width, row + 1)).getextrema() == ((222, 222),) * 3:
-            dark_pixels -= im.width
+            im = im.crop((0, row + 1, im.width, im.height))
+    dark_pixels = sum(min(pixel) < 230 for pixel in im.getdata())
     # A caret is tiny; text, existing file cards and images are not. OCR alone could miss Chinese or an image.
     if dark_pixels > 80:
         raise ValueError('editor is not visibly empty; existing contents retained')
