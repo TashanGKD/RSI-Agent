@@ -90,6 +90,18 @@ class VisibleImageTests(unittest.TestCase):
    images.locate_visible(im,box,[],source)
   self.assertEqual(images.inbound_candidates(im,box,source),[[193,226]])
 
+ def test_delayed_image_does_not_probe_an_outgoing_text_bubble(self):
+  im=Image.new('RGB',(621,437),(250,250,250))
+  draw=ImageDraw.Draw(im)
+  draw.rounded_rectangle((137,136,552,256),radius=5,fill=(157,242,159))
+  for y in range(146,245,20):
+   draw.rectangle((148,y,480,y+3),fill=(22,22,22))
+  context={'thumbnailWidth':405,'thumbnailHeight':259}
+  with self.assertRaisesRegex(images.ImageReadError,'No visible image candidate'):
+   images.inbound_candidates(im,[0,0,621,437],context)
+  draw.rectangle((70,278,269,405),fill=(15,58,98))
+  self.assertEqual(images.inbound_candidates(im,[0,0,621,437],context),[[169,341]])
+
  def test_inbound_candidates_stop_at_a_bounded_number_of_cards(self):
   im=Image.new('RGB',(500,500),(249,249,249));draw=ImageDraw.Draw(im)
   for y in (15,120,225,330):
@@ -134,8 +146,36 @@ class ImageExecutionTests(unittest.TestCase):
     with patch('operations.navigation.load',return_value=nav),patch('operations.windows.window_identity',return_value=host), \
          patch('operations.lease.birth',return_value='host-start'),patch('pathlib.Path.read_text',return_value=proc), \
          patch('operations.images.subprocess.run',return_value=SimpleNamespace(stdout=props)),patch('image_client.Controls') as controls:
-     self.assertEqual(images.restore_auxiliary_window(driver,job,guard),parent==123)
+     self.assertEqual(images.restore_auxiliary_window(driver,job,guard,[main]),parent==123)
      if parent==123:controls.return_value.set_mapped.assert_called_once_with(aux,False)
+     else:controls.assert_not_called()
+
+ def test_ready_probe_restores_only_its_new_verified_application_window(self):
+  from types import SimpleNamespace
+  from unittest.mock import Mock,patch
+  main={'id':'0x100','title':'Weixin'};chat={'id':'0x110','title':'Selected'}
+  aux={'id':'0x200','title':'WeChat'}
+  host={'pid':123};chat_id={'pid':123,'leader':'0x100'}
+  baseline=[main,chat]
+  nav={'state':'ready','main':main,'mainIdentity':host,'processBirth':'host-start',
+       'beforeWindows':[main],'ownPopout':chat,'ownIdentity':chat_id}
+  job={'preview':{'imageWindows':baseline}}
+  props='WM_CLASS(STRING) = "com.tencent.wechatappex", "WeChatAppEx"\n_NET_WM_PID(CARDINAL) = 456\n'
+  for previously_open,wrong_chat,parent in ((False,False,123),(True,False,123),(False,True,123),(False,False,999)):
+   with self.subTest(previously_open=previously_open,wrong_chat=wrong_chat,parent=parent):
+    driver=Mock(root=Path('/fixture'))
+    driver.app_windows.side_effect=[baseline+[aux],baseline+[aux],baseline]
+    proc='456 (WeChatAppEx) S '+str(parent)+' '+'0 '*17+'999'
+    live_chat={} if wrong_chat else chat_id
+    with (patch('operations.navigation.load',return_value=nav),
+          patch('operations.windows.window_identity',side_effect=lambda w:host if w==main else live_chat),
+          patch('operations.lease.birth',return_value='host-start'),patch('pathlib.Path.read_text',return_value=proc),
+          patch('operations.images.subprocess.run',return_value=SimpleNamespace(stdout=props)),
+          patch('image_client.Controls') as controls):
+     before=baseline+[aux] if previously_open else baseline
+     allowed=not previously_open and not wrong_chat and parent==123
+     self.assertEqual(images.restore_auxiliary_window(driver,job,Mock(),before),allowed)
+     if allowed:controls.return_value.set_mapped.assert_called_once_with(aux,False)
      else:controls.assert_not_called()
 
  def fixture(self,td):
@@ -226,6 +266,54 @@ class ImageExecutionTests(unittest.TestCase):
    self.assertEqual([x.args[1]['point'] for x in call.call_args_list],[[120,150],[155,155]])
    self.assertTrue(all('verify_source_filename' not in x.args[1] for x in call.call_args_list))
 
+ def test_history_scroll_requires_the_original_owned_window_and_unchanged_frame(self):
+  from unittest.mock import Mock,patch
+  chat={'id':'0x110','title':'Selected','x':0,'y':0,'width':500,'height':400}
+  other=dict(chat,id='0x120')
+  im=scene()
+  pane=[0,0,500,400]
+  original=images.inbound_image.screenshot(im,pane)[1]
+  for allowed,window,signature in ((True,chat,original),(False,other,original),(False,chat,'changed')):
+   with self.subTest(window=window,signature=signature):
+    preview={'imagePane':pane,'imageWindows':[chat],'uiBinding':{'nativeTargetProof':{'window':window}}}
+    job={'peer':PEER,'preview':preview}
+    nav={'state':'ready','ownPopout':chat}
+    verify=Mock()
+    with (patch('operations.images.image_navigation_matches',return_value=True),
+          patch('operations.navigation.verify_session'),patch('operations.recipes.activate'),
+          patch('operations.recipes.screen',return_value=im),patch('operations.recipes.controls') as controls):
+     self.assertEqual(images.scroll_inbound_history(Mock(),job,nav,verify,signature),allowed)
+     buttons=controls.return_value.t.XTestFakeButtonEvent.call_args_list
+     self.assertEqual([call.args[1:] for call in buttons],[(4,1,0),(4,0,0)]*4 if allowed else [])
+
+ def test_original_inbound_source_is_relocated_in_the_owned_chat(self):
+  from unittest.mock import Mock,patch
+  from image_client import ImageFilenameMismatch
+  with tempfile.TemporaryDirectory() as td:
+   d,j,c,first,result=self.fixture(td)
+   c.update(sourceMode='inbound',thumbnailWidth=405,thumbnailHeight=259)
+   j['payload']['representation']='visible'
+   j['preview']['context']=images.digest(c)
+   first.paste((250,250,250),(0,0,500,400))
+   older=first.copy()
+   ImageDraw.Draw(older).rectangle((85,80,285,208),fill=(23,57,81))
+   previous=older.copy()
+   previous.putpixel((10,10),(105,68,200))
+   frame=[first]
+   nav={'state':'ready','ownPopout':{'id':'selected'}}
+   view=Mock(side_effect=lambda driver:frame[0])
+   scroll=Mock(side_effect=lambda *args:frame.__setitem__(0,older if frame[0] is first else previous) or True)
+   dispatch=Mock(side_effect=[ImageFilenameMismatch('other native message'),result])
+   with (patch('operations.images.load_context',return_value=c),patch('operations.recipes.screen',view),
+         patch('operations.navigation.load',return_value=nav),patch('operations.navigation.finish',return_value=True),
+         patch('operations.images.scroll_inbound_history',scroll),patch('image_client.dispatch',dispatch)):
+    data,proof=images.export(d,j)
+   self.assertEqual(data,sample())
+   self.assertEqual(proof['sourceId'],SID)
+   self.assertTrue(proof['navigationRestored'])
+   self.assertEqual(scroll.call_count,2)
+   self.assertEqual([call.args[1]['server_id'] for call in dispatch.call_args_list],[SID,SID])
+
  def test_non_image_candidate_continues_only_after_original_scene_is_restored(self):
   import types
   from unittest.mock import Mock,patch
@@ -278,14 +366,16 @@ class ImageExecutionTests(unittest.TestCase):
    initial=preview['imageWindows']
    failure=ValueError('viewer did not open')
    failure.image_export_stage='viewer'
+   failure.image_viewer_missing=True
    adapter=types.SimpleNamespace(locked=None,ImageFilenameMismatch=ImageFilenameMismatch)
    def dispatch(*args,**kwargs):
     kwargs['guard']()
     driver.app_windows.return_value=initial+[{'id':'auxiliary'}]
     raise failure
-   def restore(current,original,guard):
+   def restore(current,original,guard,before):
     self.assertIs(current,driver)
     self.assertEqual(original['id'],failed['id'])
+    self.assertEqual(before,initial)
     guard()
     driver.app_windows.return_value=initial
     return True
@@ -309,7 +399,7 @@ class ImageExecutionTests(unittest.TestCase):
          patch('operations.recipes.screen',return_value=image),patch('operations.images.restore_auxiliary_window',side_effect=restore):
      self.assertEqual(executor.step()['state'],'failed')
     result=store.get('test','image')['result']
-    self.assertEqual(result['code'],'IMAGE_EXPORT_NOT_PROVEN')
+    self.assertEqual(result['code'],'IMAGE_SOURCE_MISMATCH')
     self.assertTrue(result['noSend'])
     self.assertGreaterEqual(driver.check_lease.call_count,2)
     self.assertEqual(executor.step(),{'state':'awaiting_confirmation','job':following['id']})

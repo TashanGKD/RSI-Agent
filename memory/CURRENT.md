@@ -6,6 +6,14 @@ new message can move the image between attempts. Old coordinates are discarded
 and the current pane is rechecked before opening the viewer. Only verified
 image bytes are returned. Historical failed inputs and replies are retained.
 
+When a delayed group image is off screen, the inbound locator can scroll back
+inside the same proven popout created for that read and recheck the original
+image on each new viewport. The outgoing text bubble is excluded. A failed
+probe can hide its newly observed, process-verified AppEx window after native
+target selection. Older attention records without the original probe witness
+remain for review. Verify fresh group bytes, the Codex turn and original V2
+delivery before treating the deployed change as live acceptance.
+
 A pale inbound screenshot was omitted because its one-pixel rounded outline
 connects at diagonal corners. The inbound locator now includes those connections
 when forming candidates. Candidate bounds and source proof still apply. Verify a
