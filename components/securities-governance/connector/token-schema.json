@@ -1,0 +1,19 @@
+{
+  "title": "机构评测服务连接",
+  "description": "填写机构批准的 HTTPS 地址与专用令牌。WorkBuddy 在本机保存凭证。",
+  "fields": [
+    {
+      "key": "API_BASE_URL",
+      "label": "服务地址",
+      "type": "text",
+      "required": true,
+      "placeholder": "https://evaluation.example.com"
+    },
+    {
+      "key": "API_KEY",
+      "label": "访问令牌",
+      "type": "password",
+      "required": true
+    }
+  ]
+}

@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>证券智能体评测工作台</title>
+  <link rel="stylesheet" href="/workbench/styles.css">
+  <script type="module" src="/workbench/app.js"></script>
+</head>
+<body>
+  <header class="masthead">
+    <div class="masthead-inner">
+      <span class="brand">证券智能体评测</span>
+      <nav aria-label="工作台">
+        <span class="nav-current" aria-current="page">治理工作台</span>
+        <a href="/workbench/SKILL.md" download="SKILL.md">下载 API Skill <span aria-hidden="true">↓</span></a>
+      </nav>
+      <div class="top-actions">
+        <span class="connection" id="connection-status">服务未连接</span>
+        <button id="disconnect" class="quiet compact" hidden>断开</button>
+        <button id="fullscreen" class="quiet compact">全屏</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="connect panel" id="connect" aria-labelledby="connect-title">
+      <h1 id="connect-title">连接评测服务</h1>
+      <p>使用本服务提供的访问令牌查看任务与证据。</p>
+      <form id="connect-form">
+        <label for="token">访问令牌</label>
+        <div class="form-row">
+          <input id="token" type="password" placeholder="输入访问令牌" autocomplete="off" required>
+          <button class="primary" type="submit">连接</button>
+        </div>
+        <p class="form-error" id="connect-error" role="alert" hidden></p>
+      </form>
+    </section>
+
+    <div id="workspace" class="workspace" hidden>
+      <aside class="task-list panel" aria-labelledby="task-list-title">
+        <div class="list-heading">
+          <h2 id="task-list-title">评测任务</h2>
+          <button id="refresh" class="quiet compact">刷新</button>
+        </div>
+        <button id="new-task" class="primary new-task">发起评测</button>
+        <div id="task-items" class="task-items"></div>
+        <button id="more-tasks" class="quiet" hidden>加载更多</button>
+      </aside>
+      <section id="report-area" aria-label="任务报告">
+        <p id="workspace-error" class="form-error" role="alert" hidden></p>
+        <div id="empty" class="panel empty" hidden>
+          <h1>暂无评测任务</h1>
+          <p>可在工作台提交观测 JSON，也可以由 AI 通过 API Skill 创建任务。</p>
+        </div>
+        <div id="report" hidden>
+          <header class="report-header">
+            <div>
+              <p id="report-context" class="breadcrumb"></p>
+              <h1 id="task-title"></h1>
+              <p id="task-meta" class="metadata"></p>
+            </div>
+            <div class="report-actions">
+              <button id="export" class="quiet">下载报告</button>
+              <button id="retest" class="primary">提交复测</button>
+            </div>
+          </header>
+          <div id="version-bar" class="version-bar panel">
+            <div class="segmented" role="group" aria-label="报告视图">
+              <button id="view-report" aria-pressed="false">单轮报告</button>
+              <button id="view-comparison" aria-pressed="true">复测对比</button>
+            </div>
+            <label id="before-label" for="before">整改前 <select id="before"></select></label>
+            <span id="version-arrow" class="version-arrow" aria-hidden="true">→</span>
+            <label id="after-label" for="after"><span id="after-caption">复测后</span> <select id="after"></select></label>
+            <p id="report-status" class="version-status" aria-live="polite"></p>
+          </div>
+
+          <div id="metrics" class="metrics" aria-label="评测汇总"></div>
+
+          <div id="case-layout" class="case-layout">
+            <section class="panel results" aria-labelledby="results-title">
+              <div class="panel-header">
+                <div>
+                  <h2 id="results-title">逐项结果</h2>
+                  <p id="coverage" class="muted"></p>
+                </div>
+              </div>
+              <div id="filters" class="filters" aria-label="筛选用例"></div>
+              <div id="case-table" class="case-table"></div>
+            </section>
+            <section id="evidence" class="panel evidence" aria-labelledby="evidence-title"></section>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <dialog id="submission">
+    <form id="submit-form">
+      <div class="dialog-heading">
+        <div>
+          <h2 id="submit-title">发起评测</h2>
+          <p id="submit-help"></p>
+        </div>
+        <button type="button" id="close-dialog" class="quiet compact" aria-label="关闭">关闭</button>
+      </div>
+      <div id="new-fields" class="form-grid">
+        <label>任务标题 <input id="submit-task-title" maxlength="120" placeholder="例如：证券研究资料助手"></label>
+        <label>任务编号 <input id="submit-task-id" maxlength="100" pattern="[A-Za-z0-9_.\-]{1,100}"></label>
+      </div>
+      <label for="run-json">观测 JSON</label>
+      <textarea id="run-json" spellcheck="false" required></textarea>
+      <p id="submit-error" class="form-error" role="alert" hidden></p>
+      <div class="dialog-actions">
+        <a href="/workbench/SKILL.md" download="SKILL.md">查看输入格式</a>
+        <button class="primary" type="submit" id="submit-run">提交记录</button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "materials": {
+    "synthetic-notice": {
+      "sha256": "25dcdb46414e76c4207a0df86f5a00bd4e5bdac31cb25d1f3fc60023ef710ced",
+      "path": "materials/notice.txt"
+    }
+  },
+  "rule_sources": {
+    "R1": [{"asset_id": "synthetic-notice", "location": "line:5"}],
+    "R2": [{"asset_id": "synthetic-notice", "location": "line:6"}],
+    "R3": [{"asset_id": "synthetic-notice", "location": "line:7"}],
+    "R4": [{"asset_id": "synthetic-notice", "location": "line:8"}],
+    "R5": [{"asset_id": "synthetic-notice", "location": "line:9"}],
+    "R2/R3": [
+      {"asset_id": "synthetic-notice", "location": "line:6"},
+      {"asset_id": "synthetic-notice", "location": "line:7"}
+    ]
+  }
+}
