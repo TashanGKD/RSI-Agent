@@ -113,6 +113,43 @@ for line in sys.stdin:
 
 
 class DesktopRelayTests(unittest.TestCase):
+    def test_group_expiry_receipt_releases_desktop_queue_without_replaying(self):
+        with tempfile.TemporaryDirectory() as td:
+            jobs = Jobs(td)
+            request = dict(packet(), scope=['self', 'group@chatroom'])
+            original = jobs.accept(request)
+            jobs.update(request['id'], state='desktop_queued', thread_id=THREAD,
+                        desktop_message_id=MESSAGE)
+            receipt = {'id': request['id'], 'state': 'not_sent',
+                       'native_request_id': None, 'reply_sha256': None,
+                       'code': 'GROUP_INPUT_EXPIRED'}
+
+            self.assertEqual(jobs.report_delivery(receipt), {'state': 'recorded'})
+            self.assertEqual(jobs.report_delivery(receipt), {'state': 'recorded'})
+            row = jobs.get(request['id'])
+            self.assertEqual(row['state'], 'review')
+            self.assertEqual(row['error'], 'GROUP_INPUT_EXPIRED; original group reply was not sent')
+            self.assertEqual(jobs.desktop_task(request['id'], THREAD)['state'], 'review')
+            with self.assertRaises(ValueError):
+                jobs.complete_desktop({'id': request['id'], 'input_sha256': original['digest'],
+                    'thread_id': THREAD, 'turn_id': 'late-turn', 'text': 'Old answer'}, THREAD)
+
+    def test_group_expiry_receipt_releases_existing_queue_on_receiver_start(self):
+        with tempfile.TemporaryDirectory() as td:
+            jobs = Jobs(td)
+            request = dict(packet(), scope=['self', 'group@chatroom'])
+            jobs.accept(request)
+            jobs.update(request['id'], state='desktop_queued', thread_id=THREAD,
+                        desktop_message_id=MESSAGE)
+            receipt = {'id': request['id'], 'state': 'not_sent',
+                       'native_request_id': None, 'reply_sha256': None,
+                       'code': 'GROUP_INPUT_EXPIRED'}
+            with jobs.connect() as db:
+                db.execute('INSERT INTO delivery_receipts VALUES(?,?)',
+                           (request['id'], json.dumps(receipt, separators=(',', ':'))))
+            restarted = Jobs(td)
+            self.assertEqual(restarted.get(request['id'])['state'], 'review')
+
     def test_group_parts_show_actual_native_text_without_changing_original_digest(self):
         with tempfile.TemporaryDirectory() as td:
             jobs = Jobs(td)
@@ -797,9 +834,11 @@ class CodexBackendTests(unittest.TestCase):
         restarted = GroupLoop(self.root / 'recycle.sqlite', group, self.backend, native)
         self.addCleanup(restarted.close)
         restarted.flush_expired_delivery()
-        self.backend.exchange('/desktop-completions', {'id': original, 'input_sha256': saved['digest'],
-            'thread_id': THREAD, 'turn_id': 'late-fixture-turn',
-            'text': '{"speak":true,"text":"Old answer","work_index":null}'})
+        with self.assertRaisesRegex(ModelError, 'HTTP 409'):
+            self.backend.exchange('/desktop-completions', {'id': original, 'input_sha256': saved['digest'],
+                'thread_id': THREAD, 'turn_id': 'late-fixture-turn',
+                'text': '{"speak":true,"text":"Old answer","work_index":null}'})
+        self.assertEqual(self.jobs.get(original)['state'], 'review')
         self.assertEqual(self.jobs.get(original)['body'], saved['body'])
         expired = self.backend.exchange(f'/desktop-deliveries/{original}/{THREAD}/late-fixture-turn')[1]
         self.assertEqual(expired, {'id': original, 'state': 'not_sent', 'native_request_id': None,
