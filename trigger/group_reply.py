@@ -429,7 +429,7 @@ def sync_groups(workers, configs, reply_gate=None, friends=()):
                         + ' 这是好友私聊。直接回应对方，只用当前好友私聊中的信息。'}])
             else:
                 loop = GroupLoop(directory / 'inbox.sqlite', group, model, io)
-                loop.recycle_since = config.get('recycle_since')
+                loop.recycle_since = config.get('recycle_since', group.get('scope', {}).get('since'))
                 loop.reply_gate = reply_gate
             workers[state] = (config, loop, fd)
         except (OSError, ValueError, KeyError, TypeError, ModelError, subprocess.SubprocessError):
