@@ -210,6 +210,13 @@ class Jobs:
             if 'desktop_message_id' not in {r[1] for r in db.execute('PRAGMA table_info(jobs)')}:
                 db.execute('ALTER TABLE jobs ADD COLUMN desktop_message_id TEXT')
             db.execute('CREATE TABLE IF NOT EXISTS delivery_receipts(id TEXT PRIMARY KEY, receipt TEXT NOT NULL)')
+            for row in db.execute("SELECT jobs.id, jobs.state, delivery_receipts.receipt "
+                                  "FROM jobs JOIN delivery_receipts ON delivery_receipts.id=jobs.id "
+                                  "WHERE jobs.state IN ('queued','starting','running','desktop_submitting','desktop_queued')"):
+                receipt = json.loads(row['receipt'])
+                if receipt.get('code') == 'GROUP_INPUT_EXPIRED' and receipt.get('state') == 'not_sent':
+                    db.execute("UPDATE jobs SET state='review',error=?,updated=? WHERE id=?",
+                               ('GROUP_INPUT_EXPIRED; original group reply was not sent', time.time(), row['id']))
 
     @contextmanager
     def connect(self):
@@ -322,6 +329,9 @@ class Jobs:
                     raise ValueError('Original group chat required for expiry.')
                 db.execute('INSERT OR IGNORE INTO delivery_receipts VALUES(?,?)',
                            (value['id'], encoded(value).decode()))
+                if row['state'] in ('queued', 'starting', 'running', 'desktop_submitting', 'desktop_queued'):
+                    db.execute("UPDATE jobs SET state='review',error=?,updated=? WHERE id=?",
+                               ('GROUP_INPUT_EXPIRED; original group reply was not sent', time.time(), value['id']))
                 return {'state': 'recorded'}
             if not row or row['state'] != 'completed':
                 raise ValueError('Original completed reply required.')
@@ -364,11 +374,18 @@ class Jobs:
 
     def desktop_delivery(self, identity, thread, turn, *targets):
         row = self.get(identity)
-        if (thread not in targets or row['thread_id'] != thread or row['turn_id'] != turn
-                or row['state'] != 'completed' or not row['desktop_message_id']):
+        if (thread not in targets or row['thread_id'] != thread or not row['desktop_message_id']):
             raise ValueError('Original completed desktop turn required.')
         with self.connect() as db:
             proof = db.execute('SELECT receipt FROM delivery_receipts WHERE id=?', (identity,)).fetchone()
+        if row['state'] != 'completed':
+            if row['state'] == 'review' and proof:
+                receipt = json.loads(proof['receipt'])
+                if receipt.get('code') == 'GROUP_INPUT_EXPIRED' and receipt.get('state') == 'not_sent':
+                    return receipt
+            raise ValueError('Original completed desktop turn required.')
+        if row['turn_id'] != turn:
+            raise ValueError('Original completed desktop turn required.')
         body = json.loads(row['body'])
         if not proof:
             state = 'review' if link_reply_text(body, row['result']) is None else 'pending'
