@@ -1,12 +1,10 @@
 import argparse
 import json
-from pathlib import Path
-import subprocess
 import sys
 
 from . import __version__
 from .audit import audit
-from .config import MAC, ROOT, WORKBENCH, load
+from .config import ROOT, load
 from .service_bundle import stage
 from .wechat import call, doctor
 
@@ -35,12 +33,6 @@ def main(argv=None):
     service_stage.add_argument('--output', required=True, help='A NEW directory for the review bundle.')
     wx = commands.add_parser('wechat', help='Use the original on-demand WeChat SDK.')
     wx.add_argument('mode', choices=['read', 'operations'], help='One JSON request from stdin.')
-    notebook = commands.add_parser('notebook', help='Start the existing local notebook.')
-    notebook.add_argument('--workspace', required=True)
-    notebook.add_argument('--port', type=int, default=8876)
-    notebook.add_argument('--demo', action='store_true', help='Create synthetic data in a NEW directory first.')
-    mac = commands.add_parser('mac', help='Mac-specific source checks; not a Linux application.')
-    mac.add_argument('mode', choices=['verify'])
     args = parser.parse_args(argv)
     if args.command is None:
         parser.print_help()
@@ -68,19 +60,6 @@ def main(argv=None):
     if args.command == 'services':
         print(json.dumps(stage(args.release, args.output), ensure_ascii=False, indent=2))
         return 0
-    if args.command == 'mac':
-        return subprocess.call([sys.executable, '-B', 'tools/verify_package.py'], cwd=MAC)
-    if args.command == 'notebook':
-        if not 1 <= args.port <= 65535:
-            raise ValueError('Port must be between 1 and 65535.')
-        workspace = Path(args.workspace).expanduser().absolute()
-        if args.demo:
-            if workspace.exists():
-                raise ValueError('The demo directory already exists; existing data will not be overwritten.')
-            subprocess.run([sys.executable, '-B', 'examples/seed_demo.py', '--workspace', str(workspace), '--apply'], cwd=WORKBENCH, check=True)
-        if not workspace.is_dir():
-            raise ValueError('Workspace missing; use --demo with a new directory or supply an existing notebook.')
-        return subprocess.call([sys.executable, '-B', 'notebook/local_server.py', '--workspace', str(workspace), '--port', str(args.port)], cwd=WORKBENCH)
     config = load(args.config)
     if args.command == 'doctor':
         print(json.dumps(doctor(config), ensure_ascii=False, indent=2))

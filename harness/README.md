@@ -4,7 +4,7 @@ The regular Harness has two entrypoints:
 
 | Entry | Runs | What it establishes |
 | --- | --- | --- |
-| `python -B scripts/check.py --linux` | Synthetic adapter/native-reader/queue/snapshot regressions, isolated X/VNC bootstrap and service-definition verification, temporary notebook HTTP and Mac manifest | Code regression and isolated Linux startup evidence |
+| `python -B scripts/check.py --linux` | Synthetic adapter/native-reader/queue/snapshot regressions, isolated X/VNC bootstrap and service-definition verification | Code regression and isolated Linux startup evidence |
 | `python -B -m rsi_agent --config /private/installation.json audit` | Existing X11 window metadata, owning process's TracerPid, service FragmentPath and dependency prerequisites | Current structural runtime findings without reading messages or sending input |
 
 `audit` prints bounded JSON. Exit 0 means the inspected conditions pass; 1 means

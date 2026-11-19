@@ -117,7 +117,7 @@ class ClientImageTests(unittest.TestCase):
         wrong_save.putpixel((520,21),(0,0,0))
         control=Mock()
         control.one.side_effect=lambda title,optional=False: {'Photos and Videos':viewer,'Weixin':main}.get(title)
-        with patch.object(image_client,'GALLERY_SAVE_TOOLBAR',expected,create=True), \
+        with patch.object(image_client,'GALLERY_SAVE_TOOLBARS',{expected:('with-qr',520)}), \
                 patch('operations.windows.window_identity',return_value=identity), \
                 patch('operations.lease.birth',return_value='fixture-birth'):
             opened=image_client.viewer_save_proof(viewer,both)
@@ -127,6 +127,27 @@ class ClientImageTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'full current toolbar changed'):
                 image_client.prove_viewer_save_input(control,viewer,Mock(side_effect=[active,both]),Mock())
             control.click.assert_not_called()
+
+    def test_text_image_translate_control_moves_save_to_the_next_slot(self):
+        from PIL import Image
+        # Real official toolbar captured from two failed exports of images with text.
+        fixture=Path(__file__).resolve().parents[1]/'test-fixtures/toolbars/save-with-translate.png'
+        toolbar=Image.open(fixture).convert('RGB')
+        viewer={'id':'0x4000d0','title':'Photos and Videos','x':12,'y':30,'width':900,'height':600}
+        capture=Image.new('RGB',(1000,700),(10,10,10))
+        capture.paste(toolbar,(12,30))
+        opened=image_client.viewer_save_proof(viewer,capture)
+        self.assertEqual((opened['layout'],opened['point']),('with-qr-translate',[12+560,30+21]))
+        # The loading line and the enabled gallery arrow vary between captures.
+        loading=capture.copy()
+        loading.paste((120,120,120),(12,30+42,12+640,30+44))
+        loading.paste((70,70,70),(12+113,30+16,12+127,30+28))
+        self.assertEqual(image_client.viewer_save_proof(viewer,loading)['point'],[572,51])
+        # Any change inside the Save control itself still blocks input.
+        changed=capture.copy()
+        changed.putpixel((12+560,30+21),(0,0,0))
+        with self.assertRaisesRegex(ValueError,'not a calibrated inactive layout'):
+            image_client.viewer_save_proof(viewer,changed)
 
     def test_save_control_waits_for_the_same_viewer_to_render_a_proven_toolbar(self):
         from unittest.mock import Mock, patch

@@ -283,3 +283,15 @@ operations. Keep the rest of the secretary workbench, the Mac collector, and
 the two separate trigger experiments in `archive/` with their source provenance.
 The retired workbench listener, its private queue and exclusive helpers, and
 the obsolete deployment and ClawBot probe reference copies live in Git history.
+
+## D025 — Retire the archive and keep one evening digest
+
+The owner asked for a whole-project cleanup. The secretary workbench, the Mac
+collector and the two trigger experiments in `archive/` had no runtime caller;
+only the `notebook` and `mac` CLI commands and their checks used them. They
+are removed and remain in Git history and their source repositories. The Linux
+WeChat module keeps its own third-party notice. The daily astronomy digest has
+one implementation, `scripts/astro_news_digest.py`, matching the evening batch
+that actually runs: every item, the configured groups, frozen
+`YYYY-MM-DD-evening` keys. The private scheduler entry only selects its
+config and state directory. The paused morning variant is retired.

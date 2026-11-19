@@ -3,15 +3,13 @@
 The [README](../README.md) describes the current trigger and receiver. This
 page records the first release and the companion operator tools.
 
-The first release brings both source packages into one repository and adds one CLI and installation configuration.
+The first release brought the Linux WeChat module into this repository and added one CLI and installation configuration.
 The complete upstream snapshots were imported first; the next commit adapts seven Linux helper files through `rsi_runtime_env.py`. The inherited queues, message identity, snapshot consistency and native receipts are not replaced.
 
 ## Runtime boundaries
 
-- Notebook: use the existing local server and schema, with a new explicit demo workspace or an existing user-owned workspace.
 - Linux WeChat: one existing official client, one operator display, one original operations queue. Read requests cannot reach send actions through the read entry.
-- Mac collector: source integrity verification is available from the root CLI. Compilation and actual use still require the separately authorized missing dependencies and macOS.
-- ClawBot, host coordination and monitor remain available under the original workbench component. Their binding, credentials, timers and scopes are not synthesized by the new CLI.
+- The notebook, Mac collector, ClawBot and host coordination tools were retired with `archive/`; they remain in Git history and their source repositories.
 
 Linux display and Xauthority are passed as `WECHAT_DISPLAY` and `WECHAT_XAUTHORITY`. Other inherited paths are set through `WECHAT_TOOL_ROOT`, `WECHAT_NATIVE_CODE`, `WECHAT_HOST_SUPPORT_CODE`, `WECHAT_PROFILE`, `WECHAT_ACCOUNT_ID` and the existing OCR variables. The installed GTK/X11/OCR and Python decoder dependencies must be supplied by the operator. The adapter does not extract keys, log into WeChat, send setup messages or silently fall back to a different account.
 

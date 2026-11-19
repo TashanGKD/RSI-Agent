@@ -125,26 +125,11 @@ class AgentTests(unittest.TestCase):
             self.assertEqual(module.display(), ':97')
             self.assertEqual(module.xauthority('/state'), str(Path('/state') / 'Xauthority'))
 
-    def test_demo_cannot_overwrite_a_workspace(self):
-        with tempfile.TemporaryDirectory() as folder, patch('rsi_agent.__main__.subprocess.run') as run:
-            with self.assertRaises(ValueError):
-                cli.main(['notebook', '--workspace', folder, '--demo'])
-            run.assert_not_called()
-
-    def test_invalid_notebook_port_does_not_create_demo_data(self):
-        with tempfile.TemporaryDirectory() as folder, patch('rsi_agent.__main__.subprocess.run') as run:
-            target = Path(folder) / 'new-demo'
-            with self.assertRaises(ValueError):
-                cli.main(['notebook', '--workspace', str(target), '--demo', '--port', '0'])
-            run.assert_not_called()
-            self.assertFalse(target.exists())
-
-    def test_source_lock_contains_both_actual_imports(self):
+    def test_source_lock_points_at_the_relocated_linux_module(self):
         value = json.loads((ROOT / 'SOURCES.lock.json').read_text())
-        self.assertEqual(len(value['sources']), 2)
+        self.assertEqual(len(value['sources']), 1)
         for source in value['sources']:
             self.assertEqual(len(source['commit']), 40)
-            self.assertTrue((ROOT / source['directory'] / 'README.md').is_file())
             for directory in source.get('relocated', {}).values():
                 self.assertTrue((ROOT / directory / 'README.md').is_file())
 

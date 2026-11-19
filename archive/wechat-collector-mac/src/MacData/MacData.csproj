@@ -1,4 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup><TargetFramework>net8.0</TargetFramework><AssemblyName>WechatCollector.MacData</AssemblyName><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings><LangVersion>12.0</LangVersion></PropertyGroup>
-  <ItemGroup><ProjectReference Include="../PortableCore/PortableCore.csproj" /></ItemGroup>
-</Project>

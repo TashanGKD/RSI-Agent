@@ -1,6 +1,0 @@
-{
-  "baseUrl": "https://notes.example.invalid",
-  "deviceToken": "REPLACE_WITH_YOUR_PRIVATE_DEVICE_TOKEN",
-  "workspace": "/absolute/private/workspace",
-  "workerId": "example-worker"
-}

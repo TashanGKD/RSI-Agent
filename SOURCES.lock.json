@@ -4,17 +4,11 @@
     {
       "repository": "TashanGKD/secretary-workbench",
       "commit": "8b845f29e16eb9ac050251d73375aff4c7de31b5",
-      "directory": "archive/secretary-workbench",
       "relocated": {
         "wechat": "components/wechat-linux"
       }
-    },
-    {
-      "repository": "TashanGKD/wechat-collector-mac",
-      "commit": "e0263fabfbf05ff4eece07f0903fc379737300f2",
-      "directory": "archive/wechat-collector-mac"
     }
   ],
-  "import": "tracked source snapshots; original history remains in the source repositories",
+  "import": "the Linux WeChat module was relocated from this snapshot; the rest of the workbench and the Mac collector were retired and remain in Git history and their source repositories",
   "visibility": "private"
 }

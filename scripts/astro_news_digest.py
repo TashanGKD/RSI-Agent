@@ -1,10 +1,9 @@
-"""Publish the public astronomy feed to two privately bound WeChat groups."""
+"""Publish every new public astronomy item to privately bound WeChat groups each evening."""
 import argparse
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 import hashlib
 import json
 from pathlib import Path
-import re
 import shlex
 import subprocess
 import sys
@@ -125,28 +124,30 @@ finally:
 """
 
 
-def cutoff():
-    return datetime.now(BEIJING).replace(hour=10, minute=0, second=0, microsecond=0)
+def window(day):
+    """The evening batch covers items discovered in the 24 hours before 20:30 Beijing time."""
+    end = datetime.combine(day, time(20, 30), tzinfo=BEIJING)
+    return end - timedelta(days=1), end
 
 
-def feed_items(load, end):
+def feed_items(load, start, end):
     params = {"mode": "all", "window": "7d", "by": "timeline", "limit": 50}
-    start = end - timedelta(days=1)
-    seen = set()
+    found, cursors = {}, set()
     for _ in range(20):
         page = load(params.copy())
         for item in page["items"]:
             discovered = datetime.fromisoformat(item["discoveredAt"].replace("Z", "+00:00"))
-            if start <= discovered < end:
-                yield item
-        cursor = page["page"]["nextCursor"]
+            link = item["links"]["original"]
+            if start <= discovered < end and urlsplit(link).scheme in ("https", "http"):
+                found.setdefault(link, (discovered, item))
         if not page["page"]["hasMore"]:
-            return
-        if not cursor or cursor in seen:
-            raise ValueError("Invalid feed pagination")
-        seen.add(cursor)
+            return [item for _, item in sorted(found.values(), key=lambda pair: pair[0])]
+        cursor = page["page"]["nextCursor"]
+        if not cursor or cursor in cursors:
+            break
+        cursors.add(cursor)
         params["cursor"] = cursor
-    raise ValueError("Feed pagination did not complete")
+    raise ValueError("The full feed could not be verified")
 
 
 def fetch(params):
@@ -156,90 +157,103 @@ def fetch(params):
 
 
 def render(items, day):
-    parts, urls, titles = [], set(), set()
+    """One bubble per item, keeping title, source, date, optional lead and link together."""
+    parts, seen = [], set()
     for item in items:
-        url = item["links"]["original"]
         title = " ".join(item["title"].split())
-        title_key = re.sub(r"\W", "", title.casefold())
-        if (urlsplit(url).scheme not in ("https", "http") or not urlsplit(url).hostname
-                or not title_key or url in urls or title_key in titles):
+        if not title or title.casefold() in seen:
             continue
-        if len(parts) >= 4:
-            break
-        source = item["source"]["name"].split(" · ", 1)[0].strip()
-        timestamp = item.get("publishedAt")
-        published = (datetime.fromisoformat(timestamp.replace("Z", "+00:00")).astimezone(BEIJING)
-                     .strftime("%m-%d") if timestamp else "日期未标注")
-        header = f"天文科技早报｜{day}" if not parts else "天文科技早报"
-        body = f"{header}\n{title}\n{source}｜{published}"
+        seen.add(title.casefold())
+        source = item["source"]["name"].split(" · ", 1)[0].split("（", 1)[0].strip()
+        stamp = item.get("publishedAt")
+        published = (datetime.fromisoformat(stamp.replace("Z", "+00:00")).astimezone(BEIJING)
+                     .strftime("%m-%d") if stamp else None)
+        attribution = f"{source}｜{published}" if published else source
+        link = item["links"]["original"]
         summary = " ".join((item.get("summary") or "").split())
-        sentence = re.match(r".+?[。！？](?:[”’」』])?|.+$", summary)
-        if sentence:
-            candidate = f"{body}\n{sentence.group()}\n{url}"
-            if len(split_text(candidate)) == 1:
-                body += "\n" + sentence.group()
-        bubbles = split_text(f"{body}\n{url}")
-        if len(bubbles) != 1:
-            continue
-        urls.add(url)
-        titles.add(title_key)
-        parts.extend(bubbles)
+        full = f"{title}\n{attribution}\n{summary}\n{link}"
+        parts.append(full if summary and len(split_text(full)) == 1 else f"{title}\n{attribution}\n{link}")
+    if parts:
+        parts[0] = f"天文科技晚报｜{day.month} 月 {day.day} 日（{len(parts)} 条）\n\n{parts[0]}"
+    if any(len(part.encode("utf-8")) > 6000 for part in parts):
+        raise ValueError("A source entry exceeds the native text limit")
     return parts
 
 
-def remote(settings, mode, day, parts):
+def remote(settings, mode, key, parts):
     operator = json.loads(Path(settings["operator"]).read_text(encoding="utf-8-sig"))
     ssh, host = operator["ssh"], operator["remote"]
-    data = {"release": settings.get("release", host["current"]), "python_path": host["python_path"],
+    data = {"release": host["current"], "python_path": host["python_path"],
             "installation": host["private_config"], "binding": host["owner_binding"],
             "account": settings["account"], "groups": settings["groups"],
-            "mode": mode, "day": day, "parts": parts}
+            "mode": mode, "day": key, "parts": parts}
     command = ["ssh", "-T", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=yes",
                "-o", "ConnectTimeout=8", "-i", ssh["identity_file"], ssh["user"] + "@" + ssh["host"],
                shlex.join(["runuser", "-u", "wechat-gui", "--", "/usr/bin/python3", "-B", "-c", REMOTE])]
-    result = subprocess.run(command, input=json.dumps(data).encode(), capture_output=True, timeout=175)
+    # Each native send takes about ten seconds; wait for the whole ordered batch.
+    timeout = 60 + 20 * len(parts) * len(settings["groups"])
+    result = subprocess.run(command, input=json.dumps(data).encode(), capture_output=True, timeout=timeout)
     if result.returncode:
         raise OSError("Native group operation did not return a receipt")
     return json.loads(result.stdout)
 
 
+def run(settings, state, mode, day, now):
+    key = f"{day}-evening"
+    if mode == "check":
+        return remote(settings, "check", key, [])
+    draft = state / f"evening-{day}-dispatch.json"
+    if mode == "status" and not draft.exists():
+        return {"state": "not_submitted", "day": day.isoformat()}
+    start, end = window(day)
+    if mode == "run" and now < end:
+        return {"state": "not_due", "day": day.isoformat()}
+    batch = (json.loads(draft.read_bytes()) if draft.exists()
+             else {"day": key, "parts": render(feed_items(fetch, start, end), day)})
+    if batch["day"] != key:
+        raise ValueError("The frozen batch key differs")
+    parts = batch["parts"]
+    if mode == "preview":
+        return {"state": "preview", "day": day.isoformat(), "parts": parts}
+    if mode == "run":
+        save_once(draft, batch)
+    if not parts:
+        return {"state": "no_news", "day": day.isoformat()}
+    current = remote(settings, "status", key, parts)
+    if mode == "run" and any(row["state"] == "not_submitted" for row in current["receipts"]):
+        if all(row["state"] in ("sent", "not_submitted") and not row.get("cleanup_pending")
+               for row in current["receipts"]):
+            remote(settings, "send", key, parts)
+            current = remote(settings, "status", key, parts)
+    names = [group["name"] for group in settings["groups"]]
+    expected = {(name, index) for name in names for index in range(1, len(parts) + 1)}
+    proven = {(row["group"], row["part"]) for row in current["receipts"]
+              if row["state"] == "sent" and not row.get("cleanup_pending")
+              and row.get("text") == parts[row["part"] - 1]}
+    current["state"] = ("sent" if proven == expected and len(current["receipts"]) == len(expected)
+                        else "unsettled")
+    current["day"] = day.isoformat()
+    receipt = state / f"evening-{day}-receipts.json"
+    temporary = receipt.with_suffix(".tmp")
+    temporary.write_text(json.dumps(current, ensure_ascii=False, indent=2), encoding="utf-8")
+    temporary.replace(receipt)
+    return current
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=("check", "preview", "send", "status"))
+    parser.add_argument("mode", choices=("check", "preview", "status", "run"))
     parser.add_argument("config", type=Path)
-    parser.add_argument("--day", help="Read the original receipt for this Beijing date")
+    parser.add_argument("--state", type=Path, help="Directory for frozen drafts and receipts; defaults to the config directory")
+    parser.add_argument("--day", type=date.fromisoformat, help="Beijing date of the batch")
     args = parser.parse_args()
     settings = json.loads(args.config.read_bytes())
-    groups = settings["groups"]
-    if len(groups) != 2 or len({g["peer"] for g in groups}) != 2:
-        parser.error("Two distinct private group bindings required")
-
-    end = cutoff()
-    day = end.date().isoformat()
-    if args.day:
-        if args.mode != "status":
-            parser.error("--day is only available for status")
-        day = datetime.strptime(args.day, "%Y-%m-%d").date().isoformat()
-    path = args.config.parent / ("astro-news-" + day + ".json")
-    if args.mode == "check":
-        result = remote(settings, "check", day, [])
-    elif args.mode == "preview":
-        result = {"state": "preview", "day": day, "parts": render(feed_items(fetch, end), day)}
-    elif args.mode == "send" and datetime.now(BEIJING) < end:
-        result = {"state": "not_due", "day": day}
-    else:
-        if args.mode == "send" and not path.exists():
-            parts = render(feed_items(fetch, end), day)
-            try:
-                save_once(path, {"day": day, "parts": parts})
-            except ValueError:
-                if not path.is_file():
-                    raise
-        parts = json.loads(path.read_bytes())["parts"] if path.exists() else []
-        result = (remote(settings, args.mode, day, parts) if parts
-                  else {"state": "no_news" if path.exists() else "not_submitted", "day": day})
+    if not settings["groups"] or len({group["peer"] for group in settings["groups"]}) != len(settings["groups"]):
+        parser.error("Distinct private group bindings required")
+    now = datetime.now(BEIJING)
+    result = run(settings, args.state or args.config.parent, args.mode, args.day or now.date(), now)
     print(json.dumps(result, ensure_ascii=True))
-    return 0 if result["state"] in ("ready", "preview", "sent", "not_due", "no_news") else 2
+    return 2 if result["state"] == "unsettled" else 0
 
 
 if __name__ == "__main__":

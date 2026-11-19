@@ -314,6 +314,27 @@ class ImageExecutionTests(unittest.TestCase):
    self.assertEqual(scroll.call_count,2)
    self.assertEqual([call.args[1]['server_id'] for call in dispatch.call_args_list],[SID,SID])
 
+ def test_delayed_group_image_is_found_beyond_four_history_steps(self):
+  # Regression: in a busy group the image was eleven messages up, beyond the
+  # old four-step history, and both exports failed without opening a viewer.
+  from unittest.mock import Mock
+  from operations import inbound_image
+  for depth,found in ((7,True),(inbound_image.HISTORY_STEPS+1,False)):
+   with self.subTest(depth=depth):
+    view={'step':0}
+    frame=lambda:(None,'viewport-'+str(view['step']))
+    candidates=lambda image:[[40,60]] if view['step']==depth else []
+    seek=Mock(side_effect=lambda signature:view.__setitem__('step',view['step']+1) or True)
+    export=Mock(return_value={'state':'exported'})
+    if found:
+     self.assertEqual(inbound_image.capture(frame,candidates,export,Mock(),Mock(),seek),{'state':'exported'})
+     export.assert_called_once_with([40,60],'viewport-7')
+    else:
+     with self.assertRaises(inbound_image.UnresolvedImage):
+      inbound_image.capture(frame,candidates,export,Mock(),Mock(),seek)
+     export.assert_not_called()
+    self.assertEqual(seek.call_count,min(depth,inbound_image.HISTORY_STEPS))
+
  def test_non_image_candidate_continues_only_after_original_scene_is_restored(self):
   import types
   from unittest.mock import Mock,patch

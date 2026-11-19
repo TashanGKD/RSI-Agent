@@ -1,8 +1,7 @@
 # Source and distribution boundaries
 
-RSI Agent combines the two private source snapshots listed in `SOURCES.lock.json` at the user's request.
-The original notices, third-party licenses, attribution and omitted-file lists are retained inside each component.
+The Linux WeChat module in `components/wechat-linux` was relocated from the private source snapshot listed in `SOURCES.lock.json`.
 
-No new open-source license is granted over either imported component. This integration does not supply or relicense the omitted PortableCore, OriginalDesktop, UI resources, proprietary clients, account credentials, source messages, models or auxiliary binaries.
+No open-source license is granted over the repository as a whole. Owned parts were delivered under the internal collaboration authorization and do not grant public redistribution or commercial use. Third-party files keep their original licenses: the WCDB key-capture adaptation is covered by [its notice](components/wechat-linux/reference/NOTICE.md) and MIT license. This integration does not supply or relicense proprietary clients, account credentials, source messages, models or auxiliary binaries.
 
-See [the workbench notice](archive/secretary-workbench/NOTICE.md), its [licenses](archive/secretary-workbench/licenses/), and [the Mac collector notices](archive/wechat-collector-mac/THIRD_PARTY.md). The workbench notice also covers the relocated Linux WeChat source.
+The retired secretary workbench, Mac collector and trigger experiments, with their own notices and licenses, remain in Git history before the cleanup that removed `archive/`.
