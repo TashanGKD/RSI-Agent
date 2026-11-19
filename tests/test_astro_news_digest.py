@@ -1,38 +1,46 @@
-"""Regression coverage for the daily public-feed boundary and message format."""
-from datetime import datetime
+"""Regression coverage for the evening public-feed window and message format."""
+from datetime import date, datetime
 import unittest
 
-from scripts.astro_news_digest import BEIJING, feed_items, render
+from scripts.astro_news_digest import BEIJING, feed_items, render, window
 
 
 class AstronomyDigestTests(unittest.TestCase):
-    def test_uses_daily_cutoff_and_follows_cursor(self):
+    def test_reads_the_full_evening_window_and_follows_cursor(self):
         calls = []
+
+        def item(stamp, link):
+            return {"discoveredAt": stamp, "links": {"original": link}}
 
         def fetch(params):
             calls.append(params)
-            return ({"items": [{"discoveredAt": "2026-11-13T02:00:00Z"},
-                               {"discoveredAt": "2026-11-12T01:59:59Z"}],
+            return ({"items": [item("2026-11-19T12:30:00Z", "https://example.org/late"),
+                               item("2026-11-18T12:29:59Z", "https://example.org/early")],
                      "page": {"hasMore": True, "nextCursor": "next"}} if len(calls) == 1
-                    else {"items": [{"discoveredAt": "2026-11-12T02:00:00Z"}],
+                    else {"items": [item("2026-11-18T12:30:00Z", "https://example.org/first"),
+                                    item("2026-11-19T01:00:00Z", "https://example.org/first")],
                           "page": {"hasMore": False, "nextCursor": None}})
 
-        end = datetime(2026, 11, 13, 10, tzinfo=BEIJING)
-        self.assertEqual(list(feed_items(fetch, end)), [{"discoveredAt": "2026-11-12T02:00:00Z"}])
+        start, end = window(date(2026, 11, 19))
+        self.assertEqual(end, datetime(2026, 11, 19, 20, 30, tzinfo=BEIJING))
+        self.assertEqual([row["links"]["original"] for row in feed_items(fetch, start, end)],
+                         ["https://example.org/first"])
         self.assertEqual(calls[1]["cursor"], "next")
 
-    def test_keeps_link_with_summary_and_skips_duplicate_titles(self):
-        item = {"title": "新望远镜", "source": {"name": "机构 · 新闻"},
-                "summary": "已经开始观测。第二句。",
+    def test_keeps_every_item_with_its_link_and_skips_duplicate_titles(self):
+        item = {"title": "新望远镜", "source": {"name": "机构 · 新闻（转载）"},
+                "summary": "已经开始观测。", "publishedAt": "2026-11-19T02:00:00Z",
                 "links": {"original": "https://example.org/observatory"}}
         repeat = dict(item, links={"original": "https://example.org/reprint"})
+        bare = {"title": "另一条", "source": {"name": "期刊"}, "summary": "",
+                "links": {"original": "https://example.org/paper"}}
 
-        parts = render([item, repeat], "2026-11-13")
+        parts = render([item, repeat, bare], date(2026, 11, 19))
 
-        self.assertEqual(len(parts), 1)
-        self.assertIn("机构｜日期未标注\n已经开始观测。", parts[0])
-        self.assertTrue(parts[0].endswith(item["links"]["original"]))
-        self.assertNotIn("第二句", parts[0])
+        self.assertEqual(parts, [
+            "天文科技晚报｜11 月 19 日（2 条）\n\n新望远镜\n机构｜11-19\n已经开始观测。\nhttps://example.org/observatory",
+            "另一条\n期刊\nhttps://example.org/paper",
+        ])
 
 
 if __name__ == "__main__":

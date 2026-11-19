@@ -291,15 +291,19 @@ native visible-input/completion/send acceptance.
 
 ### Scheduled public astronomy news
 
-`scripts/astro_news_digest.py` reads the public platform feed for the 24 hours
-ending at 10:00 Beijing time. It keeps each title, source, publication date
-and original link together and includes a short source summary when it fits.
-Only the configured, native-verified groups can receive it. Keep the account,
-group identities and operator settings outside Git. Use `check` to verify both
-native bindings and `preview` to verify feed output without posting.
+`scripts/astro_news_digest.py` sends the evening digest. It reads every public
+platform item discovered in the 24 hours before 20:30 Beijing time, removes
+duplicate titles and links, and sends one bubble per item with its title,
+source, publication date and original link. A source lead is included when the
+whole item still fits one bubble. Only the configured, native-verified groups
+receive it. Keep the account, group identities and operator settings outside
+Git. `check` verifies the native bindings and `preview` shows the batch
+without posting.
 
-The daily scheduler calls `send` with the private configuration. The sender
-freezes the date's text in that private directory and verifies each native
-receipt in order. `status --day YYYY-MM-DD` reads the original receipts.
-If a result is uncertain, keep the same date, recipient and V2 request ID.
-Disabling the scheduler pauses future batches while preserving existing receipts.
+The daily scheduler calls `run` with the private configuration and state
+directory. The first run freezes `evening-YYYY-MM-DD-dispatch.json`; later
+runs reuse it, submit only parts that are still `not_submitted` and verify
+every native receipt against the frozen text. `status --day YYYY-MM-DD`
+reads the original receipts. The remote wait scales with the batch size, so a
+long batch finishes before the local call returns. If a result is uncertain,
+keep the same date, recipient and V2 request ID.
