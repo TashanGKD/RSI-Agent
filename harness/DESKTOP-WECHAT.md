@@ -4,9 +4,12 @@ The private receiver config sets desktop_thread_id and desktop_all_requests=true
 With only that target, all admitted requests share one visible Codex conversation.
 To split replies, set desktop_other_thread_id to a distinct visible conversation
 and desktop_owner_scope to the exact [native account, confirmed owner peer] from
-the owner binding. New owner private chats and authenticated private engineering
-use desktop_thread_id. Friend and group chat, including authenticated engineering
-originating in a group, use desktop_other_thread_id. The optional private
+the owner binding. New owner private chats use desktop_thread_id. Friend and
+group chat use desktop_other_thread_id. Set desktop_engineering_thread_id to the
+maintenance conversation to send every authenticated engineering task there,
+whether it came from the owner's private chat or from a group. Without it, owner
+engineering uses desktop_thread_id and group engineering uses
+desktop_other_thread_id. The optional private
 desktop_formal_group_scope selects one admitted group by [native account, native
 group ID] for formal work-group guidance on its new chat handoffs. They keep
 their original group identity, use only their authenticated group packet, and
@@ -14,6 +17,13 @@ retain ordinary chat permissions.
 Maintenance has its own thread. Each job keeps its original target and transfers
 once. Before returning to a single-target receiver, settle every original bound
 to the other target. The running receiver and native receipts prove activation.
+
+Reply conversations answer WeChat originals only. A long turn there delays every
+queued WeChat input behind it, and group inputs expire after 15 minutes. When the
+user types development, deployment, investigation or other long work directly
+into a reply conversation, hand it to the maintenance conversation with one
+coordination message (standing user instruction, 2026-11-20). Then reply in one
+sentence saying where the work went, and end the turn.
 
 ## Authenticate the original
 

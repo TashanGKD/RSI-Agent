@@ -576,6 +576,10 @@ def notify_desktop(config, jobs, row):
     if (other_target and (request['scope'][1].endswith('@chatroom')
             or request['mode'] == 'chat' and request['scope'] != config['desktop_owner_scope'])):
         target = other_target
+    if request['mode'] == 'engineering' and config.get('desktop_engineering_thread_id'):
+        # Long engineering work runs in the maintenance conversation so the
+        # reply conversations stay free for WeChat chat.
+        target = config['desktop_engineering_thread_id']
     if (not re.fullmatch('[a-f0-9-]{36}', target)
             or request['mode'] == 'chat' and config.get('desktop_all_requests') is not True):
         raise ValueError('Original request and enabled fixed desktop route required.')
@@ -732,7 +736,8 @@ class CodexExecutable:
 def server(config, jobs, draining, executable=None):
     if executable is None:
         executable = CodexExecutable(config['codex'])
-    targets = (config.get('desktop_thread_id'), config.get('desktop_other_thread_id'))
+    targets = (config.get('desktop_thread_id'), config.get('desktop_other_thread_id'),
+               config.get('desktop_engineering_thread_id'))
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *_):
@@ -769,6 +774,7 @@ def server(config, jobs, draining, executable=None):
                 'counts': jobs.counts(), 'pid': os.getpid(), 'source_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                 'desktop_thread_id': config.get('desktop_thread_id'),
                 'desktop_other_thread_id': config.get('desktop_other_thread_id'),
+                'desktop_engineering_thread_id': config.get('desktop_engineering_thread_id'),
                 'desktop_formal_group_enabled': config.get('desktop_formal_group_scope') is not None,
                 'desktop_all_requests': config.get('desktop_all_requests') is True})
 
@@ -842,6 +848,11 @@ def main():
             or formal_scope[0] != owner_scope[0] or not isinstance(formal_scope[1], str)
             or not re.fullmatch(r'[^@\s\x00]{1,128}@chatroom', formal_scope[1])):
         raise ValueError('The formal group requires an exact native group scope for the split account.')
+    engineering_target = config.get('desktop_engineering_thread_id')
+    if engineering_target is not None and (
+            not isinstance(engineering_target, str) or not re.fullmatch('[a-f0-9-]{36}', engineering_target)
+            or engineering_target in (config.get('desktop_thread_id'), other_target)):
+        raise ValueError('Engineering work requires its own desktop conversation.')
     state = Path(config['state']);state.mkdir(mode=0o700, parents=True, exist_ok=True)
     with singleton(state / 'worker.lock'):
         jobs = Jobs(state);jobs.review_interrupted();draining = threading.Event()
