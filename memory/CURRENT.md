@@ -126,6 +126,10 @@ replies already waiting for native delivery keep their existing lifecycle.
 Recycled batches with a frozen Codex request now record `not_sent` with
 `GROUP_INPUT_EXPIRED` for that original desktop turn. Previously a late result
 could remain pending even though the trigger never admitted a native send.
+The receiver also closes a stale group `desktop_queued` job that has no desktop
+turn and whose frozen native input is older than the same 15-minute window,
+recording the bounded `GROUP_INPUT_EXPIRED` receipt instead of leaving it
+pending across restarts.
 An expired photo can leave an untouched native export in the shared queue.
 Cancel that exact carrier when recycling the source. A rejected image probe
 can restore a newly mapped official auxiliary window when its process and the
