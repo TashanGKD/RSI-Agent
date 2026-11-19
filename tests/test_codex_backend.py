@@ -24,6 +24,7 @@ def packet():
 THREAD = '00000000-0000-4000-8000-000000000001'
 MESSAGE = '00000000-0000-4000-8000-000000000002'
 OTHER_THREAD = '00000000-0000-4000-8000-000000000003'
+ENGINEERING_THREAD = '00000000-0000-4000-8000-000000000004'
 
 
 def queued():
@@ -458,6 +459,10 @@ class DesktopRelayTests(unittest.TestCase):
                 ('1', ['other-account', 'formal@chatroom'], 'chat', OTHER_THREAD),
                 ('2', ['self', 'owner'], 'engineering', THREAD),
                 ('3', ['self', 'formal@chatroom'], 'engineering', OTHER_THREAD),
+                ('4', ['self', 'owner'], 'engineering', ENGINEERING_THREAD),
+                ('5', ['self', 'group@chatroom'], 'engineering', ENGINEERING_THREAD),
+                ('6', ['self', 'owner'], 'chat', THREAD),
+                ('7', ['self', 'group@chatroom'], 'chat', OTHER_THREAD),
             ]
             originals = {}
             with patch('receiver.codex_worker.subprocess.run', side_effect=queue_reply) as cli:
@@ -466,6 +471,8 @@ class DesktopRelayTests(unittest.TestCase):
                         config.update(desktop_other_thread_id=OTHER_THREAD,
                                       desktop_owner_scope=['self', 'owner'],
                                       desktop_formal_group_scope=['self', 'formal@chatroom'])
+                    if key == '4':
+                        config.update(desktop_engineering_thread_id=ENGINEERING_THREAD)
                     request = dict(packet(), id=key * 64, scope=scope, mode=mode)
                     if mode == 'chat' and scope[1].endswith('@chatroom'):
                         request['messages'][-1]['content'] = json.dumps({'group': 'Same group title', 'new_messages': []})
