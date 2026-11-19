@@ -6,6 +6,11 @@ import time
 from image_client import ImageFilenameMismatch, ImageSceneChanged
 
 
+# A busy group can push a delayed image many messages up. Each step scrolls
+# less than one pane, so consecutive viewports overlap.
+HISTORY_STEPS = 12
+
+
 class UnresolvedImage(ValueError):
     def __init__(self, code, message):
         super().__init__(message)
@@ -16,7 +21,8 @@ def capture(frame, candidates, export, recover, verify_windows, seek_older=None)
     """A pixel change invalidates coordinates, not the native source ID."""
     attempted = set()
     attempt_budget = 9 if seek_older else 3
-    for pass_index in range(5):
+    retries = scrolls = 0
+    while retries < 5:
         verify_windows()
         image, signature = frame()
         points = candidates(image)
@@ -44,10 +50,12 @@ def capture(frame, candidates, export, recover, verify_windows, seek_older=None)
                 return result
         else:
             if frame()[1] == signature:
-                if pass_index < 4 and seek_older and seek_older(signature):
+                if scrolls < HISTORY_STEPS and seek_older and seek_older(signature):
+                    scrolls += 1
                     continue
                 if points or attempted:
                     raise UnresolvedImage('IMAGE_SOURCE_MISMATCH', 'No visible candidate matched this image.')
+        retries += 1
         time.sleep(0.12)
     raise UnresolvedImage('IMAGE_CONTEXT_CHANGED', 'No stable image location within the read budget.')
 
