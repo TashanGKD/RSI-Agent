@@ -349,6 +349,29 @@ class ReplyNativeTests(unittest.TestCase):
         self.assertEqual(self.api.s.by_id(foreign['id']), before)
         self.assertEqual(self.driver.prepares, 0)
 
+    def test_failed_image_read_is_settled_before_the_next_reply(self):
+        image = self.api.s.submit({'client': 'rsi-vision', 'request_id': 'image', 'peer': 'fixture_owner',
+            'action': 'save_attachment', 'payload': {'source_id': '9', 'source_mode': 'inbound', 'representation': 'visible'}})
+        failure = {'reason': 'precondition_changed', 'detail': 'Official windows differ.', 'sideEffectStarted': False}
+        self.api.s.set_state(image['id'], 'needs_attention', failure)
+        self.call('submit', server_id='1', text='收到')
+        self.assertEqual(self.call('advance', server_id='1')['outcome'], 'sent')
+        settled = self.api.s.by_id(image['id'])
+        self.assertEqual(settled['state'], 'failed')
+        self.assertEqual((settled['result']['code'], settled['result']['originalFailure']), ('IMAGE_EXPORT_NOT_PROVEN', failure))
+        self.assertEqual(self.driver.cleaned, [image['id']])
+        self.assertEqual(len(self.driver.sent), 1)
+
+    def test_unsettled_image_read_still_holds_the_queue_without_sending(self):
+        image = self.api.s.submit({'client': 'rsi-vision', 'request_id': 'image', 'peer': 'fixture_owner',
+            'action': 'save_attachment', 'payload': {'source_id': '9', 'source_mode': 'inbound', 'representation': 'visible'}})
+        self.api.s.set_state(image['id'], 'needs_attention', {'reason': 'execution_result_unknown'})
+        self.driver.unknown = True
+        self.call('submit', server_id='1', text='收到')
+        self.assertEqual(self.call('advance', server_id='1')['state'], 'busy')
+        self.assertEqual(self.api.s.by_id(image['id'])['state'], 'needs_attention')
+        self.assertEqual(self.driver.sent, [])
+
     def test_interrupted_execution_preserves_id_without_execution(self):
         self.call('submit', server_id='1', text='收到')
         rid = request_id('fixture_account', 'fixture_owner', '1')

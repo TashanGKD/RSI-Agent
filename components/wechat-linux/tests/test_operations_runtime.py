@@ -65,3 +65,25 @@ class ExecutionTests(unittest.TestCase):
   self.e.step();self.assertEqual(self.s.get('test','image')['state'],'unknown');self.e.step();self.assertEqual(len(self.d.sent),1)
  def test_post_send_restore_failure_does_not_hide_native_acceptance(self):
   self.submit();self.e.step();self.confirm();self.d.finalize=lambda j,p:(_ for _ in ()).throw(OSError('restore unavailable'));self.e.step();j=self.s.get('test','a');self.assertEqual(j['state'],'succeeded');self.assertEqual(len(self.d.sent),1);self.e.step();self.assertEqual(len(self.d.sent),1)
+ def stuck_image(self,result):
+  j=self.s.submit({'client':'test','request_id':'image','action':'save_attachment','peer':'wxid_fixture_1987fcaa9f','payload':{'source_id':'42'}})
+  self.s.set_state(j['id'],'needs_attention',result);return j
+ def test_stuck_image_export_settles_after_cleanup_and_releases_the_next_reply(self):
+  from unittest.mock import patch
+  image=self.stuck_image({'reason':'precondition_changed','detail':'Official windows differ from the original image operation.','sideEffectStarted':False})
+  self.submit('b');answers=iter([False,True])
+  self.d.cleanup=lambda j:next(answers)
+  with patch('operations.runtime.time.monotonic',side_effect=[100,101,106]):
+   self.assertEqual(self.e.step()['state'],'needs_attention')
+   self.assertEqual(self.e.step()['state'],'needs_attention')
+   self.assertEqual(self.e.step()['state'],'failed')
+  j=self.s.get('test','image');self.assertEqual(j['result']['code'],'IMAGE_EXPORT_NOT_PROVEN')
+  self.assertTrue(j['result']['noSend']);self.assertEqual(j['result']['originalFailure']['detail'],'Official windows differ from the original image operation.')
+  self.e.step();self.assertEqual(self.s.get('test','b')['state'],'awaiting_confirmation');self.assertEqual(self.d.sent,[])
+ def test_stuck_image_with_export_receipt_or_other_failure_is_not_settled(self):
+  for result,receipt in (({'reason':'precondition_changed','sideEffectStarted':False},True),({'reason':'execution_result_unknown'},False),({'reason':'precondition_changed'},False)):
+   with self.subTest(result=result,receipt=receipt):
+    self.tearDown();self.setUp();image=self.stuck_image(result)
+    if receipt:(self.s.root/(image['id']+'-export.json')).write_text('{}')
+    self.d.verify=lambda j:{'state':'unknown'}
+    self.assertEqual(self.e.step()['state'],'needs_attention');self.assertEqual(self.d.cleaned,[])

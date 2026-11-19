@@ -287,6 +287,46 @@ def restore_auxiliary_window(driver,j,require_guard,before_probe):
   finally:control.close()
  except (OSError,ValueError,IndexError,subprocess.SubprocessError):return False
 
+def dismiss_owned_viewer(driver,j):
+ """Close one official image viewer left open by this failed export.
+
+ The viewer must be the only new window, belong to the same WeChat process
+ that owned the original navigation, and have no Save dialog. One Escape is
+ sent; success requires the window set to return to its pre-export state.
+ """
+ from image_client import Controls
+ from . import navigation
+ from .lease import birth
+ from .windows import window_identity
+ preview=j.get('preview') or {}
+ expected=preview.get('imageWindows')
+ if not preview.get('imageRecipe') or preview.get('verifiedImageSourceRecipe') or not expected:return False
+ control=None
+ try:
+  nav=navigation.load(driver.root,j)
+  if not nav or not image_navigation_matches(nav,expected):return False
+  windows=driver.app_windows()
+  added=[w for w in windows if w not in expected]
+  if len(added)!=1 or any(w not in windows for w in expected):return False
+  viewer=added[0];host=nav['mainIdentity']
+  if viewer['title']!='Photos and Videos':return False
+  identity=window_identity(viewer)
+  if (identity.get('class')!=['wechat','wechat'] or identity.get('transientFor') is not None
+      or any(identity.get(k)!=host.get(k) for k in ('class','pid','leader'))
+      or birth(host['pid'])!=nav['processBirth']):return False
+  control=Controls(driver.root.parent)
+  if control.one('Save',True) or control.one('Photos and Videos')!=viewer:return False
+  control.focus(viewer);control.require_focus(viewer)
+  if driver.app_windows()!=windows or window_identity(viewer)!=identity:return False
+  control.key(0xff1b)
+  for _ in range(10):
+   control.wait(150)
+   if viewer['id'] not in {w['id'] for w in driver.app_windows()}:break
+  return driver.app_windows()==expected
+ except (OSError,ValueError,KeyError,IndexError,subprocess.SubprocessError):return False
+ finally:
+  if control is not None:control.close()
+
 def export_error(driver,j,error):
  stage=getattr(error,'image_export_stage',None)
  reason='Official image export did not prove the expected source.'
