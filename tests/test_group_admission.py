@@ -205,6 +205,24 @@ class AdmissionTests(unittest.TestCase):
         self.assertEqual(first.db.execute('SELECT id,reply,state FROM inbox').fetchone()[:],
                          ('original', 'already generated reply', 'pending'))
 
+    def test_auto_group_uses_binding_scope_as_expiry_cutoff(self):
+        state = self.root / 'worker-auto'
+        state.mkdir(mode=0o700)
+        config = {'state': str(state), 'model': 'fixture', 'name': 'auto'}
+        workers = {}
+        def cleanup():
+            for _, loop, fd in workers.values():
+                loop.close()
+                os.close(fd)
+        self.addCleanup(cleanup)
+        with patch('trigger.group_reply.GroupTransport', return_value=Mock(return_value={
+                'account': 'self', 'peer': 'auto@chatroom', 'name': 'auto',
+                'scope': {'mode': 'invited-group-text', 'since': 123, 'introduction': False},
+                'enabled': True})), \
+             patch('trigger.backend.load_model', return_value=Mock(backend='fixture')):
+            sync_groups(workers, [config])
+        self.assertEqual(workers[str(state)][1].recycle_since, 123)
+
     def test_running_worker_loads_second_group_without_restart(self):
         configs = []
         for name in ('a', 'b'):
