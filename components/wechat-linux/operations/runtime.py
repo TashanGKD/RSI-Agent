@@ -4,7 +4,23 @@ from pathlib import Path
 class BeforeEffect(ValueError):pass
 class Busy(Exception):pass
 class Executor:
- def __init__(self,store,driver):self.s=store;self.d=driver;self.expired_cleanup_retried=set();self.accepted_cleanup_attempts={}
+ def __init__(self,store,driver):self.s=store;self.d=driver;self.expired_cleanup_retried=set();self.accepted_cleanup_attempts={};self.image_cleanup_attempts={}
+ def recover_image_attention(self,j):
+  # A failed image export sends nothing. Retry only the original cleanup so a
+  # leftover viewer cannot hold every later reply behind needs_attention.
+  failure=j.get('result') or {};root=getattr(self.s,'root',None)
+  if (j['action']!='save_attachment' or failure.get('reason')!='precondition_changed'
+      or failure.get('sideEffectStarted') is not False or root is None
+      or (root/(j['id']+'-export.json')).exists()):return None
+  now=time.monotonic()
+  if now-self.image_cleanup_attempts.get(j['id'],-float('inf'))<5:return None
+  self.image_cleanup_attempts[j['id']]=now
+  try:clean=self.d.cleanup(j)
+  except Exception:clean=False
+  if not clean:return None
+  proof=dict(failure,code='IMAGE_EXPORT_NOT_PROVEN',noSend=True,messagesSent=0,contentReady=False,navigationRestored=True,navigationRecoveryPending=False,postActionPending=False,automaticReplay=False,originalFailure=failure,cleanup='executor-retried-original-cleanup')
+  actual=self.s.set_state(j['id'],'failed',proof,expected=(j['state'],j['updated']))
+  self.d.release();return {'state':actual['state'],'job':j['id']}
  def recover_expired_preview(self,j):
   p=j.get('preview') or {};expires=j.get('expires');root=getattr(self.s,'root',None)
   if j['state']!='needs_attention' or j['action'] not in ('send_text','send_image','send_file') or (j.get('result') or {}).get('reason')!='owned_draft_cleanup_not_proven' or not p or expires is None or expires<=0 or expires>time.time() or j['id'] in self.expired_cleanup_retried:return None
@@ -93,6 +109,8 @@ class Executor:
     p=j.get('preview') or {}
     if state=='needs_attention':
      recovered=self.recover_expired_preview(j)
+     if recovered:return recovered
+     recovered=self.recover_image_attention(j)
      if recovered:return recovered
     if state=='needs_attention' and (j.get('result') or {}).get('reason')=='preparation_failed' and not self.s.c.execute("SELECT 1 FROM events WHERE job_id=? AND state IN ('confirmed','executing')",(j['id'],)).fetchone() and hasattr(self.d,'settle_preparation_failure') and self.d.settle_preparation_failure(j):
      self.s.set_state(j['id'],'failed',{'code':'NAVIGATION_PREPARATION_FAILED','reason':'Original pre-input navigation failed and owned baseline cleanup is verified.','sideEffectStarted':False,'noSend':True,'navigationRestored':True,'automaticReplay':False});self.d.release();return {'state':'failed','job':j['id']}

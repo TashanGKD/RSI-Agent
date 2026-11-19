@@ -178,6 +178,13 @@ def advance(api, job, policy):
     from operations.dispatch import choose
     store = api.s
 
+    blocker = store.active()
+    if (blocker and blocker['id'] != job['id'] and blocker['client'] == 'rsi-vision'
+            and blocker['action'] == 'save_attachment' and blocker['state'] == 'needs_attention'):
+        # A failed image read sends nothing. Its media request may never return,
+        # so let the same original executor settle it before this reply waits.
+        advance(api, blocker, policy)
+
     class ScopedStore:
         def __getattr__(self, name):
             return getattr(store, name)

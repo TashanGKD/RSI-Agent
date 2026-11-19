@@ -673,6 +673,9 @@ class NativeDriver:
   if j['action']=='forward':
    from .forwarding import finish
    return finish(self,j)
+  if j['action']=='save_attachment' and (j.get('preview') or {}).get('imageRecipe'):
+   from .images import dismiss_owned_viewer
+   dismiss_owned_viewer(self,j)
   if navigation.load(self.root,j) and not composer.path(self.root,j).exists():return navigation.finish(self,j)
   if j['action'] in navigation.BASIC and not composer.path(self.root,j).exists() and not j.get('preview'):return True
   safe=self._cleanup_original(j)

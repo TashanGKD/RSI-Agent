@@ -178,6 +178,27 @@ class ImageExecutionTests(unittest.TestCase):
      if allowed:controls.return_value.set_mapped.assert_called_once_with(aux,False)
      else:controls.assert_not_called()
 
+ def test_failed_export_dismisses_only_its_own_official_viewer(self):
+  from unittest.mock import Mock,patch
+  main={'id':'0x100','title':'Weixin'};viewer={'id':'0x300','title':'Photos and Videos'}
+  host={'class':['wechat','wechat'],'pid':123,'leader':'0x100','transientFor':None}
+  nav={'state':'started','main':main,'mainIdentity':host,'processBirth':'host-start','beforeWindows':[main]}
+  job={'id':'a'*32,'preview':{'imageRecipe':True,'imageWindows':[main]}}
+  cases=(('own',dict(host),None,True),('foreign',dict(host,pid=999),None,False),
+         ('dialog',dict(host),{'id':'0x400','title':'Save'},False),('transient',dict(host,transientFor='0x100'),None,False))
+  for name,identity,dialog,allowed in cases:
+   with self.subTest(name=name):
+    driver=Mock(root=Path('/fixture/operations-state'))
+    driver.app_windows.side_effect=[[main,viewer],[main,viewer],[main],[main]]
+    controls=Mock();controls.one.side_effect=lambda title,optional=False:dialog if title=='Save' else viewer
+    with (patch('operations.navigation.load',return_value=nav),
+          patch('operations.windows.window_identity',side_effect=lambda w:host if w==main else identity),
+          patch('operations.lease.birth',return_value='host-start'),
+          patch('image_client.Controls',return_value=controls)):
+     self.assertEqual(images.dismiss_owned_viewer(driver,job),allowed)
+    if allowed:controls.key.assert_called_once_with(0xff1b)
+    else:controls.key.assert_not_called()
+
  def fixture(self,td):
   import types
   from unittest.mock import Mock
