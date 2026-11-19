@@ -84,6 +84,5 @@ Linux 安装配置示例见 [examples/linux.json](examples/linux.json)，默认�
 ## 配套目录
 
 - [components/wechat-linux/](components/wechat-linux/) 是触发器依赖的 Linux 微信模块，提供原生消息读取、附件校验和 V2 回传。
-- [archive/](archive/) 保存 Mac 微信采集器、秘书工作台的记事本与配套源码、本机 Codex 和 Dot MCP 实验。
 - [rsi_agent/](rsi_agent/) 提供统一命令、配置、诊断和旧启动入口。[deploy/](deploy/) 放服务模板，[scripts/](scripts/) 和 [tests/](tests/) 放验证脚本和回归测试。
 - [harness/](harness/) 放协议与接入说明。[memory/](memory/) 放项目决策与待办。[docs/](docs/) 放集成和验收记录。

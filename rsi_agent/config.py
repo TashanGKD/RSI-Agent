@@ -4,8 +4,6 @@ import re
 
 ROOT = Path(__file__).resolve().parents[1]
 WECHAT_LINUX = ROOT / 'components/wechat-linux'
-WORKBENCH = ROOT / 'archive/secretary-workbench'
-MAC = ROOT / 'archive/wechat-collector-mac'
 DEFAULT = {
     'version': 1,
     'wechat': {

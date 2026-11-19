@@ -38,7 +38,5 @@ jobs:
           echo '::error::No Ubuntu mirror provided the signed Noble index and all required packages.'
           exit 1
       - run: python -B scripts/check.py --linux
-      - name: Check isolated trigger experiments without model calls
-        run: python -B -m unittest discover -s archive/experiments/triggers/dot_mcp -p 'test_*.py' -v
       - name: Rehearse cancellation in an isolated Qt and Openbox desktop
         run: /usr/bin/python3 -B scripts/rehearse_composer_cleanup.py --execute

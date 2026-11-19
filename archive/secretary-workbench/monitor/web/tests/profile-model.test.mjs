@@ -1,5 +1,0 @@
-import test from 'node:test';import assert from 'node:assert/strict';import {bandOf,relationsFor,isProfileMode,LIFECYCLE_LABEL} from '../src/profiles/model.ts';
-const r=(kind,types)=>({id:'r',label:'实体',kind,types,scope:'原范围',evidence:[]});
-test('layered relationships distinguish actors, channels, sources and executors',()=>{assert.equal(bandOf(r('person',['serves'])),'services');assert.equal(bandOf(r('channel',['reads','communicates','delivers'])),'channels');assert.equal(bandOf(r('source',['reads'])),'sources');assert.equal(bandOf(r('collaborator',['collaborates'])),'collaboration')});
-test('readable docs do not imply a service actor and a delivery library is not input by default',()=>{assert.equal(bandOf(r('source',['reads'])),'sources');assert.equal(bandOf(r('source',['delivers'])),'collaboration');assert.deepEqual(relationsFor(undefined,'sources'),[])});
-test('employee attributes are separate from work views and unknown lifecycle is visible',()=>{assert.equal(isProfileMode('relations'),true);assert.equal(isProfileMode('gantt'),false);assert.match(LIFECYCLE_LABEL.unknown,/未单列/)});

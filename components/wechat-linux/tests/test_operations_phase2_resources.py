@@ -1,5 +1,5 @@
 """Isolated positive work cases; no WeChat/UI/network traffic."""
-import base64,hashlib,importlib.util,io,json,os,tempfile,types,unittest
+import hashlib,io,json,tempfile,types,unittest
 from pathlib import Path
 from unittest.mock import patch
 from PIL import Image
@@ -10,7 +10,6 @@ from operations.fast import final_scene
 from operations.image_draft import pixel_identity
 from operations.audit import attempt_evidence
 
-HERE=Path(__file__).resolve().parent
 class ResourceAndReuseTests(unittest.TestCase):
  def asset(self,root,name='source.bin',data=b'actual frozen file'):
   return Assets(root).put('original-uploader',name,data,hashlib.sha256(data).hexdigest())
@@ -80,26 +79,6 @@ class ResourceAndReuseTests(unittest.TestCase):
   try:r=validate_job(j)
   except ValueError as e:self.fail('Author text rejected by fixed byte quota: '+str(e))
   self.assertEqual(r['payload']['text'],text)
- def mac(self):
-  s=importlib.util.spec_from_file_location('mac_wrapper',HERE.parents[2]/'archive/secretary-workbench/host/tools/wechat_operations.py');m=importlib.util.module_from_spec(s);s.loader.exec_module(m);return m
- def test_mac_upload_accepts_actual_relative_symlink_and_long_name(self):
-  m=self.mac()
-  with tempfile.TemporaryDirectory() as td:
-   root=Path(td).resolve();real=root/'actual.bin';real.write_bytes(b'actual original');link=root/('n'*200+'.bin');link.symlink_to(real);old=os.getcwd();os.chdir(root)
-   try:
-    def call(r):return {'client':r['client'],'name':r['name'],'bytes':len(base64.b64decode(r['data'])),'sha256':r['sha256']}
-    with patch.object(m,'call',side_effect=call):
-     try:a=m.upload_file('author',link.name)
-     except Exception as e:self.fail('Actual authorized Mac path/filename blocked: '+str(e))
-    self.assertEqual(a['name'],link.name);self.assertEqual(a['bytes'],15)
-   finally:os.chdir(old)
- def test_mac_output_over_10MB_has_only_actual_checksum_and_path_conditions(self):
-  m=self.mac();data=b'x'*10000001;r={'data':base64.b64encode(data).decode(),'sha256':hashlib.sha256(data).hexdigest()}
-  with tempfile.TemporaryDirectory() as td:
-   out=Path(td).resolve()/'result.bin'
-   try:m.save_output(r,str(out))
-   except Exception as e:self.fail('Actual output blocked by 10MB cap: '+str(e))
-   self.assertEqual(hashlib.sha256(out.read_bytes()).hexdigest(),r['sha256'])
  def test_wrong_asset_bytes_still_report_actual_original_identity_change(self):
   with tempfile.TemporaryDirectory() as td:
    root=Path(td).resolve();a=self.asset(root);Path(a['path']).write_bytes(b'different bytes')

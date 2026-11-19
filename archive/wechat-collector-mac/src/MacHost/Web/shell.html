@@ -1,5 +1,0 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>微信记录</title><style>
-html,body{height:100%;margin:0;overflow:hidden;background:#fff}iframe{display:block;width:100%;border:0}#navigation{height:40px}main{height:calc(100% - 40px)}main iframe{height:100%}main iframe[hidden]{display:none}
-</style><iframe id="navigation" src="/Common/navigation.html" title="导航"></iframe><main><iframe data-tab="LocalChatsTab" src="/index.html" title="聊天记录"></iframe><iframe data-tab="HistoryExportTab" src="/Common/export.html" title="历史导出" hidden></iframe><iframe data-tab="OfficialAccountTab" src="/Common/official.html" title="公众号文章" hidden></iframe><iframe data-tab="SettingsTab" src="/Common/settings.html" title="设置" hidden></iframe></main><script>
-window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='macNavigation')return;document.querySelectorAll('main iframe').forEach(f=>f.hidden=f.dataset.tab!==e.data.id);});
-</script></html>
