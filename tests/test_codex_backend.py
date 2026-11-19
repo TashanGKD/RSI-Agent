@@ -30,6 +30,16 @@ def queued():
     return subprocess.CompletedProcess([], 0, 'Queued message ' + MESSAGE + ' for thread ' + THREAD + '.\n', '')
 
 
+def group_packet(last_seen):
+    request = packet()
+    request['scope'] = ['self', 'group@chatroom']
+    request['messages'] = [{'role': 'system', 'content': 'Trusted facts'},
+        {'role': 'user', 'content': json.dumps({'group': 'test', 'recent_messages': [
+            {'name': 'peer', 'text': 'message', 'time': last_seen}],
+            'new_messages': [{'sender_name': 'peer', 'text': 'message'}]}, separators=(',', ':'))}]
+    return request
+
+
 class CodexWorkerTests(unittest.TestCase):
     def test_store_codex_recovers_after_a_package_update(self):
         with tempfile.TemporaryDirectory() as td:
@@ -113,6 +123,60 @@ for line in sys.stdin:
 
 
 class DesktopRelayTests(unittest.TestCase):
+    def test_stale_group_queue_without_turn_is_terminalized(self):
+        with tempfile.TemporaryDirectory() as td:
+            now = 2_000_000_000
+            request = group_packet(now - 901)
+            jobs = Jobs(td)
+            jobs.accept(request)
+            jobs.update(request['id'], state='desktop_queued', thread_id=THREAD,
+                        desktop_message_id=MESSAGE)
+            with patch('receiver.codex_worker.time.time', return_value=now):
+                restarted = Jobs(td)
+            row = restarted.get(request['id'])
+            self.assertEqual(row['state'], 'review')
+            self.assertEqual(row['error'], 'GROUP_INPUT_EXPIRED; original group reply was not sent')
+            with restarted.connect() as db:
+                receipt = json.loads(db.execute('SELECT receipt FROM delivery_receipts WHERE id=?',
+                                                 (request['id'],)).fetchone()['receipt'])
+            self.assertEqual(receipt['code'], 'GROUP_INPUT_EXPIRED')
+
+    def test_recent_group_queue_stays_queued(self):
+        with tempfile.TemporaryDirectory() as td:
+            now = 2_000_000_000
+            request = group_packet(now - 899)
+            jobs = Jobs(td)
+            jobs.accept(request)
+            jobs.update(request['id'], state='desktop_queued', thread_id=THREAD,
+                        desktop_message_id=MESSAGE)
+            with patch('receiver.codex_worker.time.time', return_value=now):
+                row = jobs.get(request['id'])
+            self.assertEqual(row['state'], 'desktop_queued')
+
+    def test_private_stale_queue_is_not_group_expired(self):
+        with tempfile.TemporaryDirectory() as td:
+            now = 2_000_000_000
+            request = packet()
+            jobs = Jobs(td)
+            jobs.accept(request)
+            jobs.update(request['id'], state='desktop_queued', thread_id=THREAD,
+                        desktop_message_id=MESSAGE)
+            with patch('receiver.codex_worker.time.time', return_value=now):
+                row = jobs.get(request['id'])
+            self.assertEqual(row['state'], 'desktop_queued')
+
+    def test_stale_group_with_a_desktop_turn_is_left_for_reconciliation(self):
+        with tempfile.TemporaryDirectory() as td:
+            now = 2_000_000_000
+            request = group_packet(now - 901)
+            jobs = Jobs(td)
+            jobs.accept(request)
+            jobs.update(request['id'], state='desktop_queued', thread_id=THREAD,
+                        turn_id='existing-turn', desktop_message_id=MESSAGE)
+            with patch('receiver.codex_worker.time.time', return_value=now):
+                row = jobs.get(request['id'])
+            self.assertEqual(row['state'], 'desktop_queued')
+
     def test_group_expiry_receipt_releases_desktop_queue_without_replaying(self):
         with tempfile.TemporaryDirectory() as td:
             jobs = Jobs(td)
