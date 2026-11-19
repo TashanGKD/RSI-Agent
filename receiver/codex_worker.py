@@ -199,6 +199,32 @@ def delivery_texts(request, frozen):
     return (link_reply_text(request, frozen), frozen)
 
 
+GROUP_INPUT_MAX_AGE = 15 * 60
+
+
+def group_input_time(body):
+    """Return the latest native timestamp from a frozen group packet."""
+    if (not isinstance(body, dict) or body.get('mode') != 'chat'
+            or not isinstance(body.get('scope'), list) or len(body['scope']) != 2
+            or not isinstance(body['scope'][1], str) or not body['scope'][1].endswith('@chatroom')):
+        return None
+    latest = None
+    for message in body.get('messages', ()):
+        if not isinstance(message, dict) or message.get('role') != 'user' or not isinstance(message.get('content'), str):
+            continue
+        try:
+            packet = json.loads(message['content'])
+        except (TypeError, ValueError):
+            continue
+        for item in packet.get('recent_messages', ()) if isinstance(packet, dict) else ():
+            if not isinstance(item, dict):
+                continue
+            value = item.get('time')
+            if type(value) is int and value > 0:
+                latest = value if latest is None else max(latest, value)
+    return latest
+
+
 class Jobs:
     def __init__(self, root):
         self.root = Path(root)
@@ -217,6 +243,7 @@ class Jobs:
                 if receipt.get('code') == 'GROUP_INPUT_EXPIRED' and receipt.get('state') == 'not_sent':
                     db.execute("UPDATE jobs SET state='review',error=?,updated=? WHERE id=?",
                                ('GROUP_INPUT_EXPIRED; original group reply was not sent', time.time(), row['id']))
+            self._expire_stale_group_queue(db, time.time())
 
     @contextmanager
     def connect(self):
@@ -239,7 +266,31 @@ class Jobs:
                 raise ValueError('Original Codex input changed.')
             return dict(row)
 
+    def _expire_stale_group_queue(self, db, now):
+        """Close group jobs that never received a desktop turn before expiry."""
+        rows = db.execute("SELECT id,body FROM jobs WHERE state='desktop_queued' AND (turn_id IS NULL OR turn_id='')").fetchall()
+        for row in rows:
+            try:
+                body = json.loads(row['body'])
+            except (TypeError, ValueError):
+                continue
+            latest = group_input_time(body)
+            if latest is None or latest > now - GROUP_INPUT_MAX_AGE:
+                continue
+            receipt = {'id': row['id'], 'state': 'not_sent', 'native_request_id': None,
+                       'reply_sha256': None, 'code': 'GROUP_INPUT_EXPIRED'}
+            db.execute('INSERT OR IGNORE INTO delivery_receipts VALUES(?,?)',
+                       (row['id'], encoded(receipt).decode()))
+            db.execute("UPDATE jobs SET state='review',error=?,updated=? "
+                       "WHERE id=? AND state='desktop_queued' AND (turn_id IS NULL OR turn_id='')",
+                       ('GROUP_INPUT_EXPIRED; original group reply was not sent', now, row['id']))
+
+    def reconcile_stale_group_queue(self):
+        with self.connect() as db:
+            self._expire_stale_group_queue(db, time.time())
+
     def get(self, identity):
+        self.reconcile_stale_group_queue()
         with self.connect() as db:
             return dict(db.execute('SELECT * FROM jobs WHERE id=?', (identity,)).fetchone())
 
