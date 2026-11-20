@@ -43,15 +43,30 @@ class RuntimeAuditTests(unittest.TestCase):
             self.fail('Audit attempted an unexpected command: ' + command[0])
         return SimpleNamespace(returncode=0, stdout=output)
 
-    def inspect(self, run=None):
+    def inspect(self, run=None, profile='server'):
         with patch('rsi_agent.audit.sys.platform', 'linux'), patch('rsi_agent.audit.doctor', return_value=self.prerequisites):
-            return audit(load(), run=run or self.run_command, proc=self.proc)
+            return audit(load(), run=run or self.run_command, proc=self.proc, profile=profile)
 
     def test_normal_visible_client_and_persistent_services_pass(self):
         result = self.inspect()
         self.assertEqual(result['health'], 'pass')
         self.assertEqual(result['main_geometry'], [905, 667])
         self.assertNotIn('Private Contact', json.dumps(result))
+
+    def test_wsl_profile_does_not_require_a_remote_web_service(self):
+        self.fragments = self.fragments[:2]
+        commands = []
+        def run(command, **kwargs):
+            commands.append(command)
+            return self.run_command(command, **kwargs)
+        self.assertEqual(self.inspect(run, profile='wsl')['health'], 'pass')
+        self.assertTrue(all('wechat-gui-web.service' not in command for command in commands))
+        self.assertEqual(self.inspect()['health'], 'degraded')
+
+    def test_cli_selects_wsl_runtime_profile(self):
+        with patch('rsi_agent.__main__.audit', return_value={'health': 'degraded'}) as inspected:
+            self.assertEqual(cli.main(['audit', '--profile', 'wsl']), 1)
+            self.assertEqual(inspected.call_args.kwargs, {'profile': 'wsl'})
 
     def test_ready_doctor_does_not_hide_debugger_layout_or_transient_units(self):
         (self.proc / '42/status').write_text('TracerPid:\t77\n')

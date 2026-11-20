@@ -69,3 +69,94 @@ WSL 默认 NAT 下两侧的 `127.0.0.1` 是不同端点。已经验证的连接�
 把功能要求发给同一个安装 Codex，例如“按完整仓库检查图片读取怎样启用，缺什么就定位并实现”。[安装技能的扩展流程](../../.agents/skills/rsi-wechat-setup/SKILL.md#查找或添加功能)会先区分现有配置、所需依赖和缺失实现，再从源码、测试及 PR 找依据。归档中的实验或安装好的插件不能替代实际微信收发验证。
 
 升级时先记录当前源码提交、运行进程、配置位置和原队列状态。保留旧源码和私有配置，在独立工作副本选择 Linux 检查成功的固定提交，按 [接收器运行说明](../../harness/LOCAL-CODEX.md)处理在途请求后再更新对应进程。已接收的桌面任务仍需原完成 API；不要回滚或清空状态数据库。微信客户端、登录状态及用户草稿无需随代码升级重置。最后核对实际运行版本，并用新的授权入站验证受影响路径。
+
+## 本地常驻与登录启动
+
+账号资料、令牌和队列已经存储在磁盘上；这里增加的是进程启动和故障恢复。
+服务器默认使用 X/VNC/noVNC 服务包，本地 WSL 使用 `--profile wsl`，以 WSLg
+为父显示运行 Xephyr，并复用同一个 `wechat-gui-desktop.service` 和官方微信启动脚本。
+WSL 包只有 X、桌面和 target 三个定义，不创建网页桌面或公网入口。
+首次安装、配对和单条新私聊验收仍按前文执行；这些服务不生成账号授权或触发器绑定。
+
+先生成候选包。以下命令在 Linux 中运行，`REVIEWED_SHA` 对应已经保留的完整 release，
+`bundle` 必须是新目录。此步骤不读取账号配置、不安装或启动服务，也不改变登录态。
+
+```sh
+python3 -B -m rsi_agent services stage --profile wsl \
+  --release /opt/rsi-agent/releases/REVIEWED_SHA \
+  --output /var/tmp/rsi-wsl-services-REVIEWED_SHA
+SYSTEMD_UNIT_PATH=/var/tmp/rsi-wsl-services-REVIEWED_SHA: \
+  systemd-analyze verify --man=no /var/tmp/rsi-wsl-services-REVIEWED_SHA/*.service \
+  /var/tmp/rsi-wsl-services-REVIEWED_SHA/*.target
+```
+
+`plan.json` 记录 profile、release、各 unit 的摘要及 `activated: false`。
+包中的 target 依赖系统 `ssh.service`；sshd 的回环监听、固定身份和转发限制仍按前文配置，
+服务包不会替换现有 SSH 策略。反向监听应使用 `PermitListen 127.0.0.1:<WSL接收端口>`
+限制；`PermitOpen` 约束的是本地转发目的地，不能用它代替反向监听限制。
+纯隧道连接可用 `MaxSessions 0` 禁止 shell、命令和子系统会话，同时保留转发。
+Ubuntu 的 `ssh.socket` 可能接管监听；激活前应核对并停用本实例不需要的 socket 激活，
+确认实际 `ssh.service` 只监听配置的回环端口，不能只看 `sshd_config` 推断监听范围。
+
+激活安排在另行授权的维护窗口内。先备份原服务定义、启动方式、私有配置与实际队列状态，
+确认没有未核对的发送。需要 `systemd`、`systemd-sysv`、`xserver-xephyr`、`openssh-server`、
+`xauth`、`x11-utils`、`openbox`、`dbus-x11`、Python 及前文的触发器依赖。
+在该发行版 `/etc/wsl.conf` 中保留其他配置，并加入：
+
+```ini
+[boot]
+systemd=true
+```
+
+按微软的 [WSL systemd 说明](https://learn.microsoft.com/windows/wsl/systemd)使配置生效。
+可以在维护窗口内用 `wsl --terminate RSI-WeChat` 只停止这个发行版，然后重新启动它；
+不要用全局 shutdown 影响其他发行版。重启会中断微信，缓存登录仍可能需要手机确认。
+
+确认 PID 1 是 systemd 后，停止本实例旧的客户端和内层显示，等待其实际退出。
+服务初始化发现 `:92` 已有 X socket 时会拒绝覆盖授权；不要删除活动 socket 来强行启动。
+安装审查过的三个定义至 `/etc/systemd/system/`，执行 daemon-reload，再 enable/start
+`wechat-gui.target`。这会启动 SSH、Xephyr 和官方客户端，不会自动启用任何回复触发器。
+内层显示固定为 `:92`，私有授权位于 `/run/wechat-gui/Xauthority`；安装配置应使用这两个值，
+持久的账号资料与 `runtime_root` 仍留在原私有目录，不迁移到 `/run`。
+登录后核对窗口布局和原生绑定，再分别验证接收器 `/health` 与：
+
+```sh
+python3 -B -m rsi_agent --config /private/installation.json audit --profile wsl
+```
+
+该 audit 检查 X 和桌面的持久服务，不要求本地部署运行 noVNC；仍不代替微信送达验收。
+触发器只在配对、配置和新消息验收完成后启用。已有 owner/group 模板需替换 `@RELEASE@`；
+安装对应的服务后，可用 `systemctl add-wants wechat-gui.target rsi-owner-replies.service`
+把已授权的私聊触发器接入启动链。群聊服务应在群准入配置完成后单独加入，不默认打开。
+
+### Windows 接收器登录任务
+
+使用一个保留的 Windows 源码 release、绝对 Python 路径，以及原来的私有接收器配置。
+不要为常驻生成新令牌、替换 state 或清空队列。以下 PowerShell 命令中的路径均为本实例值：
+
+```powershell
+.\deploy\wechat-wsl\Register-Startup.ps1 -Action Check `
+  -Release C:\RSI\releases\REVIEWED_SHA -Config C:\RSI\private\local-codex.json `
+  -Python C:\Python\python.exe
+.\deploy\wechat-wsl\Register-Startup.ps1 -Action Register `
+  -Release C:\RSI\releases\REVIEWED_SHA -Config C:\RSI\private\local-codex.json `
+  -Python C:\Python\python.exe
+```
+
+`Check` 只检查本地路径和任务注册；不读取令牌、不连接 WSL、不启动接收器。
+`Register` 为当前 Windows 用户创建 `RSI-WeChat-Receiver` 登录任务，但不立即运行。
+任务使用交互式登录身份和普通权限，不保存 Windows 密码；下次登录执行保留 release 中的
+`Start-Local.ps1`，先启动 WSL 桌面 target，再以前台子进程运行原接收器。
+接收器退出码交给任务计划程序，最多每分钟重试一次、共三次；已有任务不覆盖，重复实例忽略。
+接收器自己维护 SSH 隧道，继续使用原私有请求与完成记录。
+Linux 桌面启动失败时不会继续拉起接收器，以免把不完整启动报告成成功。
+
+这依赖 Windows 用户登录、电脑唤醒和 Codex 可用。WSL 服务 enable 只负责发行版启动后
+拉起服务；Windows 登录任务负责启动发行版与接收器，不能把仅有 enable 当作 Windows 开机验收。
+需要手机确认或客户端正常退出时，由用户核对后恢复；不使用无限重启循环绕过登录。
+
+升级先 drain 和核原队列，再停止旧接收器。确认原登录任务已停止后，用相同参数执行
+`Register-Startup.ps1 -Action Remove`，随后在新 release 中重新 Check/Register。
+Remove 不停止进程、不删除配置或 state，且拒绝移除运行中的任务或其他来源的任务。
+回滚保留原配置和队列，恢复上一个 release 的任务注册；Linux 端在维护窗口内恢复原服务
+定义和启动方式。任务注册、服务运行、系统重启后恢复及原生微信送达应分别记录实测状态。

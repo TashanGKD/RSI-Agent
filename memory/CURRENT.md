@@ -37,6 +37,15 @@ their old inputs and receipts stay private for audit.
 
 ## Recurring problems
 
+Local WSL persistence is a code candidate, not an activated installation.
+`services stage --profile wsl` stages Xephyr/desktop units; `audit --profile wsl`
+does not require noVNC. Windows startup scripts register an interactive logon
+task without starting it and preserve the original receiver configuration/state.
+Windows regression and the full Linux gate pass, including isolated nested
+Xephyr authorization and service-definition checks. Actual Task Scheduler logon,
+systemd activation, reboot recovery and native delivery remain unverified.
+The local logged-in client was not restarted for these checks.
+
 | Problem | Cause found | State |
 | --- | --- | --- |
 | Group messages stuck pending or late | A `desktop_queued` job without a turn held the group inbox; expiry did not settle it | Fixed and live (#117–#119); fresh delivery verified |

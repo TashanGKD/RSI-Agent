@@ -18,7 +18,9 @@ def main(argv=None):
     parser.add_argument('--config', help='Private JSON configuration for the selected command.')
     commands = parser.add_subparsers(dest='command')
     commands.add_parser('doctor', help='Report prerequisites without reading messages or operating the GUI.')
-    commands.add_parser('audit', help='Inspect the real Linux client process, layout and service persistence without input.')
+    runtime_audit = commands.add_parser('audit', help='Inspect the real Linux client process, layout and service persistence without input.')
+    runtime_audit.add_argument('--profile', choices=['server', 'wsl'], default='server',
+                               help='Desktop service profile to inspect (default: server).')
     commands.add_parser('sources', help='Show the pinned source repositories and commits.')
     model = commands.add_parser('model', help='Use a privately configured model; no WeChat input or send.')
     model.add_argument('mode', choices=['check', 'reply'])
@@ -31,6 +33,8 @@ def main(argv=None):
     service_stage = service_commands.add_parser('stage')
     service_stage.add_argument('--release', required=True, help='Absolute Linux path of the source release.')
     service_stage.add_argument('--output', required=True, help='A NEW directory for the review bundle.')
+    service_stage.add_argument('--profile', choices=['server', 'wsl'], default='server',
+                               help='Server X/VNC stack (default), or a local WSLg/Xephyr desktop.')
     wx = commands.add_parser('wechat', help='Use the original on-demand WeChat SDK.')
     wx.add_argument('mode', choices=['read', 'operations'], help='One JSON request from stdin.')
     args = parser.parse_args(argv)
@@ -58,14 +62,14 @@ def main(argv=None):
         print(json.dumps(run(args.config, args.mode), ensure_ascii=False))
         return 0
     if args.command == 'services':
-        print(json.dumps(stage(args.release, args.output), ensure_ascii=False, indent=2))
+        print(json.dumps(stage(args.release, args.output, args.profile), ensure_ascii=False, indent=2))
         return 0
     config = load(args.config)
     if args.command == 'doctor':
         print(json.dumps(doctor(config), ensure_ascii=False, indent=2))
         return 0
     if args.command == 'audit':
-        report = audit(config)
+        report = audit(config, profile=args.profile)
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0 if report['health'] == 'pass' else 2 if report['health'] == 'unsupported' else 1
     raw = sys.stdin.read(1500001)

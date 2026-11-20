@@ -25,4 +25,10 @@ description: Guide installation, pairing, verification and upgrades of the RSI A
 
 ## 升级与维护
 
+全本地常驻优先复用安装指南的“本地常驻与登录启动”：用 `services stage --profile wsl`
+生成 Xephyr 服务候选，沿用同一个接收器和私有队列，用 `Register-Startup.ps1` 检查、
+注册当前用户登录任务。生成和注册不代表激活；在单独授权的维护窗口内切换旧显示与服务，
+按 `audit --profile wsl` 核运行条件。分别记录任务注册、Linux 服务启动、重启恢复和原生收发，
+不要直接把服务器 noVNC 模板当作本机 WSLg 配置，也不要为启动恢复另建发送器或请求 ID。
+
 按安装指南的升级步骤核对实际版本、未完成请求及私有状态，选择检查通过的提交。保留旧源码与配置，使用独立工作副本验证，按原 ID 收束在途任务后再升级对应进程。仅更新 skill 或下载代码时，不报告发送器已升级。不覆盖私有队列或用户未提交的修改，不为升级重放旧消息。最终报告安装、登录、配对、Codex 实际接收和微信回执分别到哪一步。

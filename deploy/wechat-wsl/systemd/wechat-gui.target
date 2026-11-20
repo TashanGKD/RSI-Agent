@@ -1,0 +1,7 @@
+[Unit]
+Description=Local WSL WeChat desktop and receiver tunnel endpoint
+Requires=wechat-gui-x.service wechat-gui-desktop.service ssh.service
+After=wechat-gui-x.service wechat-gui-desktop.service ssh.service
+
+[Install]
+WantedBy=multi-user.target
