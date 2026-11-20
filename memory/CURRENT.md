@@ -45,9 +45,16 @@ authorization prerequisites, sender and receiver status; delivery remains unveri
 `services stage --profile wsl`, `audit --profile wsl` and the Windows logon task
 cover the local desktop startup path. Checks include isolated nested Xephyr,
 Windows startup/pairing, secret redaction and preservation of existing work.
-Actual account capture/binding, Task Scheduler logon, systemd activation, reboot
-recovery and native delivery remain unverified on the new local installation.
-The logged-in client was not restarted for these checks.
+Local account authorization and the confirmed owner's native identity are now
+verified after one scoped client restart. The debugger detached and the client
+is ordinary again. The receiver delivered fresh owner input into its dedicated
+Codex conversation and accepted one frozen completion per original. The first
+two V2 replies were proven failed/noSend (navigation position drift, then an
+empty-editor voice hover hint); both originals remain settled and are not replayed.
+Moving the pointer away after an empty draft read removes that hint without
+relaxing draft protection; the candidate passes the actual empty-editor check.
+Fresh native delivery remains pending. Task Scheduler logon, systemd activation
+and reboot recovery remain unverified.
 
 | Problem | Cause found | State |
 | --- | --- | --- |
