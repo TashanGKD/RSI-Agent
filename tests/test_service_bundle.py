@@ -199,16 +199,27 @@ class LinuxDesktopBootstrapTests(unittest.TestCase):
             authority = (inner_root / 'Xauthority').read_bytes()
             parent = subprocess.Popen(['Xtigervnc', parent_display, '-geometry', '1024x768',
                 '-depth', '24', '-rfbport', '-1', '-rfbunixpath', str(parent_root / 'vnc.sock'),
-                '-SecurityTypes', 'None', '-nolisten', 'tcp', '-auth', str(parent_root / 'Xauthority')],
+                '-rfbunixmode', '0600', '-SecurityTypes', 'None', '-localhost',
+                '-nolisten', 'tcp', '-auth', str(parent_root / 'Xauthority')],
                 stdout=log, stderr=log)
             inner = None
             try:
-                self.runtime.wait_ready(parent_root, parent_display, seconds=8)
+                try:
+                    self.runtime.wait_ready(parent_root, parent_display, seconds=8)
+                except ValueError as error:
+                    log.seek(0)
+                    self.fail(f'{error}; parent exit={parent.poll()}; '
+                              + log.read().decode(errors='replace')[-4000:])
                 inner = subprocess.Popen(['Xephyr', inner_display, '-screen', '905x667',
                     '-nolisten', 'tcp', '-noreset', '-auth', str(inner_root / 'Xauthority')],
                     env=dict(os.environ, DISPLAY=parent_display,
                              XAUTHORITY=str(parent_root / 'Xauthority')), stdout=log, stderr=log)
-                self.runtime.wait_ready(inner_root, inner_display, seconds=8, require_vnc=False)
+                try:
+                    self.runtime.wait_ready(inner_root, inner_display, seconds=8, require_vnc=False)
+                except ValueError as error:
+                    log.seek(0)
+                    self.fail(f'{error}; inner exit={inner.poll()}; '
+                              + log.read().decode(errors='replace')[-4000:])
                 self.assertIsNone(inner.poll())
                 unauthorized = subprocess.run(['xdpyinfo', '-display', inner_display],
                     env=dict(os.environ, XAUTHORITY=str(inner_root / 'missing')),
