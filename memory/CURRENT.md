@@ -57,8 +57,13 @@ An additional fresh original stopped before sending because GTK inherited the
 outer WSLg Wayland clipboard. Binding the helper's GTK backend, display and
 Xauthority to the configured X11 desktop passed an actual Chinese draft write,
 copy and owned cleanup comparison. Its failed original is retained.
-Fresh native delivery remains pending. Task Scheduler logon, systemd activation
-and reboot recovery remain unverified.
+One fresh post-fix owner message completed native intake → the dedicated visible
+Codex turn → its original V2 `sent`, with exact native text, one Send click and
+settled draft/navigation cleanup. The owner confirmed the reply was visible on
+the main account's phone. The owner-only intake runs retained `6a0ad63`; the
+receiver and global `current` pointer are unchanged. This accepts only this
+private text pair. Task Scheduler logon, systemd activation, reboot recovery,
+group/attachment paths and sustained availability remain unverified locally.
 
 | Problem | Cause found | State |
 | --- | --- | --- |
