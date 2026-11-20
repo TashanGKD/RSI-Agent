@@ -70,6 +70,7 @@ def environment(config):
     wx = config['wechat']
     source = WECHAT_LINUX
     env = dict(os.environ,
+               DISPLAY=wx['display'], XAUTHORITY=wx['xauthority'], GDK_BACKEND='x11',
                WECHAT_DISPLAY=wx['display'], WECHAT_XAUTHORITY=wx['xauthority'],
                WECHAT_TOOL_ROOT=wx['runtime_root'], WECHAT_NATIVE_CODE=str(source),
                WECHAT_HOST_SUPPORT_CODE=str(source / 'host_support'),

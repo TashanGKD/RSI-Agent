@@ -53,6 +53,10 @@ two V2 replies were proven failed/noSend (navigation position drift, then an
 empty-editor voice hover hint); both originals remain settled and are not replayed.
 Moving the pointer away after an empty draft read removes that hint without
 relaxing draft protection; the candidate passes the actual empty-editor check.
+An additional fresh original stopped before sending because GTK inherited the
+outer WSLg Wayland clipboard. Binding the helper's GTK backend, display and
+Xauthority to the configured X11 desktop passed an actual Chinese draft write,
+copy and owned cleanup comparison. Its failed original is retained.
 Fresh native delivery remains pending. Task Scheduler logon, systemd activation
 and reboot recovery remain unverified.
 
