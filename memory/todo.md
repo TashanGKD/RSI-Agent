@@ -24,5 +24,5 @@ as candidates rather than silently expanding the active task.
    bounded candidate. No score exists yet.
 8. **Soak and packaging.** Collect sustained availability evidence and simplify
    install, upgrade and rollback around the actual release layout. Review the
-   WSL service profile and Windows logon-task candidate; after pairing, validate
+   WSL setup/pairing, service profile and Windows logon-task candidate; after pairing, validate
    activation and restart recovery in a separately authorized maintenance window.

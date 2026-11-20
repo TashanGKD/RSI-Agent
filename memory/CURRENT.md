@@ -37,14 +37,17 @@ their old inputs and receipts stay private for audit.
 
 ## Recurring problems
 
-Local WSL persistence is a code candidate, not an activated installation.
-`services stage --profile wsl` stages Xephyr/desktop units; `audit --profile wsl`
-does not require noVNC. Windows startup scripts register an interactive logon
-task without starting it and preserve the original receiver configuration/state.
-Windows regression and the full Linux gate pass, including isolated nested
-Xephyr authorization and service-definition checks. Actual Task Scheduler logon,
-systemd activation, reboot recovery and native delivery remain unverified.
-The local logged-in client was not restarted for these checks.
+Local WSL onboarding/persistence is the open #124 code candidate, not an activated
+installation. `setup pair` stages one new private receiver/backend pair without
+replacing old state; `setup prepare-capture` validates the reviewed client and
+prepares only its own-child script. `setup check` separates configuration,
+authorization prerequisites, sender and receiver status; delivery remains unverified.
+`services stage --profile wsl`, `audit --profile wsl` and the Windows logon task
+cover the local desktop startup path. Checks include isolated nested Xephyr,
+Windows startup/pairing, secret redaction and preservation of existing work.
+Actual account capture/binding, Task Scheduler logon, systemd activation, reboot
+recovery and native delivery remain unverified on the new local installation.
+The logged-in client was not restarted for these checks.
 
 | Problem | Cause found | State |
 | --- | --- | --- |

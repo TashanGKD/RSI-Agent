@@ -12,7 +12,7 @@ from rsi_agent.config import ROOT
 @unittest.skipUnless(sys.platform == 'win32', 'requires Windows PowerShell and Task Scheduler types')
 class WindowsStartupTests(unittest.TestCase):
     def test_startup_scripts_parse_in_windows_powershell(self):
-        for name in ('Start-Local.ps1', 'Register-Startup.ps1'):
+        for name in ('Start-Local.ps1', 'Register-Startup.ps1', 'Install-WeChat.ps1'):
             script = str(ROOT / 'deploy/wechat-wsl' / name).replace("'", "''")
             command = ("$tokens=$null; $errors=$null; "
                 "[System.Management.Automation.Language.Parser]::ParseFile('" + script

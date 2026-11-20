@@ -4,6 +4,12 @@
 
 当前是由 Codex 协助安装和适配的流程。安装器已经覆盖客户端下载及登录检查；扫码后自动生成所有绑定和运行配置尚未实现。后面的配对步骤需要 Codex 按实际机器完成，尤其是本机账号授权、独立显示和 SSH 通道。
 
+首次安装先使用 `-PrepareOnly`，准备好依赖、私有配置和账号授权脚本后再扫码，避免登录后
+才发现缺少授权准备、不得不重新启动客户端。本仓库的 `setup pair` 可以生成相互一致的
+接收器/后端配置，`setup prepare-capture` 可以生成经过固定版本校验的自有子进程授权脚本，
+`setup check` 可以逐阶段定位缺口；这三个命令不重启微信、不采集授权材料、不发送消息。
+实际账号授权、原生身份及界面绑定仍须在本实例完成。
+
 新手可将下面这段和[安装技能](../../.agents/skills/rsi-wechat-setup/SKILL.md)链接一起发给自己的 Codex：
 
 > 请按 TashanGKD/RSI-Agent 的 rsi-wechat-setup 技能，从完整仓库为我安装微信小号接入。先检查电脑环境，下载并校验客户端，到扫码时告诉我；建立一个专用 Codex 回复会话，完成本机配对，最后用我发的一条新私聊确认只回一次。遇到尚未适配的步骤请指出具体缺口。
@@ -21,10 +27,12 @@ Set-Location RSI-Agent
 
 ```powershell
 .\deploy\wechat-wsl\Install-WeChat.ps1 -Action Check
-.\deploy\wechat-wsl\Install-WeChat.ps1 -Action Install
+.\deploy\wechat-wsl\Install-WeChat.ps1 -Action Install -PrepareOnly
 ```
 
-WSL 未启用时，先按用户授权运行 `wsl --install --no-distribution` 并完成 Windows 所需重启。安装后在官方窗口扫码；看到已有头像则点击 **Log In**，然后在手机确认。
+WSL 未启用时，先按用户授权运行 `wsl --install --no-distribution` 并完成 Windows 所需重启。
+`-PrepareOnly` 安装客户端但不启动窗口。先完成下文依赖、显示和账号授权准备，再在授权的
+自有子进程中启动官方客户端扫码；看到已有头像则点击 **Log In**，然后在手机确认。
 
 ```powershell
 .\deploy\wechat-wsl\Install-WeChat.ps1 -Action WaitForLogin
@@ -37,6 +45,30 @@ WSL 未启用时，先按用户授权运行 `wsl --install --no-distribution` �
 读[接收器运行说明](../../harness/LOCAL-CODEX.md)和[专用会话协议](../../harness/DESKTOP-WECHAT.md)。在 Codex 桌面为小号新建一个可见的专用回复会话。保存返回的真实会话 ID，在本机私有配置里设为 `desktop_thread_id`，同时设置 `desktop_all_requests: true`。该安装以后复用这个专用会话。目标缺失或入队结果不明时，保留原请求等待核对。
 
 先核对 Windows 的 Python、OpenSSH 和当前 Codex 可执行文件，确认该 Codex 支持 `queue --help`。在仓库外的本用户私有目录创建 UTF-8 JSON 配置，按 [接收器源码](../../receiver/codex_worker.py) 的实际字段填写：
+
+新实例可以先生成一套配对文件，减少手写字段和两端令牌不一致。以下命令用 Windows Python
+在一个**不存在的新目录**中生成文件，参数均替换为本机已核对的值；`--thread` 使用已经建立的
+专用会话真实 UUID，`--ssh` 使用本机已配置的 SSH 别名：
+
+```powershell
+python -B -m rsi_agent setup pair --output C:\RSI\private\new-instance `
+  --codex C:\RSI\codex.exe --thread ACTUAL-CONVERSATION-UUID `
+  --ssh rsi-wechat-tunnel --identity-file C:\RSI\private\tunnel-key `
+  --port 8765 --remote-port 8766
+```
+
+生成目录就是 Windows 接收器配置的保留位置，`local-codex.json` 中的 state 指向其下
+`receiver-state`，不要生成后直接搬动目录。Windows 目录 ACL 限制为当前用户，Linux 文件
+部署时使用 0700 目录和 0600 文件；标准输出只有无令牌的计划，不打印配置内容。
+已有配置或队列时不要运行 pair 迁移，改用 check 检查原配置；pair 遇到已有目录直接拒绝。
+
+`plan.json` 声明 Linux 部署位置与文件属主：默认将 `linux/codex/` 放到
+`/var/lib/rsi-agent/codex/`，由 root 持有，供触发器协调进程使用；将 `linux/installation.json`
+和 `linux/receiver-check.json` 放到 `/var/lib/rsi-agent/wechat/`，由 `wechat-gui` 持有。
+父目录需要允许该用户遍历，私有子目录不开放列目录权限。根据实际部署方式填写 Xauthority
+路径，保留原账号资料的位置；首次生成的账号/profile 为 null，写操作及工程权限关闭。
+这些文件没有联系人或 owner 身份，也不启用回复触发器。`paired: false` 表示仍需部署和验证。
+已有服务模板中的 installation/model 引用应改为这套文件的实际绝对路径。
 
 | 字段 | 本实例的值 |
 | --- | --- |
@@ -61,6 +93,47 @@ WSL 默认 NAT 下两侧的 `127.0.0.1` 是不同端点。已经验证的连接�
 3. 只绑定用户本次登录的账号。在启动账号绑定前请用户明确同意用其专用客户端进行本地授权。优先把绑定环境准备在第一次扫码前。用仓库 `components/wechat-linux/capture.py` 的自有子进程方式，不附着现有进程。该脚本的固定路径针对服务端部署，Windows WSL 版必须检查实际安装文件 `/opt/wechat/wechat`，使用与经过校验的版本匹配的程序地址。授权材料只写入 WSL 内账号拥有的私有目录。对联系人库、会话库和消息库做页认证、提交一致性和只读完整性检查。把微信留在正常运行状态并核对 `TracerPid=0`。
 4. 开启回传前，先确认同一个微信原生账号是否已有自动回复器。可从已有安装的确认账号和运行状态核对，不以昵称或客户端窗口区分。若另有运行中的回复器，当前实例保持只读。要验收新回传，用独立账号，或在明确的交接范围内把发送职责移到这一实例。
 5. 限定一对原生私聊身份和绑定后的新消息。将 Windows 端的测试接收器和 WSL 的触发器绑定，再校验原生会话、已配置的窗口和 V2 预检。只有用户发来一条新私聊后，才观察其原生 ID、Codex 同一请求的完成结果和原 V2 单次发送回执。已有消息、缺失回执和仅 HTTP 入队的请求不能记作成功。
+
+在首次扫码前，用账号用户准备授权脚本。先建立该用户拥有的 0700 私有 runtime 和 0600
+installation 配置；安装器的客户端依赖并不包含全部触发器依赖，需提前核对 Python、GTK3、
+PyCryptodome、Pillow、X11、OCR、Xephyr/Openbox 和 SSH 工具。首次授权还需要 GDB，
+在取得必要的依赖安装授权后准备；运行期不依赖 GDB。
+
+```sh
+runuser -u wechat-gui -- env PYTHONPATH=/opt/rsi-agent/python \
+  python3 -B -m rsi_agent --config /var/lib/rsi-agent/wechat/installation.json \
+  setup prepare-capture --binary /opt/wechat/wechat
+```
+
+此命令复用 `components/wechat-linux/capture.py`，从 `client_release.json` 读取经过审核的
+客户端摘要和程序地址，拒绝未知二进制和不匹配的地址。只生成本用户的 `capture-child.gdb`，
+不启动 GDB 或客户端；相同准备可以重跑，不覆盖不同脚本或已有授权材料。捕获脚本只启动
+自有子进程，第一次取得材料后停止、detach、退出；不附着现有微信进程。
+新账号的实际授权启动需沿已审查的自有子进程流程执行；已经登录的客户端需要单独的重启窗口。
+随后仍需对联系人、会话和消息库做认证/一致性验证，确认普通进程的 `TracerPid=0`，再绑定原生身份。
+
+### 分阶段检查
+
+Windows 侧先检查接收器配置，加 `--probe` 才会发送带令牌的回环 `GET /health`：
+
+```powershell
+python -B -m rsi_agent setup check --receiver-config C:\RSI\private\new-instance\local-codex.json --probe
+```
+
+Linux 侧以账号资料用户运行，用私有 `receiver-check.json` 核对固定目标和隧道另一端：
+
+```sh
+runuser -u wechat-gui -- env PYTHONPATH=/opt/rsi-agent/python \
+  python3 -B -m rsi_agent --config /var/lib/rsi-agent/wechat/installation.json \
+  setup check --receiver-config /var/lib/rsi-agent/wechat/receiver-check.json --probe --remote
+```
+
+未加 `--probe` 时只做本地文件/依赖检查，不连接接收器。探测禁止代理和重定向，不向输出写入
+令牌、账号 ID、会话 ID 或健康接口原始正文。输出分别列出客户端、依赖、runtime 属主、授权准备、
+账号配置、显示配置、发送器配置和接收器状态，以及一个下一步；不完整时退出码为 1。
+`configured` 只表示配置前置条件，`ready_for_acceptance` 只表示可以开始实机验收；
+原生读取、实际登录/布局和微信送达仍须分别核实，`live_delivery` 始终保留 `not_verified`。
+接收器在线不会掩盖未授权账号、错误文件属主或尚未绑定的发送器。
 
 如果签名 APT 索引无法获取，先记录是 WSL DNS、代理还是镜像连接失败，再检查用户网络。Windows 能下载的、通过 Ubuntu 已签名索引校验的包可以离线供给试验实例。不要通过关闭软件源签名或跳过客户端哈希继续安装。
 

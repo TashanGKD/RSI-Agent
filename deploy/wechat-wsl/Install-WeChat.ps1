@@ -26,7 +26,7 @@ function Get-Verified([string]$File, [string]$Url, [string]$Hash, [string]$Provi
         $part = "$File.part"
         curl.exe --proto '=https' --fail --silent --show-error --location --connect-timeout 20 --max-time 600 --output $part $Url
         if ($LASTEXITCODE -ne 0 -or (Get-FileHash -Algorithm SHA256 -LiteralPath $part).Hash -ne $Hash) {
-            throw 'Download did not match the reviewed SHA-256.'
+            throw 'Download failed or differs from the reviewed SHA-256. Keep verification enabled; supply a reviewed offline file with -UbuntuArchive or -WeChatPackage.'
         }
         Move-Item -LiteralPath $part -Destination $File
     }
@@ -38,7 +38,7 @@ if (!($version -match 'WSLg')) { throw 'WSLg is unavailable. Update WSL before i
 if ($Action -eq 'Check') {
     $drive = (Get-Item -LiteralPath $env:LOCALAPPDATA).PSDrive
     if ($drive.Free -lt 4GB) { throw 'Need at least 4 GiB free for installation and setup.' }
-    'WSL and WSLg detected. Ready to prepare a dedicated distro.'
+    'Platform check passed (WSL, WSLg and disk). Runtime dependencies, authorization and pairing still require setup check inside the client distro.'
     return
 }
 $data = Join-Path $env:LOCALAPPDATA "RSI-WeChat-Setup/$Distro"
@@ -65,7 +65,7 @@ if ($LASTEXITCODE -ne 0) {
     $deb = Linux-Path $localDeb
 }
 Invoke-Wsl ($guest + @('/bin/bash',(Linux-Path (Join-Path $PSScriptRoot 'install-first.sh')),$deb))
-if ($PrepareOnly) { 'Official WeChat verified and ready to open.'; return }
+if ($PrepareOnly) { 'Official WeChat verified. Prepare runtime dependencies, pairing and own-child authorization before first login.'; return }
 & $wsl @guest /usr/bin/pgrep -u wechat-gui -x wechat | Out-Null
 if ($LASTEXITCODE -ne 0) {
     $argsList = @('-d',$Distro,'-u','wechat-gui','--exec','/usr/bin/env','DISPLAY=:0','XDG_RUNTIME_DIR=/run/rsi-wechat-setup','QT_QPA_PLATFORM=xcb','/usr/bin/dbus-run-session','--','/usr/bin/wechat')
