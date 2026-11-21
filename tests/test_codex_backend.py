@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 import unittest
 from unittest.mock import Mock, patch
 
@@ -14,6 +15,9 @@ from receiver.codex_worker import CodexExecutable, Jobs, blocks, notify_desktop,
 from trigger.backend import load_model
 from trigger.codex_backend import CodexBackend
 from rsi_agent.model import ModelError, PublicationPending
+
+# Native message times near the real clock, so the receiver does not expire fixture input.
+NOW = int(time.time())
 
 
 def packet():
@@ -153,6 +157,23 @@ class DesktopRelayTests(unittest.TestCase):
             with patch('receiver.codex_worker.time.time', return_value=now):
                 row = jobs.get(request['id'])
             self.assertEqual(row['state'], 'desktop_queued')
+
+    def test_fresh_quote_after_old_text_context_stays_queued(self):
+        # Context holds plain text only, so a fresh quote or card is dated by its own created time.
+        with tempfile.TemporaryDirectory() as td:
+            now = 2_000_000_000
+            request = group_packet(now - 3600)
+            content = json.loads(request['messages'][1]['content'])
+            content['new_messages'] = [{'sender_name': 'peer', 'text': 'quoted card', 'created': now - 60}]
+            request['messages'][1]['content'] = json.dumps(content, separators=(',', ':'))
+            jobs = Jobs(td)
+            jobs.accept(request)
+            jobs.update(request['id'], state='desktop_queued', thread_id=THREAD,
+                        desktop_message_id=MESSAGE)
+            with patch('receiver.codex_worker.time.time', return_value=now):
+                self.assertEqual(jobs.get(request['id'])['state'], 'desktop_queued')
+            with patch('receiver.codex_worker.time.time', return_value=now + 900):
+                self.assertEqual(jobs.get(request['id'])['state'], 'review')
 
     def test_private_stale_queue_is_not_group_expired(self):
         with tempfile.TemporaryDirectory() as td:
@@ -811,7 +832,7 @@ class CodexBackendTests(unittest.TestCase):
         group = {'account': 'self', 'peer': 'group@chatroom', 'owner_peer': 'owner',
                  'name': 'Fixture group', 'scope': {'mode': 'invited-group-text', 'since': 100, 'introduction': False}}
         event = {'account': 'self', 'peer': 'group@chatroom', 'sender': 'member',
-                 'sender_name': 'Member', 'mentioned': True, 'kind': 1, 'created': 120,
+                 'sender_name': 'Member', 'mentioned': True, 'kind': 1, 'created': NOW + 120,
                  'server_id': 44, 'text': 'Original question'}
         events = [event]
         sends = []
@@ -828,7 +849,7 @@ class CodexBackendTests(unittest.TestCase):
             loop.cycle()
         original_key = self.backend.last_input_key
         original_packet = self.jobs.get(original_key)['body']
-        events.append(dict(event, server_id=45, created=121, text='Later question'))
+        events.append(dict(event, server_id=45, created=NOW + 121, text='Later question'))
         with self.assertRaises(PublicationPending):
             loop.cycle()
         self.assertEqual(loop.value('model_batch'), '["44"]')
@@ -849,7 +870,7 @@ class CodexBackendTests(unittest.TestCase):
         self.assertEqual(sends, ['45'])
         self.assertEqual(self.jobs.get(original_key)['body'], original_packet)
         self.assertEqual(self.jobs.get(original_key)['state'], 'review')
-        events.append(dict(event, server_id=46, created=122, text='A message that needs no reply'))
+        events.append(dict(event, server_id=46, created=NOW + 122, text='A message that needs no reply'))
         with self.assertRaises(PublicationPending):
             loop.cycle()
         quiet_key = self.backend.last_input_key
@@ -871,9 +892,9 @@ class CodexBackendTests(unittest.TestCase):
         group = {'account': 'self', 'peer': 'group@chatroom', 'owner_peer': 'owner',
                  'name': 'Fixture group', 'scope': {'mode': 'invited-group-text', 'since': 100, 'introduction': False}}
         event = {'account': 'self', 'peer': 'group@chatroom', 'sender': 'member',
-                 'sender_name': 'Member', 'mentioned': True, 'kind': 1, 'created': 120,
+                 'sender_name': 'Member', 'mentioned': True, 'kind': 1, 'created': NOW + 120,
                  'server_id': 44, 'text': 'Original group question'}
-        events = [event, dict(event, server_id=45, created=125)]
+        events = [event, dict(event, server_id=45, created=NOW + 125)]
         sends = []
 
         def native(value):
@@ -887,7 +908,7 @@ class CodexBackendTests(unittest.TestCase):
         loop = GroupLoop(self.root / 'recycle.sqlite', group, self.backend, native)
         loop.recycle_since = 100
         self.addCleanup(loop.close)
-        with patch('trigger.group_reply.time.time', return_value=126):
+        with patch('trigger.group_reply.time.time', return_value=NOW + 126):
             with self.assertRaises(PublicationPending):
                 loop.cycle()
         original = self.backend.last_input_key
@@ -895,14 +916,14 @@ class CodexBackendTests(unittest.TestCase):
             notify_desktop({'codex': 'fixture-codex', 'desktop_thread_id': THREAD,
                             'desktop_all_requests': True}, self.jobs, self.jobs.claim('chat'))
         saved = self.jobs.get(original)
-        events.append(dict(event, server_id=46, created=1025, text='Fresh group question'))
-        with patch('trigger.group_reply.time.time', return_value=1025):
+        events.append(dict(event, server_id=46, created=NOW + 1025, text='Fresh group question'))
+        with patch('trigger.group_reply.time.time', return_value=NOW + 1025):
             with self.assertRaises(PublicationPending):
                 loop.cycle()
         self.assertEqual(loop.value('model_batch'), '["44", "45"]')
         self.assertEqual(loop.counts(), {'new': 3})
 
-        with patch('trigger.group_reply.time.time', return_value=1026):
+        with patch('trigger.group_reply.time.time', return_value=NOW + 1026):
             with self.assertRaises(PublicationPending):
                 loop.cycle()
         fresh = self.backend.last_input_key
@@ -924,7 +945,7 @@ class CodexBackendTests(unittest.TestCase):
         self.assertEqual(expired, {'id': original, 'state': 'not_sent', 'native_request_id': None,
                                    'reply_sha256': None, 'code': 'GROUP_INPUT_EXPIRED'})
         self.jobs.update(fresh, state='completed', result='{"speak":true,"text":"Fresh answer","work_index":null}')
-        with patch('trigger.group_reply.time.time', return_value=1027):
+        with patch('trigger.group_reply.time.time', return_value=NOW + 1027):
             self.assertEqual(loop.cycle()['state'], 'pending')
             self.assertEqual(loop.cycle()['state'], 'sent')
             self.assertEqual(loop.cycle()['state'], 'idle')
@@ -938,8 +959,9 @@ class CodexBackendTests(unittest.TestCase):
         group = {'account': 'self', 'peer': 'group@chatroom', 'owner_peer': 'owner',
                  'name': 'Fixture group', 'scope': {'mode': 'invited-group-text', 'since': 100, 'introduction': False}}
         url = 'https://example.com/article'
+        # Input times stay inside the receiver's 15-minute window; this test covers the link-read stall release.
         original = {'account': 'self', 'peer': group['peer'], 'sender': 'owner',
-                    'sender_name': 'Owner', 'mentioned': False, 'kind': 1, 'created': 120,
+                    'sender_name': 'Owner', 'mentioned': False, 'kind': 1, 'created': NOW + 1100,
                     'server_id': 44, 'text': 'Read ' + url}
         page = {'state': 'ready', 'url': url, 'text': 'Observed public article.'}
         events, sends = [original], []
@@ -966,7 +988,7 @@ class CodexBackendTests(unittest.TestCase):
             route = self.jobs.claim('chat')
             self.jobs.update(route['id'], state='completed', result=answer)
 
-            queued_at = 1000
+            queued_at = NOW + 1000
             with patch('receiver.codex_worker.time.time', return_value=queued_at):
                 with self.assertRaises(PublicationPending):
                     loop.cycle()
@@ -975,9 +997,9 @@ class CodexBackendTests(unittest.TestCase):
                     notify_desktop(config, self.jobs, old)
                 cli.assert_called_once()
             old = self.jobs.get(old['id'])
-            events.extend(dict(original, server_id=identity, created=125, text='Later message')
+            events.extend(dict(original, server_id=identity, created=NOW + 1105, text='Later message')
                           for identity in (45, 46))
-            events.append(dict(original, server_id=47, created=126, sender='member', text='Later group question'))
+            events.append(dict(original, server_id=47, created=NOW + 1106, sender='member', text='Later group question'))
             exchange = self.backend.exchange
 
             def legacy_exchange(route, value=None, **kwargs):
@@ -1043,7 +1065,7 @@ class CodexBackendTests(unittest.TestCase):
                                                   ('46', True, review)):
             with self.subTest(native_id=native_id, already_routed=already_routed):
                 event = {'account': 'self', 'peer': group['peer'], 'sender': 'owner',
-                         'sender_name': 'Owner', 'mentioned': False, 'kind': 49, 'created': 120,
+                         'sender_name': 'Owner', 'mentioned': False, 'kind': 49, 'created': NOW + 120,
                          'server_id': native_id, 'link': {'url': url, 'text': 'Original article card'}}
                 sends = []
 

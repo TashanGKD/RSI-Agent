@@ -231,6 +231,7 @@ class GroupLoop(ReplyLoop):
             and self.model.has_original_input([row['id'] for row in rows]) is True)
         for row, event in zip(rows, events):
             event['kind'] = row['kind']
+            event['created'] = row['created']
             pages = []
             if (row['kind'] == 1 or 'quote' in event or row['link_url']):
                 pages = linked_pages(self.db, row['id'], event['text'], row['link_url'])
@@ -313,7 +314,7 @@ class GroupLoop(ReplyLoop):
                 + '。发文字、分流任务、讨论严肃或正式内容、别人之间的对话、seconds_since_own_sticker 小于 '
                 + str(self.stickers['min_gap_seconds']) + ' 时一律 sticker=null。表情要少用，宁缺毋滥。')
         data = json.dumps({'group': self.owner['name'], 'recent_messages': batch.get('context', [])[-20:],
-            'new_messages': [{k: e[k] for k in ('sender_name', 'text', 'mentioned', 'follows_self', 'kind', 'image_index', 'image_status', 'image_kind', 'pdf_name', 'pdf_status', 'document_name', 'document_status', 'attachment_error', 'quote', 'article_url', 'linked_pages', 'videos', 'owner')
+            'new_messages': [{k: e[k] for k in ('sender_name', 'text', 'created', 'mentioned', 'follows_self', 'kind', 'image_index', 'image_status', 'image_kind', 'pdf_name', 'pdf_status', 'document_name', 'document_status', 'attachment_error', 'quote', 'article_url', 'linked_pages', 'videos', 'owner')
                               if k in e and (k != 'linked_pages' or not self.images)} for e in events],
             'seconds_since_own_post': round(elapsed),
             **({'seconds_since_own_sticker': round(sticker_gap)} if self.stickers else {})}, ensure_ascii=False)
