@@ -34,7 +34,9 @@ def prove_popout(w,name,identity,host):
  if identity.get('class')!=['wechat','wechat'] or host.get('class')!=identity['class'] or identity.get('pid')!=host.get('pid') or identity.get('leader')!=host.get('leader') or identity.get('transientFor') is not None or not {'_NET_WM_WINDOW_TYPE_NORMAL'}<=set(identity.get('types',[]))<={'_NET_WM_WINDOW_TYPE_NORMAL','_KDE_NET_WM_WINDOW_TYPE_OVERRIDE'}:raise ValueError('official chat process identity not proven')
  return True
 
-CONTROL_LABELS={'b7ed138502ad07080a7a10d9f7f6341e7c1e516da9b539b17aed7e9494eb004e':'contact','db8999af2af7c42eda70ac0250c4e1af9b21428ff456b8a6bdfe81d2f0691a2f':'group'}
+CONTROL_LABELS={'b7ed138502ad07080a7a10d9f7f6341e7c1e516da9b539b17aed7e9494eb004e':'contact','db8999af2af7c42eda70ac0250c4e1af9b21428ff456b8a6bdfe81d2f0691a2f':'group',
+ # Local WSL Xephyr rendering of the same top "Group Chats" label; OCR can misread it as "GroupChat:".
+ '7891899e7aa430223618803010a02ab7e4f5d87aa2f91cff84aa14d2ec136596':'group'}
 
 def first_native_candidate(rows,peer,box,image=None):
  from .selectors import native_search_bounds,_search_section
