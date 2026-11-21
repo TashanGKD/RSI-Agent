@@ -20,6 +20,13 @@ import tomllib
 import traceback
 import zipfile
 
+# Resolve the sibling module at startup so a missing file fails before any
+# receipt transaction; direct script runs keep working beside delivery_updates.py.
+if __package__:
+    from . import delivery_updates
+else:
+    import delivery_updates
+
 WORD_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 
 
@@ -456,8 +463,7 @@ class Jobs:
                         or previous['reply_sha256'] != value['reply_sha256']):
                     raise ValueError('Recorded native outcome cannot be replaced.')
             db.execute('INSERT OR REPLACE INTO delivery_receipts VALUES(?,?)', (value['id'], encoded(value).decode()))
-            from .delivery_updates import enqueue
-            enqueue(db, row, value)
+            delivery_updates.enqueue(db, row, value)
         return {'state': 'recorded'}
 
     def desktop_delivery(self, identity, thread, turn, *targets):
@@ -947,9 +953,8 @@ def main():
                             creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
                     cli = executable.resolve()
                     if cli is not None:
-                        from .delivery_updates import notify
                         try:
-                            notify(dict(config, codex=str(cli)), jobs)
+                            delivery_updates.notify(dict(config, codex=str(cli)), jobs)
                         except (OSError, ValueError, sqlite3.Error) as error:
                             stderr.write('Delivery notice unavailable: ' + type(error).__name__ + '\n');stderr.flush()
                     time.sleep(3)

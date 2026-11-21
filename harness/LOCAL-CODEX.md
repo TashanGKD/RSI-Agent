@@ -10,7 +10,8 @@ Codex conversation. The original V2 queue delivers eligible replies.
 Run `python -B -m receiver.codex_worker --config /private/local-codex.json`
 on the computer with the signed-in Codex user. The old `rsi_agent.codex_worker`
 module command still forwards to the receiver. For a standalone installation,
-copy [`receiver/codex_worker.py`](../receiver/codex_worker.py) as the worker script.
+copy the whole [`receiver/`](../receiver/) directory; the worker imports
+`delivery_updates.py` beside it and refuses to start without it.
 The installed per-user logon task
 keeps it running in the background, independently of the maintenance heartbeat.
 The computer must be awake and the Codex user signed in.
