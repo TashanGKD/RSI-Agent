@@ -172,7 +172,7 @@ Ubuntu 的 `ssh.socket` 可能接管监听；激活前应核对并停用本实�
 确认实际 `ssh.service` 只监听配置的回环端口，不能只看 `sshd_config` 推断监听范围。
 
 激活安排在另行授权的维护窗口内。先备份原服务定义、启动方式、私有配置与实际队列状态，
-确认没有未核对的发送。需要 `systemd`、`systemd-sysv`、`xserver-xephyr`、`openssh-server`、
+确认没有未核对的发送。需要 `systemd`、`systemd-sysv`、`dbus`、`xserver-xephyr`、`openssh-server`、
 `xauth`、`x11-utils`、`openbox`、`dbus-x11`、Python 及前文的触发器依赖。
 在该发行版 `/etc/wsl.conf` 中保留其他配置，并加入：
 
