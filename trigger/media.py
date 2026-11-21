@@ -1,8 +1,10 @@
 """Turn a source-qualified native attachment into a Codex input block."""
 import base64
 import hashlib
+import io
 import re
 import xml.etree.ElementTree as ET
+import zipfile
 
 
 class MediaPending(ValueError):
@@ -23,7 +25,7 @@ def document_name(raw):
     if len(apps) != 1 or apps[0].findtext('type') != '6':
         return None
     name = apps[0].findtext('title') or ''
-    if (1 <= len(name.encode()) <= 180 and name.lower().endswith(('.pdf', '.md', '.txt'))
+    if (1 <= len(name.encode()) <= 180 and name.lower().endswith(('.pdf', '.md', '.txt', '.docx'))
             and all(c.isprintable() and c not in '/\\' for c in name)):
         return name
     return None
@@ -43,6 +45,26 @@ def text_document(data):
         raise MediaUnavailable('DOCUMENT_UTF8_REQUIRED') from None
 
 
+def word_document(data):
+    """Admit only a bounded, unencrypted Word package containing its main document."""
+    try:
+        if not data.startswith(b'PK\x03\x04') or len(data) > 25000000:
+            raise ValueError
+        with zipfile.ZipFile(io.BytesIO(data)) as package:
+            entries = package.infolist()
+            names = {entry.filename for entry in entries}
+            if (len(entries) > 2000 or not {'[Content_Types].xml', 'word/document.xml'} <= names
+                    or any(entry.flag_bits & 1 for entry in entries)
+                    or sum(entry.file_size for entry in entries) > 200000000):
+                raise ValueError
+    except (ValueError, zipfile.BadZipFile):
+        raise MediaUnavailable('DOCUMENT_WORD_INVALID') from None
+
+
+def check_document(name, data):
+    (word_document if name.lower().endswith('.docx') else text_document)(data)
+
+
 def document_part(transport, server, name):
     value = transport({'op': 'document', 'server_id': str(server)})
     if value.get('state') != 'document_ready' or value.get('source_verified') is not True:
@@ -50,7 +72,7 @@ def document_part(transport, server, name):
     data = base64.b64decode(value['data'], validate=True)
     if value['name'] != name or hashlib.sha256(data).hexdigest() != value['sha256']:
         raise MediaUnavailable('DOCUMENT_BYTES_CHANGED')
-    text_document(data)
+    check_document(name, data)
     return {'type': 'document', 'name': name, 'data': value['data']}
 
 

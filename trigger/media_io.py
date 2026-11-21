@@ -4,7 +4,7 @@ import hashlib
 from pathlib import Path
 
 from .reply_io import advance, request_id
-from .media import document_name, text_document, MediaUnavailable
+from .media import document_name, check_document, MediaUnavailable
 
 CLIENT = 'rsi-vision'
 
@@ -75,7 +75,7 @@ def document(account, peer, server, allowed_senders, since, *, pdf_only=False):
         return {'state': 'media_attention', 'code': prefix + '_BYTES_UNPROVEN'}
     if not pdf_only:
         try:
-            text_document(data)
+            check_document(name, data)
         except MediaUnavailable as error:
             return {'state': 'media_attention', 'code': str(error)}
     return {'state': 'pdf_ready' if pdf_only else 'document_ready', 'name': name, 'data': base64.b64encode(data).decode(),

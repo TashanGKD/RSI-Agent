@@ -11,6 +11,7 @@ import unittest
 from unittest.mock import patch
 from unittest.mock import Mock
 import types
+import zipfile
 
 from rsi_agent.config import WECHAT_LINUX
 
@@ -26,6 +27,13 @@ class InboundPdfTests(unittest.TestCase):
 
     def test_markdown_reads_the_original_resource_and_rejects_wrong_sender_or_cache(self):
         self.check_document('Guide.md', b'# original resource fixture\n', 3801091)
+
+    def test_word_reads_the_original_resource_and_rejects_wrong_sender_or_cache(self):
+        package = io.BytesIO()
+        with zipfile.ZipFile(package, 'w', zipfile.ZIP_STORED) as word:
+            word.writestr('[Content_Types].xml', '<Types/>')
+            word.writestr('word/document.xml', '<w:document><w:body>original resource fixture</w:body></w:document>')
+        self.check_document('Brief.docx', package.getvalue(), 3801091)
 
     def check_document(self, name, data, resource_type):
         sys.path.insert(0, str(WECHAT_LINUX))
