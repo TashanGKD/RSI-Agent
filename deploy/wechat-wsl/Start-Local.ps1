@@ -13,6 +13,13 @@ $wsl = Join-Path $env:WINDIR 'System32/wsl.exe'
 if ($LASTEXITCODE -ne 0) { throw 'The WSL desktop target did not start. Check systemd and the installed WSL service bundle.' }
 & $wsl -d $Distro -u root --exec /usr/bin/systemctl is-active --quiet rsi-owner-replies.service
 if ($LASTEXITCODE -ne 0) { throw 'The confirmed owner reply service is not active. Stage/install the WSL bundle with --owner-config; preserve its original private state.' }
+# WSL stops a distribution after instanceIdleTimeout (15 s by default) without a wsl.exe client,
+# which would log WeChat out. Keep one idle client for this distribution only, independent of the receiver.
+$keepalive = Get-CimInstance Win32_Process -Filter "Name='wsl.exe'" |
+    Where-Object { $_.CommandLine -like "*-d $Distro *--exec /bin/sleep infinity*" }
+if (-not $keepalive) {
+    Start-Process -FilePath $wsl -ArgumentList @('-d', $Distro, '-u', 'root', '--exec', '/bin/sleep', 'infinity') -WindowStyle Hidden
+}
 Push-Location -LiteralPath $Release
 try {
     & $Python -B -m receiver.codex_worker --config $Config
