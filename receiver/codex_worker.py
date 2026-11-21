@@ -4,6 +4,7 @@ import base64
 from contextlib import contextmanager
 import hashlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import io
 import json
 import os
 from pathlib import Path
@@ -17,10 +18,29 @@ import threading
 import time
 import tomllib
 import traceback
+import zipfile
+
+WORD_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 
 
 def encoded(value):
     return json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(',', ':')).encode()
+
+
+def word_package(data):
+    """Raise ValueError unless data is a bounded, unencrypted Word package."""
+    try:
+        if not data.startswith(b'PK\x03\x04') or len(data) > 25000000:
+            raise ValueError
+        with zipfile.ZipFile(io.BytesIO(data)) as package:
+            entries = package.infolist()
+            names = {entry.filename for entry in entries}
+            if (len(entries) > 2000 or not {'[Content_Types].xml', 'word/document.xml'} <= names
+                    or any(entry.flag_bits & 1 for entry in entries)
+                    or sum(entry.file_size for entry in entries) > 200000000):
+                raise ValueError
+    except (ValueError, zipfile.BadZipFile):
+        raise ValueError('Only bounded original Word packages can cross the model port.') from None
 
 
 def native_part_texts(receipt, expected):
@@ -109,11 +129,15 @@ def blocks(messages):
                     name = part['name']
                     data = base64.b64decode(part['data'], validate=True)
                     if (not isinstance(name, str) or not 1 <= len(name.encode()) <= 180
-                            or not name.lower().endswith(('.md', '.txt'))
-                            or any(not c.isprintable() or c in '/\\' for c in name)
-                            or not data or len(data) > 1000000 or b'\0' in data):
+                            or not name.lower().endswith(('.md', '.txt', '.docx'))
+                            or any(not c.isprintable() or c in '/\\' for c in name)):
+                        raise ValueError('Only bounded original document bytes can cross the model port.')
+                    if name.lower().endswith('.docx'):
+                        word_package(data)
+                    elif not data or len(data) > 1000000 or b'\0' in data:
                         raise ValueError('Only bounded original Markdown/text bytes can cross the model port.')
-                    data.decode('utf-8-sig')
+                    else:
+                        data.decode('utf-8-sig')
                     inputs.append({'type': 'document', 'name': name, 'data': data})
                 else:
                     raise ValueError('Unsupported Codex content block.')
@@ -141,7 +165,7 @@ def desktop_attachments(folder, messages):
             extension = Path(part['name']).suffix.lower()
             documents.append(({'path': (folder / ('document-' + str(index) + extension)).as_posix(),
                 'name': part['name'], 'sha256': hashlib.sha256(data).hexdigest(),
-                'mime': 'text/markdown' if extension == '.md' else 'text/plain'}, data))
+                'mime': WORD_MIME if extension == '.docx' else 'text/markdown' if extension == '.md' else 'text/plain'}, data))
     return images, documents
 
 
