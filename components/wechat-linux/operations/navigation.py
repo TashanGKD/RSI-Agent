@@ -36,7 +36,9 @@ def prove_popout(w,name,identity,host):
 
 CONTROL_LABELS={'b7ed138502ad07080a7a10d9f7f6341e7c1e516da9b539b17aed7e9494eb004e':'contact','db8999af2af7c42eda70ac0250c4e1af9b21428ff456b8a6bdfe81d2f0691a2f':'group',
  # Local WSL Xephyr rendering of the same top "Group Chats" label; OCR can misread it as "GroupChat:".
- '7891899e7aa430223618803010a02ab7e4f5d87aa2f91cff84aa14d2ec136596':'group'}
+ '7891899e7aa430223618803010a02ab7e4f5d87aa2f91cff84aa14d2ec136596':'group',
+ # Local WSL Xephyr rendering of the top "Contacts" label.
+ '5a4a4d01622c981752161880efda4a4cabb0db21f14a10acfd88ef5c6e596f6d':'contact'}
 
 def first_native_candidate(rows,peer,box,image=None):
  from .selectors import native_search_bounds,_search_section
