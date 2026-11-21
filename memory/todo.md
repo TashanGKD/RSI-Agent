@@ -3,11 +3,10 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-1. **Ordinary group photos.** Deploy the Translate-toolbar and deeper-history
-   fixes, then follow the next fresh ordinary photo from native export through
-   the friend/group Codex turn to its original V2 reply. A mixed
-   image/text/link batch and a pale screenshot also still need one fresh pass.
-   Failed originals stay failed; do not replay them.
+1. **Photos and documents, fresh acceptance.** Ordinary photos work; follow
+   the next slow-painting viewer (#132) and the next fresh Word file from native
+   export to their original V2 reply. Grouped photo albums stay unsupported until
+   a separate design exists. Failed originals stay failed; do not replay them.
 2. **Delivery stages stay separate.** Queue receipt, visible user item, frozen
    completion and native send are distinct; report each from its own record.
 3. **Dafeiyu sticker output (Issue #26).** Verify favourite-to-asset selection
@@ -22,7 +21,7 @@ as candidates rather than silently expanding the active task.
 7. **Penguin baseline.** Fix one test agent and model, build a versioned
    benchmark with an independent evaluator and held-out set, then run one
    bounded candidate. No score exists yet.
-8. **Soak and packaging.** Collect sustained availability evidence and simplify
-   install, upgrade and rollback around the actual release layout. Review the
-   WSL setup/pairing, service profile and Windows logon-task candidate; after pairing, validate
-   activation and restart recovery in a separately authorized maintenance window.
+8. **Soak and packaging.** Collect sustained availability evidence. Watch the
+   late-receipt notices from #124 for reply-queue delay. For local WSL installs,
+   validate Task Scheduler logon and restart recovery in a separately
+   authorized window.
