@@ -20,6 +20,10 @@ class InboundPdfTests(unittest.TestCase):
     def test_pdf_reads_the_original_resource_and_rejects_wrong_sender_or_cache(self):
         self.check_document('Paper.pdf', b'%PDF-1.7\noriginal resource fixture\n%%EOF', 3342339)
 
+    def test_pdf_above_the_former_10mb_limit_is_read(self):
+        # A real 12.5 MB group PDF was downloaded but rejected by the old 10 MB budget.
+        self.check_document('Large.pdf', b'%PDF-1.7\n' + b'0' * 12536000 + b'fixture\n%%EOF', 3342339)
+
     def test_markdown_reads_the_original_resource_and_rejects_wrong_sender_or_cache(self):
         self.check_document('Guide.md', b'# original resource fixture\n', 3801091)
 
@@ -73,6 +77,8 @@ class InboundPdfTests(unittest.TestCase):
             with patch('linux_tool.ACCOUNT', 'fixture'), patch('linux_tool.PROFILE', profile), patch('linux_tool.native', native):
                 result = read('fixture', peer, '42', {sender}, 100)
                 self.assertEqual(base64.b64decode(part(lambda _: result, '42', name)['data']), data)
+                with patch('operations.exports.MAX_FILE_BYTES', len(data) - 1):
+                    self.assertEqual(read('fixture', peer, '42', {sender}, 100)['code'], prefix + '_TOO_LARGE')
                 with self.assertRaisesRegex(ValueError, 'incoming scope'):
                     read('fixture', peer, '42', {'somebody_else'}, 100)
                 path.write_bytes(data.replace(b'fixture', b'changed'))

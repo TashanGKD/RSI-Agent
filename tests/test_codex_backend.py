@@ -513,6 +513,15 @@ class DesktopRelayTests(unittest.TestCase):
                 finally:
                     http.shutdown()
 
+    def test_pdf_budget_admits_a_12mb_original_and_rejects_over_25mb(self):
+        def pdf(size):
+            data = b'%PDF-1.7\n' + b'0' * (size - 9)
+            return [{'role': 'user', 'content': [{'type': 'pdf', 'name': 'a.pdf',
+                     'data': base64.b64encode(data).decode()}]}]
+        self.assertEqual(len(blocks(pdf(12536601))[1][0]['data']), 12536601)
+        with self.assertRaises(ValueError):
+            blocks(pdf(25000001))
+
     def test_pdf_stays_bound_to_its_original_desktop_chat_and_rejects_changed_files(self):
         with tempfile.TemporaryDirectory() as td:
             jobs = Jobs(td)

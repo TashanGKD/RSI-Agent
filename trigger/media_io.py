@@ -40,7 +40,7 @@ def pdf(account, peer, server, allowed_senders, since):
 
 def document(account, peer, server, allowed_senders, since, *, pdf_only=False):
     from linux_tool import ACCOUNT, decode, native, signed
-    from operations.exports import cached
+    from operations.exports import cached, FileTooLarge
     from receive_source import sid
 
     if account != ACCOUNT:
@@ -66,6 +66,8 @@ def document(account, peer, server, allowed_senders, since, *, pdf_only=False):
         return {'state': 'media_attention', 'code': prefix + '_SOURCE_UNPROVEN'}
     try:
         data, proof = cached(peer, server, None, raw)
+    except FileTooLarge:
+        return {'state': 'media_attention', 'code': prefix + '_TOO_LARGE'}
     except (OSError, ValueError):
         return {'state': 'media_attention', 'code': prefix + '_CACHE_UNAVAILABLE'}
     if (proof['name'] != name or proof['sourceId'] != server or not proof['nativeMessageMD5Matched']
