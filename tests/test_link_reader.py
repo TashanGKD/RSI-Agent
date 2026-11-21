@@ -271,3 +271,27 @@ class NativeOwnerLinkTests(unittest.TestCase):
                 self.assertEqual(batch['events'][0]['server_id'], 11)
                 source(root, owner, {'op': 'ack', **{k: batch[k] for k in ('batch_id', 'batch_hash', 'ack_ids')}})
                 self.assertEqual(source(root, owner, {'op': 'read'})['events'], [])
+
+    def test_owner_chat_without_a_native_table_reads_as_empty(self):
+        from trigger.reply_io import source
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            dbpath = root / 'native.sqlite'
+            with sqlite3.connect(dbpath) as db:
+                db.executescript("CREATE TABLE Name2Id(user_name TEXT);INSERT INTO Name2Id VALUES('self'),('owner');")
+            sys.path.insert(0, str(WECHAT_LINUX))
+            self.addCleanup(sys.path.remove, str(WECHAT_LINUX))
+            import linux_tool
+
+            @contextlib.contextmanager
+            def opened(_):
+                db = sqlite3.connect(dbpath)
+                db.row_factory = sqlite3.Row
+                try:
+                    yield db, {'consistency': 'committed'}
+                finally:
+                    db.close()
+
+            owner = {'account': 'self', 'owner_peer': 'owner', 'send_scope': {'mode': 'owner-private-text', 'since': 100}}
+            with patch.object(linux_tool, 'native', opened):
+                self.assertEqual(source(root, owner, {'op': 'read'}), {'events': []})
