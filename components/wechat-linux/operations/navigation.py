@@ -53,6 +53,19 @@ def title_point(point):
  if not isinstance(point,list) or len(point)!=2 or any(type(v) is not int for v in point) or point[1]<16:raise ValueError('calibrated selected row point required')
  return [point[0],point[1]-16]
 
+# A freshly started client opens its first chat window at this default size and
+# does not remember a resize; only the window this job just opened is adjusted.
+DEFAULT_POPOUT=(598,640)
+
+def resize_own_popout(d,own):
+ import subprocess
+ subprocess.run(['xdotool','windowsize',own['id'],'623','667'],capture_output=True,timeout=3)
+ for delay in (0.1,0.2,0.4,0.8):
+  time.sleep(delay);after=d.app_windows()
+  current=next((w for w in after if w['id']==own['id']),None)
+  if current and (current['width'],current['height'])==(623,667):return current,after
+ return own,d.app_windows()
+
 def open_selected_popout(d,j,c,v):
  """Only bounded, pre-input navigation; an observed new window ends gestures."""
  from .recipes import screen,activate,PreparationError
@@ -180,6 +193,8 @@ def search_named(d,j,target,cfg,query):
   # Opening a chat is navigation only. Its system title must prove the recipient
   # before ui()/park()/stage() may touch any draft. Never accept a guessed name.
   before=d.app_windows();own,after=open_selected_popout(d,j,c,v);identity=window_identity(own)
+  if (own['width'],own['height'])==DEFAULT_POPOUT and identity['pid']==v['mainIdentity']['pid'] and identity['transientFor'] is None:
+   own,after=resize_own_popout(d,own)
   # Record a newly created normal official window even if its target is wrong,
   # so exact owned non-editing cleanup can still run. No stage has occurred.
   if (own['width'],own['height'])!=(623,667) or identity['class']!=v['mainIdentity']['class'] or identity['pid']!=v['mainIdentity']['pid'] or identity['leader']!=v['mainIdentity']['leader'] or identity['transientFor'] is not None:raise PreparationError('RECIPIENT_NOT_VERIFIED','New window identity is not the official chat.',clean=False)
