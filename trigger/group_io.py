@@ -200,7 +200,8 @@ def handle(installation, value, request):
         'document': {'op', 'server_id'},
         'recycle_image': {'op', 'server_id'},
         'ack': {'op', 'batch_id', 'batch_hash', 'ack_ids'},
-        'submit': {'op', 'server_id', 'text'}, 'advance': {'op', 'server_id'}, 'status': {'op', 'server_id'}}
+        'submit': {'op', 'server_id', 'text'}, 'advance': {'op', 'server_id'}, 'status': {'op', 'server_id'},
+        'settle': {'op', 'server_id'}}
     op = request.get('op')
     if op not in fields or set(request) != fields[op] or value.get('auto_reply_enabled') is not True:
         raise ValueError('Group action is outside its enabled scope.')
@@ -233,7 +234,7 @@ def handle(installation, value, request):
     policy = load_config(root / 'operations-state/config.json')
     if policy['account'] != value['account']:
         raise ValueError('Group sender account changed.')
-    if op == 'status' and not (root / 'operations-state/queue.sqlite').is_file():
+    if op in ('status', 'settle') and not (root / 'operations-state/queue.sqlite').is_file():
         raise ValueError('Original group queue is missing.')
     api = PublicAPI(root / 'operations-state', policy)
     try:

@@ -217,6 +217,15 @@ def handle(api, client, rid, peer, op, text, policy, advance):
             raise ValueError('Original group batch is incomplete.')
     if op == 'submit' and original_text(jobs) != text:
         raise ValueError('Original group reply changed.')
+    if op == 'settle':
+        # Same bounded runtime settlement as a private reply: only a part whose
+        # navigation failed before any confirmed input; it never sends or retries.
+        current = next((job for job in jobs
+                        if original_status(api, job, client)['preinput_cleanup_pending']), None)
+        if current is None:
+            raise ValueError('Only unconfirmed original preparation may be settled.')
+        advance(api, current, policy)
+        return aggregate(api, originals(api, client, rid, peer), client, rid)
     result = aggregate(api, jobs, client, rid)
     if op == 'advance':
         if len(jobs) == 1 and 'group_reply_source' not in jobs[0].get('dispatch', {}):
