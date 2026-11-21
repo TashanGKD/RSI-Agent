@@ -102,7 +102,7 @@ def blocks(messages):
                     if (not isinstance(name, str) or not 1 <= len(name.encode()) <= 180
                             or not name.lower().endswith('.pdf')
                             or any(not c.isprintable() or c in '/\\' for c in name)
-                            or len(data) > 10000000 or not data.startswith(b'%PDF-')):
+                            or len(data) > 25000000 or not data.startswith(b'%PDF-')):
                         raise ValueError('Only bounded original PDF bytes can cross the model port.')
                     inputs.append({'type': 'pdf', 'name': name, 'data': data})
                 elif part['type'] == 'document':
@@ -787,7 +787,7 @@ def server(config, jobs, draining, executable=None):
                 return self.answer(404, {'state': 'not_found'})
             try:
                 size = int(self.headers.get('Content-Length', '0'))
-                if not 0 < size <= 20000000:
+                if not 0 < size <= 40000000:
                     raise ValueError('Bounded request required.')
                 value = json.loads(self.rfile.read(size))
                 if self.path == '/desktop-completions':

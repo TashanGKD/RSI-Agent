@@ -36,7 +36,9 @@ class Transport:
             request = dict(request, _binding=self.config['binding_token'])
         result = subprocess.run(command, cwd=ROOT, input=json.dumps(request) if request else None,
             capture_output=True, text=True, timeout=180)
-        limit = 15000000 if request and request.get('op') in ('image', 'pdf', 'document', 'voice') else 1500000
+        op = request.get('op') if request else None
+        # Base64 PDFs up to 25 MB, or images and voice up to 10 MB, plus JSON framing.
+        limit = 36000000 if op in ('pdf', 'document') else 15000000 if op in ('image', 'voice') else 1500000
         if result.returncode or len(result.stdout.encode()) > limit:
             raise ValueError('Owner reply transport is unavailable; preserve the original request.')
         value = json.loads(result.stdout)
