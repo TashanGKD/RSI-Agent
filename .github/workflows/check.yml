@@ -9,7 +9,7 @@ permissions:
 jobs:
   linux:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -17,6 +17,7 @@ jobs:
           python-version: '3.12'
       - run: python -m pip install -r requirements-linux-tests.txt
       - name: Install isolated desktop bootstrap dependencies
+        timeout-minutes: 15
         run: |
           apt_options=(-o Acquire::ForceIPv4=true -o Acquire::Retries=0
             -o Acquire::http::Timeout=10 -o Acquire::https::Timeout=10)
@@ -29,8 +30,8 @@ jobs:
               continue
             fi
             printf '%s\n' "$mirror" | sudo tee /etc/apt/apt-mirrors.txt
-            if sudo apt-get "${apt_options[@]}" update --error-on=any -qq &&
-                sudo apt-get "${apt_options[@]}" install -y --download-only --no-install-recommends "${packages[@]}"; then
+            if sudo timeout --kill-after=10s 90s apt-get "${apt_options[@]}" update --error-on=any -qq &&
+                sudo timeout --kill-after=10s 180s apt-get "${apt_options[@]}" install -y --download-only --no-install-recommends "${packages[@]}"; then
               sudo apt-get "${apt_options[@]}" install -y --no-download --no-install-recommends "${packages[@]}"
               exit $?
             fi

@@ -187,8 +187,11 @@ systemd=true
 
 确认 PID 1 是 systemd 后，停止本实例旧的客户端和内层显示，等待其实际退出。
 服务初始化发现 `:92` 已有 X socket 时会拒绝覆盖授权；不要删除活动 socket 来强行启动。
-安装审查过的三个定义至 `/etc/systemd/system/`，执行 daemon-reload，再 enable/start
-`wechat-gui.target`。这会启动 SSH、Xephyr 和官方客户端，不会自动启用任何回复触发器。
+配对和主号授权完成后，用 `services stage --profile wsl --owner-config /private/owner/coordinator.json
+--python /opt/rsi-agent/venv/bin/python` 连同原来的 `--release`、`--output` 参数生成完整包。
+这会加入绑定原配置与 Python 的主号服务，以及 target 对它的依赖；不加入群聊，不读取或更改授权。
+审查后将四个定义安装至 `/etc/systemd/system/`，执行 daemon-reload，再 enable/start
+`wechat-gui.target`。不带 `--owner-config` 生成的三个定义仍只供桌面准备。
 内层显示固定为 `:92`，私有授权位于 `/run/wechat-gui/Xauthority`；安装配置应使用这两个值，
 持久的账号资料与 `runtime_root` 仍留在原私有目录，不迁移到 `/run`。
 登录后核对窗口布局和原生绑定，再分别验证接收器 `/health` 与：
@@ -199,8 +202,7 @@ python3 -B -m rsi_agent --config /private/installation.json audit --profile wsl
 
 该 audit 检查 X 和桌面的持久服务，不要求本地部署运行 noVNC；仍不代替微信送达验收。
 触发器只在配对、配置和新消息验收完成后启用。已有 owner/group 模板需替换 `@RELEASE@`；
-安装对应的服务后，可用 `systemctl add-wants wechat-gui.target rsi-owner-replies.service`
-把已授权的私聊触发器接入启动链。群聊服务应在群准入配置完成后单独加入，不默认打开。
+完整 WSL 包已把已授权的私聊触发器接入启动链。群聊服务应在群准入配置完成后单独加入，不默认打开。
 
 ### Windows 接收器登录任务
 
@@ -222,7 +224,15 @@ python3 -B -m rsi_agent --config /private/installation.json audit --profile wsl
 `Start-Local.ps1`，先启动 WSL 桌面 target，再以前台子进程运行原接收器。
 接收器退出码交给任务计划程序，最多每分钟重试一次、共三次；已有任务不覆盖，重复实例忽略。
 接收器自己维护 SSH 隧道，继续使用原私有请求与完成记录。
-Linux 桌面启动失败时不会继续拉起接收器，以免把不完整启动报告成成功。
+Linux 桌面或主号服务启动失败时不会继续拉起接收器，以免把不完整启动报告成成功。
+
+`/health` 的 `ready` 保留接收器就绪语义，并显式标注 `readiness_scope=receiver_only`。
+`pipeline_ready` 还要求最近 90 秒内有 Linux 触发器经隧道传来的原生账号、普通官方进程、
+支持布局观察，且触发器没有停在 attention。它不代替真实送达验收。
+晚于原会话 18 秒等待窗口到达的发送回执会持久化通知原会话；通知只查询原回执，不生成或重发微信。
+
+WSL 桌面模板以 `-s 0` 关闭内层 X 屏保，每次已获桌面锁的操作也先唤醒旧显示的屏保。
+这不更改 Windows 电源策略，不能阻止宿主睡眠、合盖或注销。插电熄屏与锁屏仍应分别用新请求验收。
 
 这依赖 Windows 用户登录、电脑唤醒和 Codex 可用。WSL 服务 enable 只负责发行版启动后
 拉起服务；Windows 登录任务负责启动发行版与接收器，不能把仅有 enable 当作 Windows 开机验收。

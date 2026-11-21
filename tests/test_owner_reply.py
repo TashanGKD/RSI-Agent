@@ -52,6 +52,8 @@ class ReplyLoopTests(unittest.TestCase):
         key = request['server_id']
         if request['op'] == 'submit':
             return self.effects.get(key, {'state': 'queued'})
+        if request['op'] == 'status':
+            return self.effects.get(key, {'state': 'unknown'})
         self.assertNotIn(key, self.effects, 'No physical send may be replayed')
         result = {'state': 'unknown'} if self.unknown else {'state': 'succeeded', 'outcome': 'sent'}
         self.effects[key] = result
@@ -107,7 +109,33 @@ class ReplyLoopTests(unittest.TestCase):
         self.assertEqual(loop.cycle()['state'], 'attention')
         before = len(self.calls)
         self.assertEqual(loop.cycle()['state'], 'attention')
-        self.assertEqual(len(self.calls), before)
+        self.assertEqual(self.calls[before:], [{'op': 'status', 'server_id': '1'}])
+        self.assertEqual(self.model.reply.call_count, 1)
+
+    def test_owner_releases_proven_unsent_original_without_regenerating_it(self):
+        self.unknown = True
+        loop = self.loop()
+        self.assertEqual(loop.cycle()['state'], 'attention')
+        frozen = loop.db.execute('SELECT reply FROM inbox WHERE id="1"').fetchone()[0]
+        proof = {'state': 'failed', 'outcome': 'not_sent', 'recoverable_preinput_failure': True,
+                 'reply_sha256': hashlib.sha256(frozen.encode()).hexdigest()}
+        loop.io = Mock(return_value=proof)
+        self.assertEqual(loop.cycle()['state'], 'failed')
+        loop.io.assert_called_once_with({'op': 'status', 'server_id': '1'})
+        self.assertEqual(self.model.reply.call_count, 1)
+        self.assertEqual(loop.db.execute('SELECT reply,state FROM inbox WHERE id="1"').fetchone()[:], (frozen, 'failed'))
+        self.assertEqual(loop.cycle()['state'], 'idle')
+
+    def test_accepted_original_recovers_only_cleanup_then_releases_inbox(self):
+        self.unknown = True
+        loop = self.loop()
+        self.assertEqual(loop.cycle()['state'], 'attention')
+        frozen = loop.db.execute('SELECT reply FROM inbox WHERE id="1"').fetchone()[0]
+        proof = {'state': 'succeeded', 'outcome': 'sent', 'cleanup_pending': True,
+                 'reply_sha256': hashlib.sha256(frozen.encode()).hexdigest()}
+        loop.io = Mock(side_effect=[proof, dict(proof, cleanup_pending=False)])
+        self.assertEqual(loop.cycle()['state'], 'sent')
+        self.assertEqual([c.args[0]['op'] for c in loop.io.call_args_list], ['status', 'cleanup'])
         self.assertEqual(self.model.reply.call_count, 1)
 
     def test_pending_publication_keeps_original_inbox_without_sending_a_fallback(self):
@@ -348,6 +376,25 @@ class ReplyNativeTests(unittest.TestCase):
         self.assertEqual(self.call('advance', server_id='1')['state'], 'busy')
         self.assertEqual(self.api.s.by_id(foreign['id']), before)
         self.assertEqual(self.driver.prepares, 0)
+
+    def test_owner_status_accepts_only_restored_original_preinput_failure(self):
+        from operations import navigation, composer
+        self.call('submit', server_id='1', text='Frozen reply')
+        job = self.api.s.get(CLIENT, request_id('fixture_account', 'fixture_owner', '1'))
+        self.api.s.set_state(job['id'], 'preparing')
+        self.api.s.set_state(job['id'], 'failed', {'code': 'SEND_PREPARATION_FAILED',
+            'noSend': True, 'sideEffectStarted': False})
+        job = self.api.s.by_id(job['id'])
+        navigation.save(self.api.s.root, job, {'state': 'settled'})
+        parked = composer.save(self.api.s.root, job, {'state': 'restored'})
+        diagnostic = self.api.s.root / (job['id'] + '-preparation-failure.json')
+        diagnostic.write_text(json.dumps({'phase': 'stage-text', 'ownedCleanupVerified': True}))
+        diagnostic.chmod(0o600)
+        self.assertTrue(self.call('status', server_id='1')['recoverable_preinput_failure'])
+        composer.save(self.api.s.root, job, dict(parked, state='parked'))
+        self.assertFalse(self.call('status', server_id='1')['recoverable_preinput_failure'])
+        self.assertEqual(self.driver.prepares, 0)
+        self.assertEqual(self.driver.sent, [])
 
     def test_failed_image_read_is_settled_before_the_next_reply(self):
         image = self.api.s.submit({'client': 'rsi-vision', 'request_id': 'image', 'peer': 'fixture_owner',

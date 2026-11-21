@@ -42,7 +42,7 @@ class Executor:
  def finalize(self,j,proof):
   try:return self.d.finalize(j,proof) if hasattr(self.d,'finalize') else proof
   except Exception:return dict(proof,postActionPending=True,draftRecoveryPending=True,draftRestored=False)
- def recover_accepted_cleanup(self):
+ def recover_accepted_cleanup(self,original=None):
   # Terminal acceptance and remaining UI cleanup are separate. Retry only the
   # original cleanup primitives; never prepare, execute or change its payload.
   import json
@@ -50,10 +50,11 @@ class Executor:
   from .audit import audit_many
   candidate=None
   for row in self.s.c.execute("SELECT id,result FROM jobs WHERE state='succeeded' ORDER BY seq"):
+   if original is not None and row['id']!=original['id']:continue
    proof=json.loads(row['result']) if row['result'] else {}
    if proof.get('state')=='accepted' and any(proof.get(k) is True for k in ('postActionPending','draftRecoveryPending','navigationRecoveryPending')):
-    original=self.s.by_id(row['id'])
-    if original['action'] in ('send_text','send_image','send_file'):candidate=original;break
+    found=self.s.by_id(row['id'])
+    if found['action'] in ('send_text','send_image','send_file'):candidate=found;break
   if not candidate:return None
   j=candidate;now=time.monotonic()
   if now-self.accepted_cleanup_attempts.get(j['id'],-float('inf'))<5:return None

@@ -33,6 +33,8 @@ def main(argv=None):
     service_stage = service_commands.add_parser('stage')
     service_stage.add_argument('--release', required=True, help='Absolute Linux path of the source release.')
     service_stage.add_argument('--output', required=True, help='A NEW directory for the review bundle.')
+    service_stage.add_argument('--owner-config', help='Confirmed private owner coordinator; WSL only, no activation.')
+    service_stage.add_argument('--python', default='/usr/bin/python3', help='Linux runtime interpreter in the staged owner unit.')
     service_stage.add_argument('--profile', choices=['server', 'wsl'], default='server',
                                help='Server X/VNC stack (default), or a local WSLg/Xephyr desktop.')
     setup = commands.add_parser('setup', help='Prepare pairing or inspect installation stages; no client restart or send.')
@@ -91,7 +93,8 @@ def main(argv=None):
         print(json.dumps(run(args.config, args.mode), ensure_ascii=False))
         return 0
     if args.command == 'services':
-        print(json.dumps(stage(args.release, args.output, args.profile), ensure_ascii=False, indent=2))
+        print(json.dumps(stage(args.release, args.output, args.profile,
+            owner_config=args.owner_config, python=args.python), ensure_ascii=False, indent=2))
         return 0
     config = load(args.config)
     if args.command == 'doctor':

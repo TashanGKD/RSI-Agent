@@ -82,3 +82,36 @@ function Unregister-ScheduledTask { throw 'Must not remove a task' }
         result = self.run_registration('Register', existing=True)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('existing task is preserved', result.stderr)
+
+    def test_launcher_refuses_missing_owner_service_before_starting_receiver(self):
+        with tempfile.TemporaryDirectory(prefix='rsi launcher ') as folder:
+            root = Path(folder)
+            fake_windows = root / 'Windows/System32'
+            fake_windows.mkdir(parents=True)
+            release = root / 'release'
+            (release / 'receiver').mkdir(parents=True)
+            (release / 'receiver/codex_worker.py').write_text(
+                'import os,pathlib\npathlib.Path(os.environ["RSI_FIXTURE_MARKER"]).touch()\n')
+            config = root / 'config.json'
+            config.write_text('{}')
+            marker = root / 'receiver-started'
+            powershell = str(Path(os.environ['WINDIR']) / 'System32/WindowsPowerShell/v1.0/powershell.exe')
+            def literal(value):
+                return "'" + str(value).replace("'", "''") + "'"
+            source = 'public class Stub { public static int Main(string[] args) { return string.Join(" ",args).Contains("is-active") && System.Environment.GetEnvironmentVariable("RSI_FIXTURE_OWNER_ACTIVE")!="1" ? 7 : 0; } }'
+            compiled = subprocess.run([powershell, '-NoProfile', '-NonInteractive', '-Command',
+                'Add-Type -TypeDefinition ' + literal(source) + ' -OutputAssembly '
+                + literal(fake_windows / 'wsl.exe') + ' -OutputType ConsoleApplication'],
+                capture_output=True, text=True, timeout=30)
+            self.assertEqual(compiled.returncode, 0, compiled.stderr)
+            harness = root / 'launch.ps1'
+            harness.write_text('$ErrorActionPreference="Stop"\n$env:WINDIR=' + literal(root / 'Windows')
+                + '\n& ' + literal(ROOT / 'deploy/wechat-wsl/Start-Local.ps1')
+                + ' -Release ' + literal(release) + ' -Config ' + literal(config)
+                + ' -Python ' + literal(sys.executable), encoding='utf-8')
+            for active in ('0', '1'):
+                result = subprocess.run([powershell, '-NoProfile', '-NonInteractive', '-File', str(harness)],
+                    env=dict(os.environ, RSI_FIXTURE_OWNER_ACTIVE=active, RSI_FIXTURE_MARKER=str(marker)),
+                    capture_output=True, text=True, timeout=30)
+                self.assertEqual(marker.exists(), active == '1')
+                self.assertEqual(result.returncode == 0, active == '1', result.stderr)

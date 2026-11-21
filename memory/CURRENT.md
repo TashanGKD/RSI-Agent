@@ -60,10 +60,20 @@ copy and owned cleanup comparison. Its failed original is retained.
 One fresh post-fix owner message completed native intake → the dedicated visible
 Codex turn → its original V2 `sent`, with exact native text, one Send click and
 settled draft/navigation cleanup. The owner confirmed the reply was visible on
-the main account's phone. The owner-only intake runs retained `6a0ad63`; the
-receiver and global `current` pointer are unchanged. This accepts only this
+the main account's phone. That acceptance used retained `6a0ad63`; later runtime
+revisions must be read from the private local receipt. This accepts only this
 private text pair. Task Scheduler logon, systemd activation, reboot recovery,
 group/attachment paths and sustained availability remain unverified locally.
+
+The current #124 candidate also reconciles proven private pre-input failures
+without resending, scopes accepted cleanup to its original job, preserves cleanup
+status in desktop receipts, and journals late receipt notices to the original
+thread without a new generation. Native account/client/layout observations now
+qualify the receiver-only health result. The WSL bundle can explicitly include
+the confirmed owner coordinator and interpreter; the launcher refuses a missing
+owner worker. Inner X idle blanking is disabled for new displays and reset under
+the native guard for existing ones. Host sleep policy is unchanged. Isolated
+regression and startup checks are separate from logon/reboot/screen-off acceptance.
 
 | Problem | Cause found | State |
 | --- | --- | --- |

@@ -350,7 +350,7 @@ class GroupPartsTests(unittest.TestCase):
         loop.record_delivery(row, self.call('status'))
         native_parts = self.call('status')['native_parts']
         loop.save_delivery.assert_called_once_with('1', 'fixture-desktop', 'sent', self.rid,
-            hashlib.sha256(self.text.encode()).hexdigest(), None, native_parts=native_parts)
+            hashlib.sha256(self.text.encode()).hexdigest(), None, native_parts=native_parts, cleanup_pending=False)
 
     def test_corrupt_or_missing_batch_is_not_reconstructed(self):
         self.call('submit', text=self.text)

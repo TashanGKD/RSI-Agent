@@ -29,6 +29,17 @@ class CleanupLoopTests(unittest.TestCase):
   j=self.accepted();body=self.s.c.execute('select body,hash from jobs where id=?',(j['id'],)).fetchone();attempt=(self.s.root/(j['id']+'-attempt.json')).read_bytes();r,n=self.run_cleanup(j);self.assertEqual(r['state'],'cleanup_recovered');self.assertEqual(n,1);v=self.s.by_id(j['id']);self.assertEqual(v['state'],'succeeded');self.assertEqual(v['result']['serverId'],'123456');self.assertEqual(v['result']['textComparison'],j['result']['textComparison']);self.assertFalse(any(v['result'][k] for k in ['postActionPending','draftRecoveryPending','navigationRecoveryPending']));self.assertEqual(tuple(body),tuple(self.s.c.execute('select body,hash from jobs where id=?',(j['id'],)).fetchone()));self.assertEqual(attempt,(self.s.root/(j['id']+'-attempt.json')).read_bytes());self.assertEqual(self.s.c.execute("select count(*) from events where job_id=? and state='executing'",(j['id'],)).fetchone()[0],1)
  def test_failed_native_audit_preserves_protection_and_does_no_ui_cleanup(self):
   j=self.accepted();r,n=self.run_cleanup(j,audited=False);self.assertEqual(r['state'],'cleanup_pending');self.assertEqual(n,0);self.assertNotIn('finalize',self.d.calls);self.assertEqual(self.s.by_id(j['id'])['result'],j['result'])
+ def test_scoped_cleanup_does_not_adopt_an_older_accepted_original(self):
+  older=self.accepted()
+  requested=self.s.submit({'client':'original','request_id':'requested','peer':'wxid_fixture_1987fcaa9f','action':'send_text','payload':{'text':'second original'}})
+  self.s.set_state(requested['id'],'succeeded',dict(older['result'],serverId='second'))
+  requested=self.s.by_id(requested['id'])
+  with patch.object(audit,'audit_many',return_value={'allVerified':True}),patch.object(navigation,'load',return_value={'state':'ready'}),patch.object(navigation,'finish',return_value=True) as finish,patch.object(composer,'load',return_value={'state':'restored'}):
+   result=self.e.recover_accepted_cleanup(requested)
+  self.assertEqual(result['job'],requested['id'])
+  finish.assert_called_once_with(self.d,requested)
+  self.assertEqual(self.s.by_id(older['id']),older)
+  self.assertFalse(self.s.by_id(requested['id'])['result']['navigationRecoveryPending'])
  def test_foreign_or_unproved_scene_does_not_clear_flags(self):
   j=self.accepted();r,n=self.run_cleanup(j,settled=False);self.assertEqual(r['state'],'cleanup_pending');self.assertEqual(self.s.by_id(j['id'])['result'],j['result']);self.assertIn('release',self.d.calls)
  def test_only_original_restored_composer_skips_draft_cleanup(self):

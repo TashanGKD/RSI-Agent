@@ -78,7 +78,7 @@ def park(driver,j,ui,window):
  if old:plain_ui(driver,ui,old)
  else:
   try:driver._file_helper().require_empty_editor(ui)
-  except ValueError:raise DraftProtected('Existing non-text draft is preserved; nothing was replaced.') from None
+  except ValueError:raise DraftProtected('Empty editor could not be proven; existing contents preserved.') from None
  value=save(driver.root,j,{'priorText':old,'priorSHA':hashlib.sha256(old.encode()).hexdigest(),'priorChars':len(old),'state':'backed-up','binding':dict(ui.cfg),'window':window})
  if old:
   clear(ui)
