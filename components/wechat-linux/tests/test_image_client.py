@@ -128,6 +128,34 @@ class ClientImageTests(unittest.TestCase):
                 image_client.prove_viewer_save_input(control,viewer,Mock(side_effect=[active,both]),Mock())
             control.click.assert_not_called()
 
+    def test_slow_viewer_paint_is_recaptured_without_input(self):
+        from unittest.mock import Mock, patch
+        from PIL import Image
+        fixture=Path(__file__).resolve().parents[1]/'test-fixtures/toolbars/save-with-translate.png'
+        viewer={'id':'0x4000d0','title':'Photos and Videos','x':12,'y':30,'width':900,'height':600}
+        main={'id':'0x400011','title':'Weixin'}
+        identity={'class':['wechat','wechat'],'pid':1234,'leader':'0x400009','transientFor':None,
+                  'types':['_NET_WM_WINDOW_TYPE_NORMAL']}
+        ready=Image.new('RGB',(1000,700),(10,10,10))
+        ready.paste(Image.open(fixture).convert('RGB'),(12,30))
+        unpainted=Image.new('RGB',(1000,700),(250,250,250))
+        def run(captures):
+            control=Mock()
+            control.one.side_effect=lambda title,optional=False: {'Photos and Videos':viewer,'Weixin':main}.get(title)
+            with patch('operations.windows.window_identity',return_value=identity), \
+                    patch('operations.lease.birth',return_value='fixture-birth'):
+                try:
+                    return control,image_client.prove_viewer_save_input(control,viewer,Mock(side_effect=captures),Mock())
+                except image_client.UnrecognizedSaveToolbar:
+                    return control,None
+        control,proof=run([unpainted]*4+[ready,ready])
+        self.assertEqual(proof['point'],[12+560,30+21])
+        self.assertEqual([c.args[0] for c in control.wait.call_args_list],[150,300,600,1200])
+        control.click.assert_not_called()
+        control,proof=run([unpainted]*5)
+        self.assertIsNone(proof)
+        control.click.assert_not_called()
+
     def test_text_image_translate_control_moves_save_to_the_next_slot(self):
         from PIL import Image
         # Real official toolbar captured from two failed exports of images with text.
