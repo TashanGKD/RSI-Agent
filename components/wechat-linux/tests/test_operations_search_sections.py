@@ -4,7 +4,7 @@ from operations.selectors import native_search_result
 
 def row(text,y,x=120):return {'text':text,'point':[x,y]}
 NAME='合成项目工作群'
-PEER='15869074386@chatroom'
+PEER='10000000001@chatroom'
 class SearchSectionTests(unittest.TestCase):
  def test_internet_above_group_uses_native_group(self):
   rows=[row('Internet search results',18),row(NAME,51),row('Group Chats',86),row(NAME,134)]
