@@ -147,7 +147,9 @@ def prove_viewer_save_input(control,viewer,capture,require_guard,point=None):
     control.require_focus(viewer)
     # A new viewer can paint before its controls settle. Retry only an
     # unrecognized rendering, with the original window and process still held.
-    for delay in (150,300,None):
+    # A busy host was seen still showing the chat under a reported viewer after
+    # 450 ms, so allow about 2.25 s of capture-only waiting before failing.
+    for delay in (150,300,600,1200,None):
         try:
             proof=viewer_save_proof(viewer,capture())
             break
