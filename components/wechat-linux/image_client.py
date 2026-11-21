@@ -95,6 +95,10 @@ SAVE_TOOLBARS={
 GALLERY_SAVE_TOOLBARS={
     'c7bcb9e2b4967307370c6107eb3d86c1bc67e6a26f3330501f2c8fa640facd79':('with-qr',520),
     '3b3ec1732c5c0a4872976eececef5c12765d0fb7a16ceb9781305336a074b03d':('with-qr-translate',560),
+    # Local WSL Xephyr/Openbox rendering of the same 4.1.13.26 viewer: Translate,
+    # text scan and Save; Save sits at 520. The two differ only in the edge menu glyph.
+    'ffe29c98e58558ed33ffd40690c110389210eaee47e59539553a078488609d6c':('wsl-translate-scan',520),
+    'bf08007131dd709b6a63d16abda522f77e08aeb2d61cd8ce3386fbbe346b31d7':('wsl-translate-scan',520),
 }
 
 class UnrecognizedSaveToolbar(ValueError):
