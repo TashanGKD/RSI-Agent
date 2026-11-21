@@ -23,6 +23,18 @@ def word(body, *, entries=None):
 
 
 class DocumentInputTests(unittest.TestCase):
+    def test_group_sticker_field_is_quiet_only_and_from_the_frozen_catalog(self):
+        from receiver.codex_worker import completion_text
+        request = {'mode': 'chat', 'scope': ['self', 'g@chatroom'], 'schema': {'properties': {
+            'speak': {'type': 'boolean'}, 'text': {'type': 'string'},
+            'sticker': {'type': ['string', 'null'], 'enum': ['好笑', None]}}}}
+        completion_text(request, '{"speak":false,"text":"","sticker":"好笑"}')
+        completion_text(request, '{"speak":true,"text":"好","sticker":null}')
+        for bad in ('{"speak":true,"text":"好","sticker":"好笑"}', '{"speak":false,"text":"","sticker":"别的"}',
+                    '{"speak":false,"text":""}'):
+            with self.assertRaises(ValueError):
+                completion_text(request, bad)
+
     def test_native_markdown_is_data_and_bound_to_original_bytes(self):
         raw = '<msg><appmsg><type>6</type><title>说明.md</title></appmsg></msg>'
         self.assertEqual(media.document_name(raw), '说明.md')

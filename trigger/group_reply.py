@@ -41,8 +41,11 @@ class GroupLoop(ReplyLoop):
         super().__init__(path, group, model, transport)
         self.recycle_since = None
         self.reply_gate = None
+        self.stickers = None
         self.db.execute('CREATE TABLE IF NOT EXISTS participation(k TEXT PRIMARY KEY,v TEXT NOT NULL)')
         self.db.execute('CREATE TABLE IF NOT EXISTS expired_desktop(id TEXT PRIMARY KEY,retry_at REAL NOT NULL DEFAULT 0)')
+        self.db.execute('CREATE TABLE IF NOT EXISTS sticker_intents(id TEXT PRIMARY KEY,created REAL NOT NULL,'
+                        'label TEXT NOT NULL,mode TEXT NOT NULL,state TEXT NOT NULL)')
         if 'follows_self' not in {r[1] for r in self.db.execute('PRAGMA table_info(inbox)')}:
             self.db.execute('ALTER TABLE inbox ADD COLUMN follows_self INTEGER NOT NULL DEFAULT 0')
         if group['scope'].get('introduction') is False and self.value('introduction') is None:
@@ -302,10 +305,18 @@ class GroupLoop(ReplyLoop):
                 event['owner'] = event['sender'] == self.owner['owner_peer']
         else:
             system += '仅输出 JSON 对象 {"speak":布尔值,"text":"拟发送的简短文字；不发言则为空"}。'
+        sticker_gap = None
+        if self.stickers:
+            sticker_gap = time.time() - float(self.value('last_sticker', '0'))
+            system += (' 另有 sticker 字段。只有本批不需要文字回复，而群里气氛轻松、有人在玩梗、表达情绪或简单附和时，'
+                '才可以只用一个大肥鱼表情包回应：sticker 取下列标签之一：' + '、'.join(self.stickers['labels'])
+                + '。发文字、分流任务、讨论严肃或正式内容、别人之间的对话、seconds_since_own_sticker 小于 '
+                + str(self.stickers['min_gap_seconds']) + ' 时一律 sticker=null。表情要少用，宁缺毋滥。')
         data = json.dumps({'group': self.owner['name'], 'recent_messages': batch.get('context', [])[-20:],
             'new_messages': [{k: e[k] for k in ('sender_name', 'text', 'mentioned', 'follows_self', 'kind', 'image_index', 'image_status', 'image_kind', 'pdf_name', 'pdf_status', 'document_name', 'document_status', 'attachment_error', 'quote', 'article_url', 'linked_pages', 'videos', 'owner')
                               if k in e and (k != 'linked_pages' or not self.images)} for e in events],
-            'seconds_since_own_post': round(elapsed)}, ensure_ascii=False)
+            'seconds_since_own_post': round(elapsed),
+            **({'seconds_since_own_sticker': round(sticker_gap)} if self.stickers else {})}, ensure_ascii=False)
         identities = [row['id'] for row in rows]
         if self.images:
             self.model.use_request(identities)
@@ -336,13 +347,19 @@ class GroupLoop(ReplyLoop):
             if direct_article:
                 decision = {'speak': True, 'text': self.model.read_pages(pages, messages)}
             else:
-                result = self.model.complete(messages, json_output=True)
+                result = (self.model.complete(messages, json_output=True, stickers=self.stickers['labels'])
+                          if self.stickers else self.model.complete(messages, json_output=True))
                 decision = json.loads(result['message']['content'])
                 expected = {'speak', 'text', 'work_index'} if engineering else {'speak', 'text'}
+                if self.stickers:
+                    expected.add('sticker')
                 if (set(decision) != expected or type(decision['speak']) is not bool
                         or not isinstance(decision['text'], str) or '\0' in decision['text']
                         or len(decision['text'].encode()) > 6000
-                        or (decision['speak'] and decision.get('work_index') is None and not decision['text'].strip())):
+                        or (decision['speak'] and decision.get('work_index') is None and not decision['text'].strip())
+                        or self.stickers and decision['sticker'] is not None and (
+                            decision['speak'] or decision.get('work_index') is not None
+                            or decision['sticker'] not in self.stickers['labels'])):
                     raise ValueError('Invalid text-only participation decision.')
                 if (pages and not decision['speak'] and decision.get('work_index') is None
                         and self.model.has_original_input(identities, stage='link-reading')):
@@ -387,6 +404,13 @@ class GroupLoop(ReplyLoop):
                                 (decision['text'], job, rows[work if work is not None else -1]['id']))
             else:
                 self.save_delivery(rows[-1]['id'], job, 'quiet')
+                if decision.get('sticker') and sticker_gap is not None:
+                    # Shadow mode records the intent only; nothing is sent.
+                    state = 'shadow' if sticker_gap >= self.stickers['min_gap_seconds'] else 'rate_limited'
+                    self.db.execute('INSERT OR IGNORE INTO sticker_intents VALUES(?,?,?,?,?)',
+                                    (rows[-1]['id'], time.time(), decision['sticker'], self.stickers['mode'], state))
+                    if state == 'shadow':
+                        self.save('last_sticker', time.time())
             self.db.execute("DELETE FROM participation WHERE k='model_batch'")
         # Deliver only cached output on the next cycle, including after restart.
         return {'state': 'pending' if decision['speak'] else 'quiet', 'counts': self.counts()}
@@ -431,6 +455,7 @@ def sync_groups(workers, configs, reply_gate=None, friends=()):
                 loop = GroupLoop(directory / 'inbox.sqlite', group, model, io)
                 loop.recycle_since = config.get('recycle_since', group.get('scope', {}).get('since'))
                 loop.reply_gate = reply_gate
+                loop.stickers = config.get('stickers')
             workers[state] = (config, loop, fd)
         except (OSError, ValueError, KeyError, TypeError, ModelError, subprocess.SubprocessError):
             if loop is not None:

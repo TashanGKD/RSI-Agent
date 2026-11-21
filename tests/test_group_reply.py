@@ -86,6 +86,29 @@ class GroupTests(unittest.TestCase):
         self.assertFalse(self.effects)
         self.assertFalse(any(c['op'] == 'submit' for c in self.calls))
 
+    def test_shadow_sticker_records_a_rate_limited_intent_without_sending(self):
+        policy = {'mode': 'shadow', 'labels': ['思考', '好笑'], 'min_gap_seconds': 3600}
+        self.model.complete.return_value = {'message': {'content': '{"speak":false,"text":"","sticker":"好笑"}'}}
+        loop = self.loop()
+        loop.stickers = policy
+        self.assertEqual(loop.cycle()['state'], 'quiet')
+        self.assertEqual(self.model.complete.call_args.kwargs['stickers'], ['思考', '好笑'])
+        self.batch = dict(self.batch, batch_id='second', ack_ids=['2'], events=[self.event(2)])
+        self.assertEqual(loop.cycle()['state'], 'quiet')
+        intents = loop.db.execute('SELECT label,mode,state FROM sticker_intents ORDER BY created').fetchall()
+        self.assertEqual([tuple(row) for row in intents], [('好笑', 'shadow', 'shadow'), ('好笑', 'shadow', 'rate_limited')])
+        self.assertFalse(any(c['op'] in ('submit', 'advance') for c in self.calls))
+
+    def test_sticker_cannot_accompany_text_or_leave_the_catalog(self):
+        for content in ('{"speak":true,"text":"哈哈","sticker":"好笑"}', '{"speak":false,"text":"","sticker":"别的"}'):
+            self.model.complete.return_value = {'message': {'content': content}}
+            loop = self.loop()
+            loop.stickers = {'mode': 'shadow', 'labels': ['好笑'], 'min_gap_seconds': 3600}
+            with self.assertRaises(ValueError):
+                loop.cycle()
+            loop.close()
+            self.path.unlink()
+
     def test_trigger_gate_silences_ambient_chat_before_codex(self):
         self.batch['events'] = [self.event(text='收到，谢谢。', mentioned=False)]
         loop = self.loop()
