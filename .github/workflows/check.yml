@@ -9,7 +9,7 @@ permissions:
 jobs:
   linux:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -17,10 +17,11 @@ jobs:
           python-version: '3.12'
       - run: python -m pip install -r requirements-linux-tests.txt
       - name: Install isolated desktop bootstrap dependencies
+        timeout-minutes: 15
         run: |
           apt_options=(-o Acquire::ForceIPv4=true -o Acquire::Retries=0
             -o Acquire::http::Timeout=10 -o Acquire::https::Timeout=10)
-          packages=(tigervnc-standalone-server xauth x11-utils websockify novnc socat
+          packages=(tigervnc-standalone-server xserver-xephyr xauth x11-utils websockify novnc socat
             openbox python3-gi gir1.2-gtk-3.0 python3-pyqt5)
           for mirror in http://azure.archive.ubuntu.com/ubuntu \
               https://mirror.umd.edu/ubuntu https://mirrors.edge.kernel.org/ubuntu; do
@@ -29,8 +30,8 @@ jobs:
               continue
             fi
             printf '%s\n' "$mirror" | sudo tee /etc/apt/apt-mirrors.txt
-            if sudo apt-get "${apt_options[@]}" update --error-on=any -qq &&
-                sudo apt-get "${apt_options[@]}" install -y --download-only --no-install-recommends "${packages[@]}"; then
+            if sudo timeout --kill-after=10s 90s apt-get "${apt_options[@]}" update --error-on=any -qq &&
+                sudo timeout --kill-after=10s 180s apt-get "${apt_options[@]}" install -y --download-only --no-install-recommends "${packages[@]}"; then
               sudo apt-get "${apt_options[@]}" install -y --no-download --no-install-recommends "${packages[@]}"
               exit $?
             fi
@@ -40,3 +41,13 @@ jobs:
       - run: python -B scripts/check.py --linux
       - name: Rehearse cancellation in an isolated Qt and Openbox desktop
         run: /usr/bin/python3 -B scripts/rehearse_composer_cleanup.py --execute
+  windows-startup:
+    runs-on: windows-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - run: python -B -m unittest discover -s tests -p test_wsl_startup.py -v
+      - run: python -B -m unittest discover -s tests -p test_onboarding.py -v

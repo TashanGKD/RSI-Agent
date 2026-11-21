@@ -15,11 +15,21 @@ RSI Agent 用可见的 Codex 会话分工。任务按范围进入对应会话，
 
 项目按触发、发送、RSI Skills 三部分打磨。触发负责原消息进入正确的 Codex 轮次，发送负责该轮结果回到原微信会话，RSI Skills 负责让验证过的经验在下一次任务里复用。
 
+[路线图](docs/ROADMAP.md)只保留未完成目标；[变更记录](CHANGELOG.md)记录已交付变化和待合并候选；[当前状态](memory/CURRENT.md)核对部署与验收范围。
+
 ## Windows 小号接入
 
 把[安装技能](.agents/skills/rsi-wechat-setup/SKILL.md)或本仓库链接交给你电脑上的 Codex，按 [WSL 安装和配对](deploy/wechat-wsl/README.md)操作。安装器在首次运行时下载并校验 Ubuntu Base 和官方 Linux 微信。扫码后为小号建立一个可见的专用回复会话，再验证触发器接入和发送器回执。
 
 仓库公开下载无需 GitHub 账号。当前安装器完成客户端下载及登录检查，扫码后的账号授权、通道和接收器绑定仍由 Codex 按本机环境适配。安装指南列出了实际配置字段、验证步骤和升级方式；后续功能也按安装技能从完整仓库定位。
+
+首次安装先用 `-PrepareOnly` 准备客户端，再用 `setup pair` 生成新实例配置、
+`setup prepare-capture` 准备经过版本校验的授权脚本。`setup check` 分阶段报告安装缺口，
+不会把接收器在线或扫码成功当成微信收发验收。实际授权和界面绑定仍按安装指南完成。
+
+全本地常驻可生成 `services stage --profile wsl` 服务包，并用 Windows 登录任务启动
+接收器。生成服务包和注册任务均不会立即切换当前微信；激活与重启验收见
+[本地常驻说明](deploy/wechat-wsl/README.md#本地常驻与登录启动)。
 
 ## 触发器
 

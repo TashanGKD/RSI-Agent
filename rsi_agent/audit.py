@@ -13,9 +13,12 @@ SERVICES = ('wechat-gui-x.service', 'wechat-gui-desktop.service', 'wechat-gui-we
 REPLY_SERVICES = ('rsi-owner-replies.service', 'rsi-group-replies.service')
 
 
-def audit(config, run=None, proc=Path('/proc')):
+def audit(config, run=None, proc=Path('/proc'), profile='server'):
+    if profile not in ('server', 'wsl'):
+        raise ValueError('Unknown desktop service profile.')
     report = {
         'schema_version': 1, 'checked_at': datetime.now(timezone.utc).isoformat(),
+        'desktop_profile': profile,
         'health': 'unsupported', 'checks': {}, 'findings': [],
         'scope': 'Process, layout and installation checks; no message read/send or recovery test.',
     }
@@ -102,8 +105,9 @@ def audit(config, run=None, proc=Path('/proc')):
         checks['ordinary_process'] = False
         report['findings'].append('PROCESS_STATE_UNAVAILABLE')
     try:
-        fragments = command(['systemctl', 'show', *SERVICES, '--property=FragmentPath', '--value']).split()
-        checks['persistent_desktop_services'] = len(fragments) == len(SERVICES) and all(
+        services = SERVICES[:2] if profile == 'wsl' else SERVICES
+        fragments = command(['systemctl', 'show', *services, '--property=FragmentPath', '--value']).split()
+        checks['persistent_desktop_services'] = len(fragments) == len(services) and all(
             p.startswith(('/etc/systemd/system/', '/usr/lib/systemd/system/', '/lib/systemd/system/')) for p in fragments)
         if not checks['persistent_desktop_services']:
             report['findings'].append('SERVICES_NOT_PERSISTENT')

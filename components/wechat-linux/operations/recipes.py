@@ -93,6 +93,7 @@ def main_window(driver):
 
 def activate(c,w):
  import ctypes
+ c.x.XResetScreenSaver.argtypes=[ctypes.c_void_p];c.x.XResetScreenSaver(c.d)
  c.x.XRaiseWindow.argtypes=[ctypes.c_void_p,ctypes.c_ulong];c.x.XRaiseWindow(c.d,int(w['id'],16));c.focus(w);c.wait(100)
 
 def controls(driver):

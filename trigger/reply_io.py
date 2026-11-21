@@ -139,7 +139,12 @@ def status(job):
 
 def original_status(api, job, client):
     """Read the existing receipt without claiming or advancing its send."""
-    return dict(status(api.view(job)), recoverable_preinput_failure=failed_before_input(api.s, job, client))
+    preinput = (job['state'] == 'needs_attention' and not job.get('preview')
+                and (job.get('result') or {}).get('reason') == 'preparation_failed'
+                and not api.s.c.execute("SELECT 1 FROM events WHERE job_id=? AND state IN ('confirmed','executing')",
+                                       (job['id'],)).fetchone())
+    return dict(status(api.view(job)), recoverable_preinput_failure=failed_before_input(api.s, job, client),
+                preinput_cleanup_pending=bool(preinput))
 
 
 def failed_before_input(store, job, client):
@@ -160,11 +165,22 @@ def failed_before_input(store, job, client):
                 or result.get('navigationRestored') is not True or result.get('automaticReplay') is not False):
             return False
     journal = navigation.path(store.root, job)
-    if any(path != journal for path in store.root.glob(job['id'] + '-*')):
-        return False
     original = navigation.load(store.root, job)
     if not original or original.get('state') != 'settled':
         return False
+    artifacts = set(store.root.glob(job['id'] + '-*'))
+    if artifacts != {journal}:
+        from operations import composer
+        diagnostic = store.root / (job['id'] + '-preparation-failure.json')
+        if (result.get('code') != 'SEND_PREPARATION_FAILED'
+                or artifacts != {journal, composer.path(store.root, job), diagnostic}
+                or not private_file(diagnostic) or diagnostic.stat().st_size > 4000):
+            return False
+        parked = composer.load(store.root, job)
+        failure = json.loads(diagnostic.read_text())
+        if (not parked or parked.get('state') != 'restored'
+                or failure.get('phase') != 'stage-text' or failure.get('ownedCleanupVerified') is not True):
+            return False
     if client == FRIEND_CLIENT and result.get('code') == 'DRAFT_PROTECTED':
         return original.get('protectedDraft') is True and original.get('priorDraftWindowRetained') is True
     return True
@@ -227,6 +243,9 @@ def advance(api, job, policy):
             return status(api.view(store.by_id(job['id'])))
         driver = NativeDriver(store.root, policy)
         executor = ScopedExecutor(ScopedStore(), driver)
+        if job['state'] == 'succeeded':
+            Executor.recover_accepted_cleanup(executor, job)
+            return status(api.view(store.by_id(job['id'])))
         for _ in range(3):
             executor.step()
             current = store.by_id(job['id'])
@@ -247,18 +266,20 @@ def handle(installation, owner, request):
         raise ValueError('Owner reply scope changed; preserve the original request.')
     request = {key: value for key, value in request.items() if key != '_binding'}
     op = request.get('op')
-    fields = {'read': {'op'}, 'image': {'op', 'server_id'}, 'pdf': {'op', 'server_id'},
+    fields = {'read': {'op'}, 'health': {'op'}, 'image': {'op', 'server_id'}, 'pdf': {'op', 'server_id'},
               'document': {'op', 'server_id'},
               'ack': {'op', 'batch_id', 'batch_hash', 'ack_ids'},
-              'submit': {'op', 'server_id', 'text'}, 'advance': {'op', 'server_id'}}
-    if 'friend_peer' in owner:
-        fields['status'] = {'op', 'server_id'}
-    elif owner['send_scope']['mode'] == 'owner-private-text':
+              'submit': {'op', 'server_id', 'text'}, 'advance': {'op', 'server_id'},
+              'status': {'op', 'server_id'}, 'cleanup': {'op', 'server_id'}, 'settle': {'op', 'server_id'}}
+    if 'friend_peer' not in owner and owner['send_scope']['mode'] == 'owner-private-text':
         fields['voice'] = {'op', 'server_id'}
     if op not in fields or set(request) != fields[op]:
         raise ValueError('Unsupported owner reply transport fields.')
     peer = owner.get('friend_peer', owner['owner_peer'])
     client = CLIENT
+    if op == 'health':
+        from .runtime_health import observe
+        return observe(owner)
     if 'friend_peer' in owner:
         require_friend(peer)
         client = FRIEND_CLIENT
@@ -285,8 +306,8 @@ def handle(installation, owner, request):
     if policy['account'] != owner['account']:
         raise ValueError('Native sender account differs from confirmed binding.')
     state = root / 'operations-state'
-    if op == 'status' and not (state / 'queue.sqlite').is_file():
-        raise ValueError('Original friend queue is missing.')
+    if op in ('status', 'cleanup', 'settle') and not (state / 'queue.sqlite').is_file():
+        raise ValueError('Original sender queue is missing.')
     api = PublicAPI(state, policy)
     try:
         if op == 'submit':
@@ -302,6 +323,13 @@ def handle(installation, owner, request):
             raise ValueError('Original reply request binding changed.')
         if op == 'status':
             return original_status(api, job, client)
+        if op == 'cleanup' and job['state'] != 'succeeded':
+            raise ValueError('Only accepted original cleanup is allowed.')
+        if op == 'settle':
+            if not original_status(api, job, client)['preinput_cleanup_pending']:
+                raise ValueError('Only unconfirmed original preparation may be settled.')
+            advance(api, job, policy)
+            return original_status(api, api.s.by_id(job['id']), client)
         return advance(api, job, policy)
     finally:
         api.close()

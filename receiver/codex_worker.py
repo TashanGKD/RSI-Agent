@@ -260,6 +260,10 @@ class Jobs:
             if 'desktop_message_id' not in {r[1] for r in db.execute('PRAGMA table_info(jobs)')}:
                 db.execute('ALTER TABLE jobs ADD COLUMN desktop_message_id TEXT')
             db.execute('CREATE TABLE IF NOT EXISTS delivery_receipts(id TEXT PRIMARY KEY, receipt TEXT NOT NULL)')
+            db.execute('CREATE TABLE IF NOT EXISTS delivery_updates(id TEXT NOT NULL,digest TEXT NOT NULL,'
+                       'receipt TEXT NOT NULL,thread_id TEXT NOT NULL,state TEXT NOT NULL,created REAL NOT NULL,'
+                       'PRIMARY KEY(id,digest))')
+            db.execute("UPDATE delivery_updates SET state='review' WHERE state='submitting'")
             for row in db.execute("SELECT jobs.id, jobs.state, delivery_receipts.receipt "
                                   "FROM jobs JOIN delivery_receipts ON delivery_receipts.id=jobs.id "
                                   "WHERE jobs.state IN ('queued','starting','running','desktop_submitting','desktop_queued')"):
@@ -386,8 +390,9 @@ class Jobs:
         return {'id': value['id'], 'state': 'completed'}
 
     def report_delivery(self, value):
-        if (set(value) - {'native_parts'} != {'id', 'state', 'native_request_id', 'reply_sha256', 'code'}
+        if (set(value) - {'native_parts', 'cleanup_pending'} != {'id', 'state', 'native_request_id', 'reply_sha256', 'code'}
                 or value['state'] not in ('sent', 'partial', 'not_sent', 'unknown', 'quiet')
+                or 'cleanup_pending' in value and type(value['cleanup_pending']) is not bool
                 or value['code'] is not None and not re.fullmatch('[A-Z0-9_]{1,80}', value['code'])):
             raise ValueError('Bounded native delivery receipt required.')
         with self.connect() as db:
@@ -440,11 +445,19 @@ class Jobs:
                 previous = json.loads(old['receipt'])
                 if previous == value:
                     return {'state': 'recorded'}
-                if (previous['state'] != 'unknown' or value['state'] not in ('sent', 'partial', 'not_sent')
+                cleanup_settled = (dict(previous, cleanup_pending=False) == dict(value, cleanup_pending=False)
+                                   and previous.get('cleanup_pending') is True and value.get('cleanup_pending') is False)
+                equivalent = (dict(previous, cleanup_pending=False) == dict(value, cleanup_pending=False)
+                              and previous.get('cleanup_pending', False) == value.get('cleanup_pending', False))
+                if equivalent:
+                    return {'state': 'recorded'}
+                if (not cleanup_settled and (previous['state'] != 'unknown' or value['state'] not in ('sent', 'partial', 'not_sent'))
                         or previous['native_request_id'] != value['native_request_id']
                         or previous['reply_sha256'] != value['reply_sha256']):
                     raise ValueError('Recorded native outcome cannot be replaced.')
             db.execute('INSERT OR REPLACE INTO delivery_receipts VALUES(?,?)', (value['id'], encoded(value).decode()))
+            from .delivery_updates import enqueue
+            enqueue(db, row, value)
         return {'state': 'recorded'}
 
     def desktop_delivery(self, identity, thread, turn, *targets):
@@ -762,6 +775,7 @@ def server(config, jobs, draining, executable=None):
         executable = CodexExecutable(config['codex'])
     targets = (config.get('desktop_thread_id'), config.get('desktop_other_thread_id'),
                config.get('desktop_engineering_thread_id'))
+    runtime = {'received_at': 0, 'state': 'not_observed', 'checks': {}}
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *_):
@@ -793,7 +807,14 @@ def server(config, jobs, draining, executable=None):
             if self.path != '/health':
                 return self.answer(404, {'state': 'not_found'})
             cli_present = executable.resolve() is not None
+            receiver_ready = not draining.is_set() and cli_present
+            heartbeat_fresh = 0 <= time.time() - runtime['received_at'] <= 90
+            pipeline_ready = (receiver_ready and heartbeat_fresh and all(runtime['checks'].values())
+                and runtime['state'] in ('idle', 'sent', 'pending', 'work_pending', 'failed', 'media_pending'))
             return self.answer(200, {'backend': 'local-codex', 'ready': not draining.is_set() and cli_present,
+                'readiness_scope': 'receiver_only', 'pipeline_ready': bool(pipeline_ready),
+                'runtime_scope': 'owner_private',
+                'runtime': dict(runtime, heartbeat_fresh=heartbeat_fresh),
                 'codex_executable_present': cli_present,
                 'counts': jobs.counts(), 'pid': os.getpid(), 'source_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                 'desktop_thread_id': config.get('desktop_thread_id'),
@@ -807,13 +828,22 @@ def server(config, jobs, draining, executable=None):
                 return self.answer(403, {'state': 'forbidden'})
             if self.path == '/drain':
                 draining.set();return self.answer(200, {'state': 'draining'})
-            if self.path not in ('/requests', '/desktop-completions', '/delivery-receipts'):
+            if self.path not in ('/requests', '/desktop-completions', '/delivery-receipts', '/runtime-heartbeat'):
                 return self.answer(404, {'state': 'not_found'})
             try:
                 size = int(self.headers.get('Content-Length', '0'))
                 if not 0 < size <= 40000000:
                     raise ValueError('Bounded request required.')
                 value = json.loads(self.rfile.read(size))
+                if self.path == '/runtime-heartbeat':
+                    if (set(value) != {'state', 'checks'} or not isinstance(value['state'], str)
+                            or not re.fullmatch('[a-z_]{1,40}', value['state'])
+                            or not isinstance(value['checks'], dict)
+                            or set(value['checks']) != {'account', 'client', 'layout'}
+                            or any(type(v) is not bool for v in value['checks'].values())):
+                        raise ValueError('Bounded native runtime observation required.')
+                    runtime.update(value, received_at=time.time())
+                    return self.answer(200, {'state': 'recorded'})
                 if self.path == '/desktop-completions':
                     return self.answer(200, jobs.complete_desktop(value, *targets))
                 if self.path == '/delivery-receipts':
@@ -915,6 +945,13 @@ def main():
                             '127.0.0.1:' + str(config['remote_port']) + ':127.0.0.1:' + str(config['port']), config['ssh']],
                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=stderr,
                             creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+                    cli = executable.resolve()
+                    if cli is not None:
+                        from .delivery_updates import notify
+                        try:
+                            notify(dict(config, codex=str(cli)), jobs)
+                        except (OSError, ValueError, sqlite3.Error) as error:
+                            stderr.write('Delivery notice unavailable: ' + type(error).__name__ + '\n');stderr.flush()
                     time.sleep(3)
             finally:
                 http.shutdown()

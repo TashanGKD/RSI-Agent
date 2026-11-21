@@ -1,0 +1,21 @@
+[Unit]
+Description=Private WeChat Xephyr desktop inside WSLg
+PartOf=wechat-gui.target
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=exec
+User=wechat-gui
+Group=wechat-gui
+UMask=0077
+RuntimeDirectory=wechat-gui
+RuntimeDirectoryMode=0700
+Environment=HOME=/home/wechat-gui DISPLAY=:0 XDG_RUNTIME_DIR=/run/wechat-gui
+ExecStartPre=/usr/bin/python3 @RELEASE@/deploy/wechat-gui/prepare_runtime.py wait --root /run/wechat-gui --display :0 --x-only
+ExecStartPre=/usr/bin/python3 @RELEASE@/deploy/wechat-gui/prepare_runtime.py prepare --root /run/wechat-gui --display :92
+ExecStart=/usr/bin/Xephyr :92 -screen 1280x800 -depth 24 -s 0 -nolisten tcp -noreset -auth /run/wechat-gui/Xauthority
+ExecStartPost=/usr/bin/python3 @RELEASE@/deploy/wechat-gui/prepare_runtime.py wait --root /run/wechat-gui --display :92 --x-only
+TimeoutStartSec=60
+Restart=on-failure
+RestartSec=3

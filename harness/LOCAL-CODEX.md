@@ -15,6 +15,15 @@ The installed per-user logon task
 keeps it running in the background, independently of the maintenance heartbeat.
 The computer must be awake and the Codex user signed in.
 
+For a fresh local Windows/WSL installation, use
+[`Register-Startup.ps1`](../deploy/wechat-wsl/Register-Startup.ps1) after pairing
+and Linux service activation. Its default `Check` is read-only; `Register`
+creates a per-user interactive logon task without starting it. The launcher
+starts the WSL desktop target before running this same receiver with the
+existing private configuration and state. See the
+[local persistence procedure](../deploy/wechat-wsl/README.md#本地常驻与登录启动)
+for activation, upgrade and rollback. This does not configure remote-host deployments.
+
 Set `desktop_thread_id` to the dedicated conversation and
 `desktop_all_requests` to true for both chat and admitted engineering. The
 worker binds HTTP on loopback and maintains an SSH reverse tunnel for the Linux

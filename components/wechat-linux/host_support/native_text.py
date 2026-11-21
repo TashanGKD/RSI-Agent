@@ -52,7 +52,14 @@ class Desktop:
   self.ctrl('a');self.ctrl('c');self.settle(250);value=self.clip.wait_for_text()
   self.check()
   if value is None:raise ValueError('native draft unavailable')
-  return '' if value==sentinel else value
+  if value==sentinel:
+   # The official voice-input hover hint can cover an otherwise empty editor.
+   # Move only the pointer; retain editor focus and the strict pixel/draft checks.
+   box=self.cfg['header_box']
+   self.xt.XTestFakeMotionEvent(self.d,-1,(box[0]+box[2])//2,(box[1]+box[3])//2,0)
+   self.x.XSync(self.d,False);self.settle(300);self.check()
+   return ''
+  return value
  def stage(self,text,prior):
   existing=self.draft();check_prior(existing,prior)
   self.clip.set_text(text,-1);self.settle(100);self.ctrl('v');self.settle(600);actual=self.draft()

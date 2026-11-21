@@ -37,6 +37,44 @@ their old inputs and receipts stay private for audit.
 
 ## Recurring problems
 
+Local WSL onboarding/persistence is the open #124 code candidate, not an activated
+installation. `setup pair` stages one new private receiver/backend pair without
+replacing old state; `setup prepare-capture` validates the reviewed client and
+prepares only its own-child script. `setup check` separates configuration,
+authorization prerequisites, sender and receiver status; delivery remains unverified.
+`services stage --profile wsl`, `audit --profile wsl` and the Windows logon task
+cover the local desktop startup path. Checks include isolated nested Xephyr,
+Windows startup/pairing, secret redaction and preservation of existing work.
+Local account authorization and the confirmed owner's native identity are now
+verified after one scoped client restart. The debugger detached and the client
+is ordinary again. The receiver delivered fresh owner input into its dedicated
+Codex conversation and accepted one frozen completion per original. The first
+two V2 replies were proven failed/noSend (navigation position drift, then an
+empty-editor voice hover hint); both originals remain settled and are not replayed.
+Moving the pointer away after an empty draft read removes that hint without
+relaxing draft protection; the candidate passes the actual empty-editor check.
+An additional fresh original stopped before sending because GTK inherited the
+outer WSLg Wayland clipboard. Binding the helper's GTK backend, display and
+Xauthority to the configured X11 desktop passed an actual Chinese draft write,
+copy and owned cleanup comparison. Its failed original is retained.
+One fresh post-fix owner message completed native intake → the dedicated visible
+Codex turn → its original V2 `sent`, with exact native text, one Send click and
+settled draft/navigation cleanup. The owner confirmed the reply was visible on
+the main account's phone. That acceptance used retained `6a0ad63`; later runtime
+revisions must be read from the private local receipt. This accepts only this
+private text pair. Task Scheduler logon, systemd activation, reboot recovery,
+group/attachment paths and sustained availability remain unverified locally.
+
+The current #124 candidate also reconciles proven private pre-input failures
+without resending, scopes accepted cleanup to its original job, preserves cleanup
+status in desktop receipts, and journals late receipt notices to the original
+thread without a new generation. Native account/client/layout observations now
+qualify the receiver-only health result. The WSL bundle can explicitly include
+the confirmed owner coordinator and interpreter; the launcher refuses a missing
+owner worker. Inner X idle blanking is disabled for new displays and reset under
+the native guard for existing ones. Host sleep policy is unchanged. Isolated
+regression and startup checks are separate from logon/reboot/screen-off acceptance.
+
 | Problem | Cause found | State |
 | --- | --- | --- |
 | Group messages stuck pending or late | A `desktop_queued` job without a turn held the group inbox; expiry did not settle it | Fixed and live (#117–#119); fresh delivery verified |

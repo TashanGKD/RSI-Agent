@@ -1,5 +1,6 @@
 import contextlib
 import hashlib
+import ctypes
 import importlib.util
 import io
 import json
@@ -45,6 +46,48 @@ class ServiceBundleTests(unittest.TestCase):
                 stage('/opt/rsi/releases/test', folder)
             self.assertEqual(marker.read_text(), 'keep')
             self.assertEqual(len(list(Path(folder).iterdir())), 1)
+
+    def test_wsl_profile_reuses_desktop_without_remote_web_services(self):
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder) / 'bundle'
+            with patch('subprocess.run') as run, contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(cli.main(['services', 'stage', '--profile', 'wsl',
+                    '--release', '/opt/rsi/releases/test', '--output', str(output)]), 0)
+                run.assert_not_called()
+            plan = json.loads((output / 'plan.json').read_text())
+            self.assertFalse(plan['activated'])
+            self.assertEqual(plan['profile'], 'wsl')
+            self.assertEqual(set(plan['unit_sha256']), {
+                'wechat-gui-x.service', 'wechat-gui-desktop.service', 'wechat-gui.target'})
+            desktop = (ROOT / 'deploy/wechat-gui/systemd/wechat-gui-desktop.service').read_text()
+            self.assertEqual((output / 'wechat-gui-desktop.service').read_text(),
+                             desktop.replace('@RELEASE@', '/opt/rsi/releases/test'))
+            for name, digest in plan['unit_sha256'].items():
+                self.assertEqual(hashlib.sha256((output / name).read_bytes()).hexdigest(), digest)
+            target = (output / 'wechat-gui.target').read_text()
+            self.assertIn('ssh.service', target)
+            self.assertNotIn('web.service', target)
+
+    def test_unknown_profile_preserves_output(self):
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder) / 'bundle'
+            with self.assertRaises(ValueError):
+                stage('/opt/rsi/releases/test', output, profile='unknown')
+            self.assertFalse(output.exists())
+
+    def test_wsl_owner_startup_uses_confirmed_config_and_pinned_python_without_enabling_it(self):
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder) / 'bundle'
+            plan = stage('/opt/rsi/releases/test', output, profile='wsl',
+                owner_config='/private/owner/coordinator.json', python='/opt/rsi/venv/bin/python')
+            self.assertFalse(plan['activated'])
+            self.assertTrue(plan['owner_replies_included'])
+            unit = (output / 'rsi-owner-replies.service').read_text()
+            self.assertIn('WorkingDirectory=/opt/rsi/releases/test', unit)
+            self.assertIn('/opt/rsi/venv/bin/python -B -m rsi_agent --config /private/owner/coordinator.json', unit)
+            self.assertIn('Requires=rsi-owner-replies.service', (output / 'wechat-gui.target').read_text())
+            self.assertIn('-s 0', (output / 'wechat-gui-x.service').read_text())
+            self.assertFalse((output / 'rsi-group-replies.service').exists())
 
     def test_unsafe_or_root_release_does_not_create_output(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -145,3 +188,90 @@ class LinuxDesktopBootstrapTests(unittest.TestCase):
                 env=dict(os.environ, SYSTEMD_UNIT_PATH=str(output) + ':'),
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, timeout=20)
             self.assertEqual(result.returncode, 0, result.stdout)
+
+    def test_wsl_unit_graph_passes_systemd_verify_without_installing(self):
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder) / 'bundle'
+            plan = stage(ROOT.as_posix(), output, profile='wsl')
+            (output / 'ssh.service').write_text('[Service]\nExecStart=/bin/true\n')
+            result = subprocess.run(plan['verify_argv'],
+                env=dict(os.environ, SYSTEMD_UNIT_PATH=str(output) + ':'),
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, timeout=20)
+            self.assertEqual(result.returncode, 0, result.stdout)
+
+    def test_complete_owner_wsl_graph_has_no_ordering_cycle(self):
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder) / 'bundle'
+            plan = stage(ROOT.as_posix(), output, profile='wsl', owner_config='/private/coordinator.json')
+            (output / 'ssh.service').write_text('[Service]\nExecStart=/bin/true\n')
+            result = subprocess.run(plan['verify_argv'],
+                env=dict(os.environ, SYSTEMD_UNIT_PATH=str(output) + ':'),
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, timeout=20)
+            self.assertEqual(result.returncode, 0, result.stdout)
+
+    def test_real_nested_xephyr_and_active_display_preserves_authorization(self):
+        numbers = [number for number in range(193, 250)
+                   if not Path(f'/tmp/.X{number}-lock').exists()
+                   and not Path(f'/tmp/.X11-unix/X{number}').exists()][:2]
+        parent_display, inner_display = (':' + str(number) for number in numbers)
+        with tempfile.TemporaryDirectory() as folder, tempfile.TemporaryFile() as log:
+            parent_root = Path(folder) / 'parent'
+            inner_root = Path(folder) / 'inner'
+            for root in (parent_root, inner_root):
+                root.mkdir(mode=0o700)
+            self.runtime.prepare(parent_root, parent_display)
+            self.runtime.prepare(inner_root, inner_display)
+            authority = (inner_root / 'Xauthority').read_bytes()
+            parent = subprocess.Popen(['Xtigervnc', parent_display, '-geometry', '1024x768',
+                '-depth', '24', '-rfbport', '-1', '-rfbunixpath', str(parent_root / 'vnc.sock'),
+                '-rfbunixmode', '0600', '-SecurityTypes', 'None', '-localhost',
+                '-nolisten', 'tcp', '-auth', str(parent_root / 'Xauthority')],
+                stdout=log, stderr=log)
+            inner = None
+            try:
+                try:
+                    self.runtime.wait_ready(parent_root, parent_display, seconds=8)
+                except ValueError as error:
+                    log.seek(0)
+                    self.fail(f'{error}; parent exit={parent.poll()}; '
+                              + log.read().decode(errors='replace')[-4000:])
+                inner = subprocess.Popen(['Xephyr', inner_display, '-screen', '905x667', '-s', '0',
+                    '-nolisten', 'tcp', '-noreset', '-auth', str(inner_root / 'Xauthority')],
+                    env=dict(os.environ, DISPLAY=parent_display,
+                             XAUTHORITY=str(parent_root / 'Xauthority')), stdout=log, stderr=log)
+                try:
+                    self.runtime.wait_ready(inner_root, inner_display, seconds=8, require_vnc=False)
+                except ValueError as error:
+                    log.seek(0)
+                    self.fail(f'{error}; inner exit={inner.poll()}; '
+                              + log.read().decode(errors='replace')[-4000:])
+                self.assertIsNone(inner.poll())
+                with patch.dict(os.environ, DISPLAY=inner_display, XAUTHORITY=str(inner_root / 'Xauthority')):
+                    x = ctypes.CDLL('libX11.so.6')
+                    x.XOpenDisplay.restype = ctypes.c_void_p
+                    connection = x.XOpenDisplay(None)
+                    self.assertTrue(connection)
+                    try:
+                        values = [ctypes.c_int() for _ in range(4)]
+                        x.XGetScreenSaver.argtypes = [ctypes.c_void_p] + [ctypes.POINTER(ctypes.c_int)] * 4
+                        x.XGetScreenSaver(connection, *[ctypes.byref(value) for value in values])
+                        self.assertEqual(values[0].value, 0)
+                    finally:
+                        x.XCloseDisplay.argtypes = [ctypes.c_void_p]
+                        x.XCloseDisplay(connection)
+                unauthorized = subprocess.run(['xdpyinfo', '-display', inner_display],
+                    env=dict(os.environ, XAUTHORITY=str(inner_root / 'missing')),
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=3)
+                self.assertNotEqual(unauthorized.returncode, 0)
+                with self.assertRaisesRegex(ValueError, 'Existing X socket'):
+                    self.runtime.prepare(inner_root, inner_display)
+                self.assertEqual((inner_root / 'Xauthority').read_bytes(), authority)
+            finally:
+                for process in (inner, parent):
+                    if process is not None:
+                        process.terminate()
+                        try:
+                            process.wait(timeout=5)
+                        except subprocess.TimeoutExpired:
+                            process.kill()
+                            process.wait(timeout=5)

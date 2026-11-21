@@ -144,11 +144,15 @@ class ReplyLoop:
                 or outcome.get('reply_sha256') != digest):
             return
         extra = {'native_parts': outcome['native_parts']} if 'native_parts' in outcome else {}
+        if 'cleanup_pending' in outcome:
+            extra['cleanup_pending'] = outcome['cleanup_pending']
         self.save_delivery(row['id'], row['desktop_job'], state, outcome['request_id'], digest, outcome.get('code'), **extra)
 
-    def save_delivery(self, source, job, state, native_id=None, digest=None, code=None, native_parts=None):
+    def save_delivery(self, source, job, state, native_id=None, digest=None, code=None, native_parts=None, cleanup_pending=None):
         if job:
             extra = {'native_parts': native_parts} if native_parts is not None else {}
+            if cleanup_pending is not None:
+                extra['cleanup_pending'] = cleanup_pending
             self.db.execute('UPDATE inbox SET desktop_report=? WHERE id=?', (json.dumps({
                 'id': job, 'state': state, 'native_request_id': native_id, 'reply_sha256': digest, 'code': code, **extra}), source))
 
@@ -162,11 +166,26 @@ class ReplyLoop:
 
     def reconcile_attention(self, stopped):
         outcome = self.io({'op': 'status', 'server_id': stopped['id']})
+        if (not isinstance(stopped['reply'], str)
+                or outcome.get('reply_sha256') != hashlib.sha256(stopped['reply'].encode()).hexdigest()):
+            return {'state': 'attention', 'counts': self.counts()}
+        private = not self.owner['peer'].endswith('@chatroom')
+        if private and outcome.get('preinput_cleanup_pending') is True:
+            outcome = self.io({'op': 'settle', 'server_id': stopped['id']})
+        if private and outcome.get('state') == 'succeeded' and outcome.get('cleanup_pending') is True:
+            outcome = self.io({'op': 'cleanup', 'server_id': stopped['id']})
         state = outcome.get('outcome')
+        matching = (isinstance(stopped['reply'], str)
+                    and outcome.get('reply_sha256') == hashlib.sha256(stopped['reply'].encode()).hexdigest())
+        if state == 'sent' and outcome.get('state') == 'succeeded' and matching:
+            with self.db:
+                terminal = 'attention' if outcome.get('cleanup_pending') else 'sent'
+                self.db.execute("UPDATE inbox SET state=? WHERE id=? AND state='attention'", (terminal, stopped['id']))
+                self.record_delivery(stopped, outcome)
+            return {'state': terminal, 'counts': self.counts()}
         recoverable = (state == 'not_sent' and outcome.get('recoverable_preinput_failure') is True
                        or state == 'partial' and self.owner['peer'].endswith('@chatroom'))
-        if (outcome['state'] not in ('failed', 'cancelled') or not recoverable or not isinstance(stopped['reply'], str)
-                or outcome.get('reply_sha256') != hashlib.sha256(stopped['reply'].encode()).hexdigest()):
+        if (outcome['state'] not in ('failed', 'cancelled') or not recoverable or not matching):
             return {'state': 'attention', 'counts': self.counts()}
         with self.db:
             self.db.execute("UPDATE inbox SET state='failed' WHERE id=? AND state='attention'", (stopped['id'],))
@@ -177,9 +196,7 @@ class ReplyLoop:
         self.flush_delivery()
         stopped = self.db.execute("SELECT id,reply,desktop_job FROM inbox WHERE state='attention' ORDER BY created,id LIMIT 1").fetchone()
         if stopped:
-            if self.friend:
-                return self.reconcile_attention(stopped)
-            return {'state': 'attention', 'counts': self.counts()}
+            return self.reconcile_attention(stopped)
         batch = self.io({'op': 'read'})
         scope = self.owner['scope']
         with self.db:
@@ -358,6 +375,7 @@ def run(path, mode):
         voice = VoiceInput.load(state / 'voice-intake.json', owner['scope']['since'])
         loop = ReplyLoop(state / 'inbox.sqlite', owner, model, transport, context=owner_context, voice=voice)
         previous = None
+        heartbeat_at = 0
         while not stopped:
             # The private switches can stop future input without changing identities or IDs.
             if not json.loads(Path(path).read_text()).get('enabled') or not transport()['enabled']:
@@ -375,6 +393,13 @@ def run(path, mode):
                 model_backend=getattr(model, 'backend', 'direct-scnet'), model=model.model)) + '\n')
             temporary.chmod(0o600)
             os.replace(temporary, state / 'status.json')
+            if time.monotonic() >= heartbeat_at:
+                heartbeat_at = time.monotonic() + 30
+                try:
+                    observation = transport({'op': 'health'})
+                    model.publish_runtime({'state': result['state'], 'checks': observation['checks']})
+                except (ModelError, OSError, ValueError, subprocess.SubprocessError):
+                    pass
             if result != previous:
                 if mode == 'run':
                     print(json.dumps(result), flush=True)

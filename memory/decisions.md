@@ -1,5 +1,16 @@
 # Decisions
 
+## D026 — Delivery, cleanup and late feedback keep the original binding
+
+Private consumers may settle a proven restored pre-input failure as failed and
+continue with later input, never resubmit its cached reply. An accepted original
+may recover only its own audited UI cleanup. Preserve `cleanup_pending` beside
+sent/not_sent/unknown and permit only a monotonic cleanup completion. A late
+receipt can queue one durable status-only notice to its original desktop target;
+uncertain notice submission is review, not requeue or another generation. Runtime
+health reports receiver readiness separately from fresh native observations;
+neither is proof of a new delivery or sleeping-host availability.
+
 ## Group text readability and original receipts
 
 Use a conservative 300 UTF-16-unit target for new group text via `group_io`,

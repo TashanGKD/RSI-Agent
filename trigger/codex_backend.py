@@ -94,6 +94,9 @@ class CodexBackend:
         if value.get('state') not in ('recorded', 'not_bound'):
             raise ModelError('Original delivery receipt was not accepted.')
 
+    def publish_runtime(self, value):
+        self.exchange('/runtime-heartbeat', value, timeout=1.5)
+
     def _run(self, messages, mode, stage=None, schema=None):
         if not self.scope or not self.request:
             raise ModelError('Native account, peer and original request IDs required.')

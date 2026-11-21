@@ -1,0 +1,8 @@
+{
+  "version": "4.1.13.26",
+  "architecture": "amd64",
+  "package_sha256": "a0db8caeee8d1e6cfe0aa5ce58710270f8d74a90ff4920f53a3fc22aa0956fe9",
+  "binary_sha256": "2749535f299ba67feb8ef80cab898bb0531fa8f376b16f8a72db706811c84132",
+  "capture_offset": 142294256,
+  "binary_paths": ["/opt/wechat/wechat", "/var/lib/secretary-wechat/app/opt/wechat/wechat"]
+}
