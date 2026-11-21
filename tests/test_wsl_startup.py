@@ -12,7 +12,7 @@ from rsi_agent.config import ROOT
 @unittest.skipUnless(sys.platform == 'win32', 'requires Windows PowerShell and Task Scheduler types')
 class WindowsStartupTests(unittest.TestCase):
     def test_startup_scripts_parse_in_windows_powershell(self):
-        for name in ('Start-Local.ps1', 'Register-Startup.ps1', 'Install-WeChat.ps1'):
+        for name in ('Start-Local.ps1', 'Register-Startup.ps1', 'Install-WeChat.ps1', 'Show-Login.ps1'):
             script = str(ROOT / 'deploy/wechat-wsl' / name).replace("'", "''")
             command = ("$tokens=$null; $errors=$null; "
                 "[System.Management.Automation.Language.Parser]::ParseFile('" + script
@@ -84,7 +84,8 @@ function Unregister-ScheduledTask { throw 'Must not remove a task' }
         self.assertIn('existing task is preserved', result.stderr)
 
     def test_launcher_refuses_missing_owner_service_before_starting_receiver(self):
-        with tempfile.TemporaryDirectory(prefix='rsi launcher ') as folder:
+        # The launcher's keepalive client may still hold the fake wsl.exe during cleanup.
+        with tempfile.TemporaryDirectory(prefix='rsi launcher ', ignore_cleanup_errors=True) as folder:
             root = Path(folder)
             fake_windows = root / 'Windows/System32'
             fake_windows.mkdir(parents=True)
