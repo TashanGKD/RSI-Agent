@@ -190,11 +190,17 @@ def completion_text(request, text):
             elif key == 'work_index':
                 if item is not None and (type(item) is not int or item < 0):
                     raise ValueError('Original work index required.')
+            elif key == 'sticker':
+                labels = fields['sticker'].get('enum') or []
+                if item is not None and (not isinstance(item, str) or item not in labels):
+                    raise ValueError('Original sticker label required.')
             elif type(item) is not bool:
                 raise ValueError('Original chat decision required.')
         if ((value.get('speak') is True and value.get('work_index') is None
                 or value.get('engineering') is False) and not value['text'].strip()):
             raise ValueError('A speaking chat decision requires its original text.')
+        if value.get('sticker') is not None and value.get('speak') is not False:
+            raise ValueError('A sticker only accompanies a quiet group decision.')
     elif len(text.encode()) > limit:
         raise ValueError('Completion exceeds the original native reply contract.')
 
@@ -213,7 +219,7 @@ def link_reply_text(request, text):
     if not isinstance(value, dict):
         return text
     fields = set(value)
-    if fields in ({'speak', 'text'}, {'speak', 'text', 'work_index'}):
+    if fields - {'sticker'} in ({'speak', 'text'}, {'speak', 'text', 'work_index'}):
         speaking = value['speak'] is True and value.get('work_index') is None
     elif fields == {'engineering', 'text'}:
         speaking = value['engineering'] is False

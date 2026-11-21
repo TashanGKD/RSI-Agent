@@ -133,7 +133,7 @@ class CodexBackend:
         return {'model': self.model, 'message': {'role': 'assistant', 'content': value['text']},
                 'finish_reason': 'stop', 'usage': {}}
 
-    def complete(self, messages, *, tools=None, tool_choice=None, json_output=False):
+    def complete(self, messages, *, tools=None, tool_choice=None, json_output=False, stickers=None):
         if tools is not None or tool_choice is not None:
             raise ModelError('Ordinary Codex conversation has no execution tools.')
         schema = None
@@ -143,6 +143,8 @@ class CodexBackend:
                 'engineering': {'type': 'boolean'}, 'text': {'type': 'string'}}
             if group and self.engineering:
                 fields['work_index'] = {'type': ['integer', 'null']}
+            if group and stickers:
+                fields['sticker'] = {'type': ['string', 'null'], 'enum': [*stickers, None]}
             schema = {'type': 'object', 'properties': fields, 'required': list(fields), 'additionalProperties': False}
         return self._run(messages, 'chat', schema=schema)
 

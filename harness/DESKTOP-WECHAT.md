@@ -160,6 +160,10 @@ Honor body.schema in the private completion:
 - Group decision: exact speak/text/work_index fields when requested. Work_index
   selects only the current owner/kind-1 input; it is classification, not execution.
   Otherwise null. Quiet decisions send nothing; do not acknowledge every message.
+  When the schema also has `sticker`, it may name one listed label only with
+  `speak=false` and `work_index=null`, for a light moment that needs no text; otherwise null.
+  Use it rarely. The current policy is shadow-only: the trigger records the intent
+  and its rate limit, and nothing is sent.
 - No schema: return bounded plain text from the supplied material.
 
 A link-reading turn can echo an earlier routing object. The receiver sends only
