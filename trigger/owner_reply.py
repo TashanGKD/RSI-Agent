@@ -170,7 +170,7 @@ class ReplyLoop:
                 or outcome.get('reply_sha256') != hashlib.sha256(stopped['reply'].encode()).hexdigest()):
             return {'state': 'attention', 'counts': self.counts()}
         private = not self.owner['peer'].endswith('@chatroom')
-        if private and outcome.get('preinput_cleanup_pending') is True:
+        if outcome.get('preinput_cleanup_pending') is True:
             outcome = self.io({'op': 'settle', 'server_id': stopped['id']})
         if private and outcome.get('state') == 'succeeded' and outcome.get('cleanup_pending') is True:
             outcome = self.io({'op': 'cleanup', 'server_id': stopped['id']})

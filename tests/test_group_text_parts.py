@@ -218,6 +218,42 @@ class GroupPartsTests(unittest.TestCase):
         self.assertEqual(result['outcome'], 'unknown')
         self.assertNotIn('native_parts', result)
 
+    def test_group_preparation_failure_settles_and_releases_the_next_request(self):
+        from operations import navigation
+        from trigger.group_reply import GroupLoop
+
+        self.call('submit', text='收到')
+        job, = self.jobs()
+        self.api.s.set_state(job['id'], 'preparing')
+        self.api.s.set_state(job['id'], 'needs_attention', {
+            'reason': 'preparation_failed', 'type': 'PreparationError', 'detail': 'popup missing'})
+        navigation.save(self.api.s.root, self.api.s.by_id(job['id']), {'state': 'started'})
+        self.assertTrue(self.call('status')['preinput_cleanup_pending'])
+
+        def settle(api, original, policy):
+            self.assertEqual(original['id'], job['id'])
+            navigation.save(api.s.root, original, {'state': 'settled'})
+            api.s.set_state(original['id'], 'failed', {'code': 'NAVIGATION_PREPARATION_FAILED',
+                'noSend': True, 'sideEffectStarted': False, 'navigationRestored': True, 'automaticReplay': False})
+            return {}
+
+        group = {'account': self.binding['account'], 'owner_peer': self.binding['owner_peer'],
+                 'peer': self.binding['group_peer'], 'name': 'Fixture', 'scope': self.binding['send_scope']}
+        model = Mock(backend='local-codex', engineering=False, last_delivery_key='b' * 64)
+        loop = GroupLoop(self.root / 'inbox.sqlite', group, model, lambda request: self.call(**request))
+        self.addCleanup(loop.close)
+        with loop.db:
+            loop.save('introduction', 'not_requested')
+            loop.db.execute('INSERT INTO inbox(id,created,text,reply,state,desktop_job) VALUES(?,?,?,?,?,?)',
+                            ('1', 120, '{}', '收到', 'attention', 'a' * 64))
+        with patch('trigger.group_io.advance', side_effect=settle) as advance:
+            self.assertEqual(loop.cycle()['state'], 'failed')
+            advance.assert_called_once()
+        self.assertEqual(loop.db.execute('SELECT state FROM inbox WHERE id=?', ('1',)).fetchone()[0], 'failed')
+        self.assertEqual([j['state'] for j in self.jobs()], ['failed'])
+        with self.assertRaises(ValueError):
+            self.call('settle')
+
     def test_cleanup_debt_and_read_only_status_never_advance_a_part(self):
         self.call('submit', text=self.text)
         self.accept(self.jobs()[0], navigationRecoveryPending=True)
