@@ -240,12 +240,18 @@ GROUP_INPUT_MAX_AGE = 15 * 60
 
 
 def group_input_time(body):
-    """Return the latest native timestamp from a frozen group packet."""
+    """Return the native time of the newest input in a frozen group packet.
+
+    Context only carries plain-text messages, so a quote, card or image that
+    arrives after a quiet period is dated by its own `created` time. Packets
+    frozen before that field existed fall back to the context times.
+    """
     if (not isinstance(body, dict) or body.get('mode') != 'chat'
             or not isinstance(body.get('scope'), list) or len(body['scope']) != 2
             or not isinstance(body['scope'][1], str) or not body['scope'][1].endswith('@chatroom')):
         return None
     latest = None
+    newest = None
     for message in body.get('messages', ()):
         if not isinstance(message, dict) or message.get('role') != 'user' or not isinstance(message.get('content'), str):
             continue
@@ -253,13 +259,19 @@ def group_input_time(body):
             packet = json.loads(message['content'])
         except (TypeError, ValueError):
             continue
-        for item in packet.get('recent_messages', ()) if isinstance(packet, dict) else ():
+        if not isinstance(packet, dict):
+            continue
+        for item in packet.get('recent_messages', ()):
             if not isinstance(item, dict):
                 continue
             value = item.get('time')
             if type(value) is int and value > 0:
                 latest = value if latest is None else max(latest, value)
-    return latest
+        for item in packet.get('new_messages', ()):
+            value = item.get('created') if isinstance(item, dict) else None
+            if type(value) is int and value > 0:
+                newest = value if newest is None else max(newest, value)
+    return newest if newest is not None else latest
 
 
 class Jobs:

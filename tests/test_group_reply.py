@@ -293,6 +293,7 @@ class GroupTests(unittest.TestCase):
         self.assertEqual(loop.cycle()['state'], 'pending')
         data = json.loads(self.model.complete.call_args.args[0][1]['content'])
         self.assertTrue(data['new_messages'][0]['follows_self'])
+        self.assertEqual(data['new_messages'][0]['created'], 120)
 
     def test_followup_priority_survives_ack_then_model_outage(self):
         loop = self.loop()
