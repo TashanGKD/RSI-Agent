@@ -53,7 +53,7 @@ function Unregister-ScheduledTask { throw 'Must not remove a task' }
                 + '\n& ' + literal(ROOT / 'deploy/wechat-wsl/Register-Startup.ps1')
                 + ' -Action ' + action + ' -Release ' + literal(release)
                 + ' -Config ' + literal(config) + ' -Python ' + literal(sys.executable)
-                + '\n$global:registered | ConvertTo-Json -Depth 5 -Compress\n', encoding='utf-8')
+                + '\n$global:registered | ConvertTo-Json -Depth 5 -Compress\n', encoding='utf-8-sig')
             result = subprocess.run([
                 str(Path(os.environ['WINDIR']) / 'System32/WindowsPowerShell/v1.0/powershell.exe'),
                 '-NoProfile', '-NonInteractive', '-File', str(harness)],
@@ -108,7 +108,7 @@ function Unregister-ScheduledTask { throw 'Must not remove a task' }
             harness.write_text('$ErrorActionPreference="Stop"\n$env:WINDIR=' + literal(root / 'Windows')
                 + '\n& ' + literal(ROOT / 'deploy/wechat-wsl/Start-Local.ps1')
                 + ' -Release ' + literal(release) + ' -Config ' + literal(config)
-                + ' -Python ' + literal(sys.executable), encoding='utf-8')
+                + ' -Python ' + literal(sys.executable), encoding='utf-8-sig')
             for active in ('0', '1'):
                 result = subprocess.run([powershell, '-NoProfile', '-NonInteractive', '-File', str(harness)],
                     env=dict(os.environ, RSI_FIXTURE_OWNER_ACTIVE=active, RSI_FIXTURE_MARKER=str(marker)),
