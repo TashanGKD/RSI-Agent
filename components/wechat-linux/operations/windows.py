@@ -18,8 +18,9 @@ def parse_window_identity(raw):
 
 def search_geometry(popup,parent):
  # Geometry selects candidates; native parent/process proof is still mandatory.
+ # (73,72,320) is the same 4.1.13.26 popup on the local WSL Xephyr/Openbox desktop.
  shape=(popup['x']-parent['x'],popup['y']-parent['y'],popup['width'])
- return popup['title']=='wechat' and shape in ((76,75,333),(74,73,321)) and 40<=popup['height']<=parent['height']-shape[1]
+ return popup['title']=='wechat' and shape in ((76,75,333),(74,73,321),(73,72,320)) and 40<=popup['height']<=parent['height']-shape[1]
 
 def search_parent_proof(popup,parent):
  for w in (popup,parent):
