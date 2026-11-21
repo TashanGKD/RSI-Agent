@@ -78,7 +78,8 @@ def source(root, owner, request):
     with native('message/message_0.db') as (db, receipt):
         if receipt.get('consistency') != 'committed' or receipt.get('gap'):
             raise ValueError('Committed native source required.')
-        if 'friend_peer' in owner and not db.execute(
+        # A newly logged-in device has no table for a chat until it syncs a message there.
+        if not db.execute(
                 "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,)).fetchone():
             return {'events': []}
 
