@@ -43,10 +43,10 @@ class WindowsStartupTests(unittest.TestCase):
 $global:registered = $null
 function Get-ScheduledTask { param($TaskName, $ErrorAction) EXISTING }
 function New-ScheduledTaskAction { param($Execute, $Argument, $WorkingDirectory) @{ Execute=$Execute; Arguments=$Argument; Directory=$WorkingDirectory } }
-function New-ScheduledTaskTrigger { param([switch]$AtLogOn, $User) @{ User=$User } }
+function New-ScheduledTaskTrigger { param([switch]$AtLogOn, $User, [switch]$Once, $At, $RepetitionInterval) @{ User=$User; LogOn=[bool]$AtLogOn; Every=$(if ($RepetitionInterval) { $RepetitionInterval.TotalMinutes } else { $null }) } }
 function New-ScheduledTaskPrincipal { param($UserId, $LogonType, $RunLevel) @{ User=$UserId; Logon=$LogonType; RunLevel=$RunLevel } }
 function New-ScheduledTaskSettingsSet { param($MultipleInstances, $RestartCount, $RestartInterval, $ExecutionTimeLimit, [switch]$AllowStartIfOnBatteries, [switch]$DontStopIfGoingOnBatteries) @{ Instances=$MultipleInstances; Restarts=$RestartCount; Limit=$ExecutionTimeLimit.TotalSeconds } }
-function Register-ScheduledTask { param($TaskName, $Action, $Trigger, $Principal, $Settings, $Description) $global:registered=@{ Name=$TaskName; Action=$Action; Principal=$Principal; Settings=$Settings } }
+function Register-ScheduledTask { param($TaskName, $Action, $Trigger, $Principal, $Settings, $Description) $global:registered=@{ Name=$TaskName; Action=$Action; Trigger=$Trigger; Principal=$Principal; Settings=$Settings } }
 function Start-ScheduledTask { throw 'Must not start a task' }
 function Unregister-ScheduledTask { throw 'Must not remove a task' }
 '''.replace('EXISTING', "[PSCustomObject]@{State='Ready'; Description='existing'}" if existing else '$null')
@@ -74,6 +74,9 @@ function Unregister-ScheduledTask { throw 'Must not remove a task' }
         self.assertEqual(task['Principal']['Logon'], 'Interactive')
         self.assertEqual(task['Principal']['RunLevel'], 'Limited')
         self.assertEqual(task['Settings'], {'Instances': 'IgnoreNew', 'Restarts': 3, 'Limit': 0})
+        self.assertTrue(task['Action']['Execute'].lower().endswith('conhost.exe'))
+        self.assertTrue(task['Action']['Arguments'].startswith('--headless "'))
+        self.assertEqual([(t['LogOn'], t['Every']) for t in task['Trigger']], [(True, None), (False, 5)])
         self.assertIn(' -File "', task['Action']['Arguments'])
         self.assertIn("release with spaces and 'quote", task['Action']['Arguments'])
         self.assertIn("private 'config.json", task['Action']['Arguments'])

@@ -30,9 +30,15 @@ if ($Action -eq 'Check') {
 }
 if ($existing) { throw 'An existing task is preserved. Review it and explicitly remove the stopped registration before replacing it.' }
 $powershell = Join-Path $env:WINDIR 'System32/WindowsPowerShell/v1.0/powershell.exe'
+# A plain console task is handed to the default terminal (often Windows Terminal); closing that
+# window sends Ctrl+C and stops the receiver. A headless conhost keeps it off any terminal window.
+$conhost = Join-Path $env:WINDIR 'System32/conhost.exe'
 $arguments = "-NoProfile -NonInteractive -WindowStyle Hidden -File `"$launcher`" -Release `"$Release`" -Config `"$Config`" -Python `"$Python`" -Distro $Distro"
-$taskAction = New-ScheduledTaskAction -Execute $powershell -Argument $arguments -WorkingDirectory $Release
-$trigger = New-ScheduledTaskTrigger -AtLogOn -User $user
+$taskAction = New-ScheduledTaskAction -Execute $conhost -Argument "--headless `"$powershell`" $arguments" -WorkingDirectory $Release
+# RestartCount covers only launch failures. The five-minute timer starts the task again after the
+# receiver exits for any reason; IgnoreNew skips it while the receiver is running.
+$trigger = @((New-ScheduledTaskTrigger -AtLogOn -User $user),
+    (New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes 5)))
 $principal = New-ScheduledTaskPrincipal -UserId $user -LogonType Interactive -RunLevel Limited
 $settings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit ([TimeSpan]::Zero) -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
 Register-ScheduledTask -TaskName $taskName -Action $taskAction -Trigger $trigger -Principal $principal -Settings $settings -Description 'RSI Agent local WSL receiver startup' | Out-Null

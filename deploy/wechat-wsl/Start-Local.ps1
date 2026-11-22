@@ -20,6 +20,15 @@ $keepalive = Get-CimInstance Win32_Process -Filter "Name='wsl.exe'" |
 if (-not $keepalive) {
     Start-Process -FilePath $wsl -ArgumentList @('-d', $Distro, '-u', 'root', '--exec', '/bin/sleep', 'infinity') -WindowStyle Hidden
 }
+# A receiver that died leaves its windowless ssh forward running; it keeps the WSL return port and
+# makes every new tunnel fail. Stop only forwards for this configured port whose receiver is gone.
+$remotePort = (Get-Content -Raw -LiteralPath $Config | ConvertFrom-Json).remote_port
+if ($remotePort) {
+    Get-CimInstance Win32_Process -Filter "Name='ssh.exe'" |
+        Where-Object { $_.CommandLine -like "* -R 127.0.0.1:$($remotePort):*" -and
+            -not (Get-Process -Id $_.ParentProcessId -ErrorAction SilentlyContinue) } |
+        ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+}
 Push-Location -LiteralPath $Release
 try {
     & $Python -B -m receiver.codex_worker --config $Config
