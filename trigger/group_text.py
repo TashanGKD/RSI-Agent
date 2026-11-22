@@ -226,6 +226,12 @@ def handle(api, client, rid, peer, op, text, policy, advance):
             raise ValueError('Only unconfirmed original preparation may be settled.')
         advance(api, current, policy)
         return aggregate(api, originals(api, client, rid, peer), client, rid)
+    if op == 'reconcile':
+        # Only the first unsent part, and only when unknown: native proof, never a second click.
+        current = next((job for job in jobs if job['state'] != 'succeeded'), None)
+        if current is not None and current['state'] == 'unknown':
+            advance(api, current, policy)
+        return aggregate(api, originals(api, client, rid, peer), client, rid)
     result = aggregate(api, jobs, client, rid)
     if op == 'advance':
         if len(jobs) == 1 and 'group_reply_source' not in jobs[0].get('dispatch', {}):

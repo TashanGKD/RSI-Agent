@@ -177,7 +177,9 @@ class Executor:
     except BeforeEffect as e:
      if self.d.cleanup(j):self.s.set_state(j['id'],'failed',dict({'reason':str(e)[:120],'sideEffectStarted':False,'noSend':True},**({'code':e.code} if getattr(e,'code',None) else {})));self.d.release();return {'state':'failed','job':j['id']}
      self.s.set_state(j['id'],'needs_attention',{'reason':'precondition_changed','detail':str(e)[:150],'sideEffectStarted':False});return {'state':'needs_attention'}
-    except Exception as e:self.s.set_state(j['id'],'unknown',{'reason':'execution_result_unknown','type':type(e).__name__,'automaticReplay':False});return {'state':'unknown','job':j['id']}
+    except Exception as e:
+     cause=e.__cause__
+     self.s.set_state(j['id'],'unknown',dict({'reason':'execution_result_unknown','type':type(e).__name__,'automaticReplay':False},**({'causeType':type(cause).__name__} if cause else {})));return {'state':'unknown','job':j['id']}
    return {'state':state,'job':j['id']}
   except BaseException:self.d.release();raise
 

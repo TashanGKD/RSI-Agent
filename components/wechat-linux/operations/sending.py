@@ -336,11 +336,22 @@ def _execute(driver,j):
   started=time.time();driver._save_attempt(j,{'beforeIds':baseline,'startedAt':started,'peer':j['peer'],'action':j['action'],'text':j['payload'].get('text'),'asset':p.get('asset'),'clickScheduled':True})
   execution_mark(driver,j,'terminal-boundary')
   ui.click(point) # exactly one click; unknown never becomes an automatic second click
-  for pause in (.1,.2,.4,.8,1,1,1,1,1,1,1,1):
-   ui.settle(int(pause*1000));proof=driver.verify(j)
-   if proof.get('state')=='accepted':return dict(proof,executionSeconds=time.time()-started,sendClicks=1)
-  return {'state':'unknown','reason':'unique native receipt not yet proven','automaticReplay':False,'sendClicks':1}
+  return poll_receipt(driver,j,ui,started)
  finally:ui.close()
+
+def poll_receipt(driver,j,ui,started):
+ """Read-only native proof after the one click; a busy snapshot is retried, never the click."""
+ last=None
+ for pause in (.1,.2,.4,.8,1,1,1,1,1,1,1,1):
+  ui.settle(int(pause*1000))
+  try:proof=driver.verify(j)
+  except (OSError,ValueError) as error:
+   # WeChat writes message_0.db right after Send; a changed copy is not a send result.
+   last=type(error).__name__;continue
+  if proof.get('state')=='accepted':return dict(proof,executionSeconds=time.time()-started,sendClicks=1)
+ result={'state':'unknown','reason':'unique native receipt not yet proven','automaticReplay':False,'sendClicks':1}
+ if last:result['lastProofError']=last
+ return result
 
 def finalize(driver,j,proof):
  value=composer.load(driver.root,j)

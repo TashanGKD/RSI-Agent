@@ -126,6 +126,24 @@ class ReplyLoopTests(unittest.TestCase):
         self.assertEqual(loop.db.execute('SELECT reply,state FROM inbox WHERE id="1"').fetchone()[:], (frozen, 'failed'))
         self.assertEqual(loop.cycle()['state'], 'idle')
 
+    def test_unknown_original_reconciles_native_receipt_without_replay(self):
+        self.unknown = True
+        loop = self.loop()
+        self.assertEqual(loop.cycle()['state'], 'attention')
+        frozen = loop.db.execute('SELECT reply FROM inbox WHERE id="1"').fetchone()[0]
+        digest = hashlib.sha256(frozen.encode()).hexdigest()
+        unknown = {'state': 'unknown', 'outcome': 'unknown', 'reply_sha256': digest}
+        loop.io = Mock(side_effect=[unknown, unknown, unknown])
+        self.assertEqual(loop.cycle()['state'], 'attention')
+        self.assertEqual(loop.cycle()['state'], 'attention')
+        self.assertEqual([c.args[0]['op'] for c in loop.io.call_args_list], ['status', 'reconcile', 'status'])
+        loop.reconcile_after = {}
+        sent = {'state': 'succeeded', 'outcome': 'sent', 'cleanup_pending': False, 'reply_sha256': digest}
+        loop.io = Mock(side_effect=[unknown, sent])
+        self.assertEqual(loop.cycle()['state'], 'sent')
+        self.assertEqual([c.args[0]['op'] for c in loop.io.call_args_list], ['status', 'reconcile'])
+        self.assertEqual(self.model.reply.call_count, 1)
+
     def test_accepted_original_recovers_only_cleanup_then_releases_inbox(self):
         self.unknown = True
         loop = self.loop()
@@ -427,6 +445,16 @@ class ReplyNativeTests(unittest.TestCase):
         self.assertEqual(self.call('advance', server_id='1')['state'], 'unknown')
         self.assertEqual(self.driver.sent, [])
         self.assertEqual(self.api.s.get(CLIENT, rid)['id'], row['id'])
+
+    def test_unknown_original_is_reconciled_from_native_proof_without_a_second_click(self):
+        self.driver.unknown = True
+        self.call('submit', server_id='1', text='收到')
+        self.assertEqual(self.call('advance', server_id='1')['state'], 'unknown')
+        self.assertEqual(self.call('reconcile', server_id='1')['state'], 'unknown')
+        self.driver.unknown = False
+        self.assertEqual(self.call('reconcile', server_id='1')['outcome'], 'sent')
+        self.assertEqual(self.call('reconcile', server_id='1')['outcome'], 'sent')
+        self.assertEqual(len(self.driver.sent), 1)
 
     def test_scope_switch_or_extra_action_cannot_redirect_reply(self):
         with self.assertRaises(ValueError):

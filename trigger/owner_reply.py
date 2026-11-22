@@ -20,6 +20,9 @@ from .reply_io import FRIEND_MODE
 from .voice_input import VoiceInput
 from .local_codex import settings as codex_settings, instruction as codex_instruction, initialize as codex_initialize, enqueue as codex_enqueue
 
+# A stuck unknown send blocks the shared V2 queue; re-read its native receipt at most this often.
+RECONCILE_SECONDS = 30
+
 
 class Transport:
     module = 'trigger.reply_io'
@@ -170,6 +173,13 @@ class ReplyLoop:
                 or outcome.get('reply_sha256') != hashlib.sha256(stopped['reply'].encode()).hexdigest()):
             return {'state': 'attention', 'counts': self.counts()}
         private = not self.owner['peer'].endswith('@chatroom')
+        unknown = outcome.get('state') == 'unknown' or any(
+            part.get('state') == 'unknown' for part in outcome.get('parts') or [])
+        retry = getattr(self, 'reconcile_after', {})
+        if unknown and time.time() >= retry.get(stopped['id'], 0):
+            # Same original executor, read-only native proof of the one click; never a second Send.
+            self.reconcile_after = dict(retry, **{stopped['id']: time.time() + RECONCILE_SECONDS})
+            outcome = self.io({'op': 'reconcile', 'server_id': stopped['id']})
         if outcome.get('preinput_cleanup_pending') is True:
             outcome = self.io({'op': 'settle', 'server_id': stopped['id']})
         if private and outcome.get('state') == 'succeeded' and outcome.get('cleanup_pending') is True:
