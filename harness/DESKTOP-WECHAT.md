@@ -339,3 +339,14 @@ every native receipt against the frozen text. `status --day YYYY-MM-DD`
 reads the original receipts. The remote wait scales with the batch size, so a
 long batch finishes before the local call returns. If a result is uncertain,
 keep the same date, recipient and V2 request ID.
+
+An optional overview image goes before the text items. The scheduler's Codex
+turn previews the day's batch, picks the top items, generates one static image
+with the image model, opens it and checks that every title, number and date in
+the picture matches the frozen items. Then it calls `run --cover IMAGE`. The
+first run copies the PNG or JPEG (static, at most 10 MB) next to the draft and
+freezes its name, size and SHA-256 with the batch. A cover cannot be added to
+or swapped in an already frozen day. Each group then gets the image as part 0
+through V2 `send_image`, and the native receipt must show one click, a unique
+server ID and the frozen image hash before the text items follow. The picture
+is a summary; the text bubbles stay the source of record with their links.

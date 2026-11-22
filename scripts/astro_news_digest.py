@@ -1,7 +1,9 @@
 """Publish every new public astronomy item to privately bound WeChat groups each evening."""
 import argparse
+import base64
 from datetime import date, datetime, time, timedelta, timezone
 import hashlib
+import io
 import json
 from pathlib import Path
 import shlex
@@ -16,8 +18,10 @@ from trigger.group_text import split_text
 
 FEED = "https://ucas.sitianai.com/astrohot/api/v1/items"
 BEIJING = timezone(timedelta(hours=8))
+COVER_BYTES = 10_000_000
 
 REMOTE = r"""
+import base64
 import hashlib
 import json
 from pathlib import Path
@@ -50,6 +54,12 @@ def job_for(group, index, text):
             'peer': group['peer'], 'action': 'send_text', 'execution_mode': 'verified_fast',
             'payload': {'text': text}}
 
+def cover_job(group, asset):
+    key = '\0'.join((data['account'], group['peer'], data['day'], 'cover'))
+    return {'client': 'rsi-group', 'request_id': 'astro-news-' + hashlib.sha256(key.encode()).hexdigest(),
+            'peer': group['peer'], 'action': 'send_image', 'execution_mode': 'verified_fast',
+            'payload': {'asset': asset}}
+
 for group in data['groups']:
     matches = [g for g in snapshot['groups'] if g['name'] == group['name']]
     if len(matches) != 1:
@@ -68,9 +78,23 @@ from operations.public_api import PublicAPI
 api = PublicAPI(root, policy)
 receipts = []
 try:
+    cover = data.get('cover')
+    asset = None
+    if cover:
+        raw = base64.b64decode(cover['data'], validate=True)
+        if hashlib.sha256(raw).hexdigest() != cover['sha256'] or len(raw) != cover['bytes']:
+            raise ValueError('Cover bytes differ from the frozen digest')
+        if data['mode'] == 'send':
+            asset = api.call({'op': 'upload', 'client': 'rsi-group', 'name': cover['name'],
+                              'sha256': cover['sha256'], 'data': cover['data']})['id']
+        else:
+            from operations.assets import descriptor
+            asset = descriptor('rsi-group', cover['name'], cover['bytes'], cover['sha256'])
     for group in data['groups']:
-        for index, text in enumerate(data['parts'], 1):
-            job = job_for(group, index, text)
+        items = [(index, job_for(group, index, text), text) for index, text in enumerate(data['parts'], 1)]
+        if cover:
+            items.insert(0, (0, cover_job(group, asset), None))
+        for index, job, text in items:
             identity = {k: job[k] for k in ('client', 'request_id')}
             try:
                 original = api.s.get(identity['client'], identity['request_id'])
@@ -95,18 +119,28 @@ try:
                     pass  # Another request owns the display; read the original below.
             row = api.call({'op': 'get', **identity, 'wait_seconds': 0})
             proof = row.get('result') or {}
-            compare = proof.get('textComparison') or {}
-            actual = compare.get('actualText')
-            sha = hashlib.sha256(text.encode()).hexdigest()
-            accepted = (row['state'] == 'succeeded' and proof.get('state') == 'accepted'
-                        and row['peer'] == group['peer'] and row['action'] == 'send_text'
-                        and proof.get('nativeStatus') == 2 and proof.get('sendClicks') == 1
-                        and compare.get('expectedSHA256') == sha
-                        and (actual == text or (text.endswith('\n') and actual == text[:-1]
-                             and compare.get('mode') == 'single_terminal_lf_removed')))
+            if text is None:
+                # One unique new native image after the single click, bound to the frozen bytes.
+                actual = None
+                accepted = (row['state'] == 'succeeded' and proof.get('state') == 'accepted'
+                            and row['peer'] == group['peer'] and row['action'] == 'send_image'
+                            and proof.get('sendClicks') == 1 and bool(proof.get('serverId'))
+                            and proof.get('payloadSha256') == cover['sha256'])
+            else:
+                compare = proof.get('textComparison') or {}
+                actual = compare.get('actualText')
+                sha = hashlib.sha256(text.encode()).hexdigest()
+                accepted = (row['state'] == 'succeeded' and proof.get('state') == 'accepted'
+                            and row['peer'] == group['peer'] and row['action'] == 'send_text'
+                            and proof.get('nativeStatus') == 2 and proof.get('sendClicks') == 1
+                            and compare.get('expectedSHA256') == sha
+                            and (actual == text or (text.endswith('\n') and actual == text[:-1]
+                                 and compare.get('mode') == 'single_terminal_lf_removed')))
             receipt.update(state='sent' if accepted else row['outcome']['status'],
                            code=proof.get('code'), native_state=row['state'])
-            if accepted:
+            if accepted and text is None:
+                receipt.update(sha256=cover['sha256'], server_id=proof['serverId'])
+            elif accepted:
                 receipt['text'] = actual
             elif receipt['state'] == 'sent':
                 receipt['state'] = 'unknown'
@@ -180,25 +214,54 @@ def render(items, day):
     return parts
 
 
-def remote(settings, mode, key, parts):
+def cover_asset(path, state, day):
+    """Freeze one static PNG or JPEG overview image beside the day's draft."""
+    from PIL import Image
+    raw = Path(path).read_bytes()
+    if not 0 < len(raw) <= COVER_BYTES:
+        raise ValueError("The cover image must be 1 byte to 10 MB")
+    with Image.open(io.BytesIO(raw)) as image:
+        kind = image.format
+        if kind not in ("PNG", "JPEG") or getattr(image, "n_frames", 1) != 1:
+            raise ValueError("A static PNG or JPEG cover is required")
+        image.verify()
+    name = f"evening-{day}-cover." + ("png" if kind == "PNG" else "jpg")
+    target = state / name
+    if target.exists() and target.read_bytes() != raw:
+        raise ValueError("A different cover is already frozen for this day")
+    if not target.exists():
+        temporary = target.with_suffix(".tmp")
+        temporary.write_bytes(raw)
+        temporary.replace(target)
+    return {"name": name, "sha256": hashlib.sha256(raw).hexdigest(), "bytes": len(raw)}
+
+
+def frozen_cover(state, cover):
+    raw = (state / cover["name"]).read_bytes()
+    if hashlib.sha256(raw).hexdigest() != cover["sha256"] or len(raw) != cover["bytes"]:
+        raise ValueError("The frozen cover image changed")
+    return dict(cover, data=base64.b64encode(raw).decode())
+
+
+def remote(settings, mode, key, parts, cover=None):
     operator = json.loads(Path(settings["operator"]).read_text(encoding="utf-8-sig"))
     ssh, host = operator["ssh"], operator["remote"]
     data = {"release": host["current"], "python_path": host["python_path"],
             "installation": host["private_config"], "binding": host["owner_binding"],
             "account": settings["account"], "groups": settings["groups"],
-            "mode": mode, "day": key, "parts": parts}
+            "mode": mode, "day": key, "parts": parts, "cover": cover}
     command = ["ssh", "-T", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=yes",
                "-o", "ConnectTimeout=8", "-i", ssh["identity_file"], ssh["user"] + "@" + ssh["host"],
                shlex.join(["runuser", "-u", "wechat-gui", "--", "/usr/bin/python3", "-B", "-c", REMOTE])]
     # Each native send takes about ten seconds; wait for the whole ordered batch.
-    timeout = 60 + 20 * len(parts) * len(settings["groups"])
+    timeout = 60 + 20 * (len(parts) + bool(cover)) * len(settings["groups"])
     result = subprocess.run(command, input=json.dumps(data).encode(), capture_output=True, timeout=timeout)
     if result.returncode:
         raise OSError("Native group operation did not return a receipt")
     return json.loads(result.stdout)
 
 
-def run(settings, state, mode, day, now):
+def run(settings, state, mode, day, now, cover_path=None):
     key = f"{day}-evening"
     if mode == "check":
         return remote(settings, "check", key, [])
@@ -212,6 +275,13 @@ def run(settings, state, mode, day, now):
              else {"day": key, "parts": render(feed_items(fetch, start, end), day)})
     if batch["day"] != key:
         raise ValueError("The frozen batch key differs")
+    if cover_path is not None:
+        if mode != "run":
+            raise ValueError("A cover is frozen only by run")
+        cover = cover_asset(cover_path, state, day)
+        if draft.exists() and batch.get("cover") != cover:
+            raise ValueError("The day's draft is already frozen with a different cover")
+        batch["cover"] = cover
     parts = batch["parts"]
     if mode == "preview":
         return {"state": "preview", "day": day.isoformat(), "parts": parts}
@@ -219,17 +289,19 @@ def run(settings, state, mode, day, now):
         save_once(draft, batch)
     if not parts:
         return {"state": "no_news", "day": day.isoformat()}
-    current = remote(settings, "status", key, parts)
+    cover = frozen_cover(state, batch["cover"]) if batch.get("cover") else None
+    current = remote(settings, "status", key, parts, cover)
     if mode == "run" and any(row["state"] == "not_submitted" for row in current["receipts"]):
         if all(row["state"] in ("sent", "not_submitted") and not row.get("cleanup_pending")
                for row in current["receipts"]):
-            remote(settings, "send", key, parts)
-            current = remote(settings, "status", key, parts)
+            remote(settings, "send", key, parts, cover)
+            current = remote(settings, "status", key, parts, cover)
     names = [group["name"] for group in settings["groups"]]
-    expected = {(name, index) for name in names for index in range(1, len(parts) + 1)}
+    expected = {(name, index) for name in names for index in range(0 if cover else 1, len(parts) + 1)}
     proven = {(row["group"], row["part"]) for row in current["receipts"]
               if row["state"] == "sent" and not row.get("cleanup_pending")
-              and row.get("text") == parts[row["part"] - 1]}
+              and (row.get("sha256") == cover["sha256"] if row["part"] == 0 and cover
+                   else row["part"] > 0 and row.get("text") == parts[row["part"] - 1])}
     current["state"] = ("sent" if proven == expected and len(current["receipts"]) == len(expected)
                         else "unsettled")
     current["day"] = day.isoformat()
@@ -246,12 +318,13 @@ def main():
     parser.add_argument("config", type=Path)
     parser.add_argument("--state", type=Path, help="Directory for frozen drafts and receipts; defaults to the config directory")
     parser.add_argument("--day", type=date.fromisoformat, help="Beijing date of the batch")
+    parser.add_argument("--cover", type=Path, help="Static PNG/JPEG top overview, frozen and sent before the text items")
     args = parser.parse_args()
     settings = json.loads(args.config.read_bytes())
     if not settings["groups"] or len({group["peer"] for group in settings["groups"]}) != len(settings["groups"]):
         parser.error("Distinct private group bindings required")
     now = datetime.now(BEIJING)
-    result = run(settings, args.state or args.config.parent, args.mode, args.day or now.date(), now)
+    result = run(settings, args.state or args.config.parent, args.mode, args.day or now.date(), now, args.cover)
     print(json.dumps(result, ensure_ascii=True))
     return 2 if result["state"] == "unsettled" else 0
 
