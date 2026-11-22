@@ -350,3 +350,6 @@ or swapped in an already frozen day. Each group then gets the image as part 0
 through V2 `send_image`, and the native receipt must show one click, a unique
 server ID and the frozen image hash before the text items follow. The picture
 is a summary; the text bubbles stay the source of record with their links.
+If V2 proves the cover unsent before any input (failed with noSend), the text
+items still go and the day stays unsettled; the cover is not retried. An
+unknown cover result stops the batch for reconciliation like any other part.
