@@ -62,7 +62,8 @@ class GroupFailureRecoveryTests(unittest.TestCase):
 
     def io(self, request):
         self.calls.append(request)
-        if request['op'] == 'status':
+        if request['op'] in ('status', 'reconcile'):
+            # reconcile only re-reads native proof; this fixture has none, so it stays unknown.
             self.assertEqual(request['server_id'], '1')
             return self.status()
         if request['op'] == 'read':
@@ -121,7 +122,8 @@ class GroupFailureRecoveryTests(unittest.TestCase):
                 self.api.s.c.execute('UPDATE jobs SET state=?,result=? WHERE id=?',
                     (state, json.dumps(result), self.key))
                 self.assertEqual(loop.cycle()['state'], 'attention')
-        self.assertTrue(all(r['op'] == 'status' for r in self.calls))
+        self.assertTrue(all(r['op'] in ('status', 'reconcile') for r in self.calls))
+        self.assertEqual([r['op'] for r in self.calls].count('reconcile'), 1)
         self.model.complete.assert_not_called()
 
     def test_missing_or_unsettled_navigation_and_any_input_artifact_stay_blocked(self):
