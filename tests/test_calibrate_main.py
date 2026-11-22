@@ -19,6 +19,14 @@ class CalibrateMainTests(unittest.TestCase):
         ])
         self.assertEqual(calibrate_main.default_main_windows(tree), ['0x400011'])
 
+    def test_a_restored_main_window_near_the_calibrated_size_is_corrected(self):
+        tree = '\n'.join([
+            '     0x400011 "Weixin": ("wechat" "wechat")  903x667+0+0  +200+80',
+            '     0x400007 "Weixin": ("wechat" "wechat")  280x380+0+0  +500+210',
+            '     0x400040 "Group": ("wechat" "wechat")  903x667+0+0  +341+80',
+        ])
+        self.assertEqual(calibrate_main.default_main_windows(tree), ['0x400011'])
+
 
 if __name__ == '__main__':
     unittest.main()
