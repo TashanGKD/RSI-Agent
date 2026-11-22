@@ -149,6 +149,10 @@ try:
             if cleanup:
                 receipt['cleanup_pending'] = True
             if data['mode'] == 'send' and (not accepted or cleanup):
+                if (text is None and not cleanup and row['state'] in ('failed', 'cancelled', 'expired')
+                        and row['outcome']['status'] == 'not_sent' and proof.get('noSend') is True):
+                    # The cover was proven unsent before any input; the text record still goes.
+                    continue
                 print(json.dumps({'state': 'check_original', 'receipts': receipts}))
                 sys.exit(0)
     state = 'sent' if receipts and all(r['state'] == 'sent' for r in receipts) else 'unsettled'
