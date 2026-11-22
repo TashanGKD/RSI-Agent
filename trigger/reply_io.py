@@ -271,7 +271,8 @@ def handle(installation, owner, request):
               'document': {'op', 'server_id'},
               'ack': {'op', 'batch_id', 'batch_hash', 'ack_ids'},
               'submit': {'op', 'server_id', 'text'}, 'advance': {'op', 'server_id'},
-              'status': {'op', 'server_id'}, 'cleanup': {'op', 'server_id'}, 'settle': {'op', 'server_id'}}
+              'status': {'op', 'server_id'}, 'cleanup': {'op', 'server_id'}, 'settle': {'op', 'server_id'},
+              'reconcile': {'op', 'server_id'}}
     if 'friend_peer' not in owner and owner['send_scope']['mode'] == 'owner-private-text':
         fields['voice'] = {'op', 'server_id'}
     if op not in fields or set(request) != fields[op]:
@@ -307,7 +308,7 @@ def handle(installation, owner, request):
     if policy['account'] != owner['account']:
         raise ValueError('Native sender account differs from confirmed binding.')
     state = root / 'operations-state'
-    if op in ('status', 'cleanup', 'settle') and not (state / 'queue.sqlite').is_file():
+    if op in ('status', 'cleanup', 'settle', 'reconcile') and not (state / 'queue.sqlite').is_file():
         raise ValueError('Original sender queue is missing.')
     api = PublicAPI(state, policy)
     try:
@@ -330,6 +331,11 @@ def handle(installation, owner, request):
             if not original_status(api, job, client)['preinput_cleanup_pending']:
                 raise ValueError('Only unconfirmed original preparation may be settled.')
             advance(api, job, policy)
+            return original_status(api, api.s.by_id(job['id']), client)
+        if op == 'reconcile':
+            # Only an unknown original: the executor re-reads native proof and never clicks again.
+            if job['state'] == 'unknown':
+                advance(api, job, policy)
             return original_status(api, api.s.by_id(job['id']), client)
         return advance(api, job, policy)
     finally:

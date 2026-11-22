@@ -36,6 +36,18 @@ class ImagePreparationTests(unittest.TestCase):
     begin.assert_called_once_with(driver,request)
     driver._select.assert_called_once_with(request)
 
+class ReceiptPollTests(unittest.TestCase):
+ def test_busy_native_snapshot_is_reread_and_never_clicked_again(self):
+  from unittest.mock import Mock
+  ui=Mock(spec=['settle']);driver=Mock(spec=['verify'])
+  busy=ValueError('database changed during snapshot; retry needed')
+  driver.verify.side_effect=[busy,{'state':'accepted','serverId':'7'}]
+  proof=sending.poll_receipt(driver,{'id':'a'*32},ui,0)
+  self.assertEqual((proof['state'],proof['serverId'],proof['sendClicks']),('accepted','7',1))
+  driver.verify.side_effect=busy
+  proof=sending.poll_receipt(driver,{'id':'a'*32},ui,0)
+  self.assertEqual((proof['state'],proof['lastProofError'],proof['sendClicks'],proof['automaticReplay']),('unknown','ValueError',1,False))
+
 class DraftTests(unittest.TestCase):
  def test_only_losslessly_plain_text_can_be_parked(self):
   composer.validate_plain('保留的草稿',{'text/plain'},'',False,False)
