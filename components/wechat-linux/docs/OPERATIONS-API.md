@@ -146,7 +146,7 @@ SDK的audit默认true；JSON控制接口默认false，可明确开启。对已ac
 
 异常结果可带`mechanismReview`：给出原client/request_id/peer、类别和原机制负责人线程。普通成熟业务照常直接SDK；只有当前异常交原负责人查真错/误判并处置，同单/同根已有维护合并。这个字段不是新的维修单或自动后台唤醒，工具不会自行另起模型、服务或队列；也不表示要向本人重新索取已有群授权。unknown只核原单，`accepted-cleanup-only`只修收尾，`preserved-draft`不清草稿。真正影响目标/内容的歧义再带具体事实回原业务方。
 
-明显笔误口误由业务AI在定稿前结合上下文纠正；接口不偷偷改冻结正文、目标或同ID的模式。原生大表情type47仍只有前述已验人工官方路径，未开放公共`send_sticker`；引用、转发、入群等继续各自现有配方，不把本节三动作验收外推为全功能/全布局。
+明显笔误口误由业务AI在定稿前结合上下文纠正；接口不偷偷改冻结正文、目标或同ID的模式。原生大表情type47的收藏表情由公共`send_sticker`发送（见动作表）；引用、转发、入群等继续各自现有配方，不把本节三动作验收外推为全功能/全布局。
 
 本阶段实证、失败记录和限制见`/var/lib/secretary-workspace/work/20261101-wechat-reliability-closed-loop/DELIVERY.md`；原未交业务须由原业务方核最新源后接续，维护不自动重放。
 
@@ -309,6 +309,7 @@ j = call({"op":"submit", "job":{
 | join_group | inviter,source_id | 内部解析邀请、核群名与最终按钮；已在群则只核关系；新加入还需可识别的支持布局 |
 | save_attachment | source_id,resource_id可选 | 普通文件走原精确缓存路径；图片走当前可见唯一双锚点＋官方Save As＋原生MD5，返回可下载资产；不能证明时明确失败 |
 | get_group_qr | {} | 对本client明确允许的准确现有群，核原生成员关系，打开官方群码并给最终预览；确认后复制原生PNG、逐像素核码图、返回私有asset；不发群、不代表有人已加入 |
+| send_sticker | {"md5":"32位小写十六进制"} | 发送账号官方收藏里已有的原生表情（type 47）。程序按 emoticon.db 收藏顺序定位格子，并要求该格像素与私有参考图（`$WECHAT_TOOL_ROOT/sticker-refs/<md5>.png`，68×68）逐像素一致后才给最终预览；确认后只点一次，以新的本人47消息、同MD5、status 2 为回执。点击后60秒仍无任何本地47行记为未发送并收束；只支持收藏首屏（前20个） |
 | mention / request_friend / accept_friend | — | 当前V2普通入口明确UNSUPPORTED_ACTION。旧版维护入口有辅助能力，但尚未完成本版程序化/实机验收，不把它们伪装成调用方UI任务 |
 
 source_id是服务器消息ID字符串，不是localId。读取原消息仍使用独立微信读取工具，不能用猜测的ID。source_peer和inviter也受client可访问peer范围限制。短文字和普通文件卡仍沿近期标签唯一性定位。公众号文章卡还支持下述原生来源日与官方聊天记录定位；重复标题、超出近期200条本身不再直接排除这条路径。无法建立准确来源映射时保留具体缺口，不按近似内容发送。
@@ -369,7 +370,7 @@ job = {"client": "本次client", "request_id": "稳定且唯一的本次编号",
 
 原生大表情已有一条真实端到端实发：本人已提供的“吃瓜”样本，原source_id=1542412405058203822、原生47。官方表情面板的收藏仍为空，但**Search Stickers可用**；输入已核的“吃瓜”，在搜索结果实际看同一粉色兔子和放大预览。只在正确本人私聊、空编辑器、明确本次授权、原生发送前基线和稳定本地操作ID保存后，最终单击这个结果一次。新消息serverId=1710475801474306247，原生47、示例助手/本人peer/status2，MD5=359a4c1b70213530442f3699d7f1be70与原source精确相同。没有用PNG/GIF文件替代，也没有安装表情包、改收藏库或重发旧业务。手机人工实收尚未确认。
 
-这条路径已经证明“官方搜索中已有原生表情可以发送”，不能继续说收藏为空便完全不能发。它仍需操作者实看并选准素材，不是无坐标公共`send_sticker`动作；capabilities.nativeSticker.programmatic继续false，manualOfficialSearch.verified单独记真实范围。普通调用方需给准确授权目标、已有源ID／表情描述及必要身份，交既有发送／机制协作处理；不得向公共接口编造send_sticker、借send_image冒充、直接点击相似的第一个结果或把这一次样本推广到任意包／动画／布局。程序化收藏/结果身份映射尚欠验，不能假称接口全部补齐。
+这条路径已经证明“官方搜索中已有原生表情可以发送”。2026-11-23 起，收藏里的表情改由公共`send_sticker`动作发送（见上表），不再需要操作者实看：本人私聊实发一次，收藏“加油”MD5 0c93feff…，原生47、status 2、单击一次、导航复原。`open_chat`同日改走与发送相同的自有导航（弹出聊天窗、核窗口标题与原生目标，结束时关回），本人私聊实测通过。搜索结果里的非收藏表情仍只有上述人工路径。
 
 好友申请已有官方路径实测：fresh核本人明确允许的群中唯一非好友成员，从群设置的准确成员打开资料，Add to Contacts进入**可取消的**Send Friend Request，核对象、原问候语和最终预览，选择Chats Only减少资料分享，OK一次。官方New Friends→该对象显示Request sent和Pending Verification，来源Group chat；独立committed联系人好友flag仍false，准确报告申请已发、等待对方通过。不是互为好友已完成。当前公共request_friend/accept_friend仍UNSUPPORTED_ACTION，实际收到授权对象的申请前不宣称接受功能已实测；不重复申请、不批量加人、不把目录存在当关系。
 
