@@ -24,6 +24,19 @@ user types development, deployment, investigation or other long work directly
 into a reply conversation, hand it to the maintenance conversation with one
 coordination message (standing user instruction, 2026-11-20). Then reply in one
 sentence saying where the work went, and end the turn.
+Do not wait for, poll or re-check the maintenance result in that turn, and do not
+start the work yourself while waiting; the maintenance conversation reports back
+on its own. If the user follows up ("继续", "好了吗"), read its latest state once
+and answer in one sentence. On 2026-11-23 two such waiting turns (19 and 9
+minutes) held eight group inputs until they expired.
+
+An owner message typed into a reply conversation interrupts the WeChat turn that
+is running, and a model error can end one at once. The receiver puts such a
+request back on the queue once, with the identical text, when its turn ended
+interrupted or with an error before `read` saved an execution checkpoint, and a
+group input still has two minutes before expiry. The attempt is recorded in
+`desktop-requeue.json`. A requeued item is an ordinary new arrival: read the
+original and finish it normally.
 
 ## Authenticate the original
 

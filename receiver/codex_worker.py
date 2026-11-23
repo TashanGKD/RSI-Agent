@@ -23,9 +23,10 @@ import zipfile
 # Resolve the sibling module at startup so a missing file fails before any
 # receipt transaction; direct script runs keep working beside delivery_updates.py.
 if __package__:
-    from . import delivery_updates
+    from . import delivery_updates, desktop_requeue
 else:
     import delivery_updates
+    import desktop_requeue
 
 WORD_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 
@@ -975,6 +976,11 @@ def main():
                             delivery_updates.notify(dict(config, codex=str(cli)), jobs)
                         except (OSError, ValueError, sqlite3.Error) as error:
                             stderr.write('Delivery notice unavailable: ' + type(error).__name__ + '\n');stderr.flush()
+                        try:
+                            desktop_requeue.requeue_interrupted(dict(config, codex=str(cli)), jobs,
+                                                                group_input_time, GROUP_INPUT_MAX_AGE)
+                        except (OSError, ValueError, sqlite3.Error, subprocess.SubprocessError) as error:
+                            stderr.write('Interrupted request requeue unavailable: ' + type(error).__name__ + '\n');stderr.flush()
                     time.sleep(3)
             finally:
                 http.shutdown()

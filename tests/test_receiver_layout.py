@@ -19,7 +19,7 @@ class ReceiverLayoutTests(unittest.TestCase):
                                   env=dict(os.environ, PYTHONIOENCODING='utf-8'))
 
     def test_copied_receiver_directory_runs_as_a_script(self):
-        result = self.run_copied(['codex_worker.py', 'delivery_updates.py'])
+        result = self.run_copied(['codex_worker.py', 'delivery_updates.py', 'desktop_requeue.py'])
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_missing_sibling_module_fails_at_startup(self):

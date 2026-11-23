@@ -24,6 +24,7 @@ def read_record(path):
 def observed_turn(rollout, thread, message_sha):
     """Match the full queued text in a user item within an observed Codex turn."""
     matches = set()
+    ended_bad = set()
     active = None
     with rollout.open('rb') as stream:
         meta = json.loads(next(stream, b''))
@@ -37,7 +38,13 @@ def observed_turn(rollout, thread, message_sha):
             if record['type'] == 'event_msg':
                 if payload.get('type') == 'task_started':
                     active = payload.get('turn_id')
+                elif payload.get('type') == 'turn_aborted':
+                    ended_bad.add(payload.get('turn_id'))
+                    if payload.get('turn_id') == active:
+                        active = None
                 elif payload.get('type') == 'task_complete' and payload.get('turn_id') == active:
+                    if payload.get('error'):
+                        ended_bad.add(active)
                     active = None
             if (not UUID.fullmatch(active or '') or record['type'] != 'response_item'
                     or payload.get('type') != 'message' or payload.get('role') != 'user'):
@@ -47,6 +54,9 @@ def observed_turn(rollout, thread, message_sha):
                 text = ''.join(part['text'] for part in parts)
                 if hashlib.sha256(text.encode()).hexdigest() == message_sha:
                     matches.add(active)
+    # A turn that was interrupted or failed before reading the request is followed by
+    # one requeue of the same text; only the turn that can actually carry it counts.
+    matches -= ended_bad
     if len(matches) > 1:
         raise ValueError('The original queued text occurs in multiple Codex turns.')
     return next(iter(matches), None)
