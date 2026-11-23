@@ -3,12 +3,14 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-0. **M6 batches 1–2 (PR #152, merged `a6a6abb`).** Inline chat protocol,
-   `--resume` wake on every desktop queue, settled successes stay ledger-only.
-   Gates and CI passed. Next: a scoped upgrade window to deploy the receiver
-   and compare real-message timing before/after. Later M6 batches
-   (Router/Worker, subscription, Spill/recall) stay design-gated per
-   docs/ROADMAP.md.
+0. **M6 wake gap (deployed `6475450`).** Inline protocol and ledger-only
+   settled receipts are live-accepted (turn 96.3 s → 88.0 s; no notice row).
+   Auto-wake failed: the Store CLI cannot start a local daemon, `--resume`
+   only warns, and the queued item waited for an authorized in-app nudge
+   (queue-to-completion 414.8 s vs 107.2 s baseline). Next: evaluate a
+   packaged standalone CLI daemon or an accepted desktop-side activation
+   path, then re-measure end to end. Later M6 batches (Router/Worker,
+   subscription, Spill/recall) stay design-gated per docs/ROADMAP.md.
 1. **Photos and documents, fresh acceptance.** Ordinary photos work; follow
    the next slow-painting viewer (#132) and the next fresh Word file from native
    export to their original V2 reply. Grouped photo albums stay unsupported until

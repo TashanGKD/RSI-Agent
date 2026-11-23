@@ -25,10 +25,13 @@ their old inputs and receipts stay private for audit.
 - Production moved on 2026-11-22 01:13 from the remote host to the local WSL
   distribution `RSI-WeChat-Main` (WeChat 4.1.13.26, same account). The remote
   host's reply services are stopped and kept as a cold standby. Both reply
-  services run release `2b27218` (#153) from `/opt/rsi-agent/releases`; the Windows
-  receiver task runs release `40d7935` (#150) through
-  `conhost --headless` with a five-minute restart timer (#148). Exact
-  revisions, PIDs and backups are in the private operator receipt.
+  services and the Windows receiver task run release `6475450` (#152, #155)
+  since the 2026-11-23 maintenance window. The owner unit was swapped with a
+  scoped stop/start (client untouched); the desktop session later restarted
+  and the client needed one phone-confirmed Log In. The task now uses
+  `conhost --headless` with the five-minute restart timer (#148). Prior
+  releases and unit backups are kept for rollback. Exact revisions, PIDs and
+  backups are in the private operator receipt.
 - The official client's built-in browser reaches the internet through a private
   systemd drop-in with the Windows proxy (2026-11-23); WeChat articles opened in
   the client can be copied out and read.
@@ -37,9 +40,22 @@ their old inputs and receipts stay private for audit.
   inline the read/complete/status ceremony with absolute paths and the original
   ID/digest, every desktop queue uses `--resume` to wake an unloaded
   conversation, and a settled success stays in the V2 ledger without a visible
-  notice. Windows and Linux regression gates and PR CI passed; deploy and
-  before/after live timing are separate states, neither done yet — the Windows
-  receiver task still runs `40d7935`.
+  notice. Live acceptance on 2026-11-23 with a fresh owner message: the
+  inlined protocol was used with no protocol/skill file reads, ID/digest
+  verification unchanged, V2 receipt `sent`, and the settled success produced
+  no notice row. Turn time 88.0 s vs the 11-22 baseline's 96.3 s for the same
+  shape of request; queue-to-completion 414.8 s vs 107.2 s because the wake
+  did not fire (below).
+- Wake limitation found live: the Store CLI has no complete local package, so
+  `app-server daemon start`/`bootstrap` and `remote-control start` all refuse,
+  and `queue --resume` warns `start a local daemon or specify a server with
+  --remote`. The queued message waited until a user-authorized
+  `send_message_to_thread` nudge loaded the conversation; the queued item was
+  then processed normally with no resubmission. This matches the documented
+  historical boundary in harness/LOCAL-CODEX.md (direct activation of an
+  unloaded conversation was never accepted). Auto-wake needs either a packaged
+  standalone CLI daemon or an accepted desktop-side activation path; recorded
+  as the remaining M6 batch-2 gap.
 - The receiver's `/health` now separates `ready` (receiver only) from
   `pipeline_ready`, which also needs a fresh owner-worker heartbeat with native
   account, client and layout checks. After deploy all three checks were true.
