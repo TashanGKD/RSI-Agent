@@ -25,7 +25,7 @@ their old inputs and receipts stay private for audit.
 - Production moved on 2026-11-22 01:13 from the remote host to the local WSL
   distribution `RSI-WeChat-Main` (WeChat 4.1.13.26, same account). The remote
   host's reply services are stopped and kept as a cold standby. Both reply
-  services run release `1f1b38f` from `/opt/rsi-agent/releases`; the Windows
+  services run release `2b27218` (#153) from `/opt/rsi-agent/releases`; the Windows
   receiver task runs release `40d7935` (#150) through
   `conhost --headless` with a five-minute restart timer (#148). Exact
   revisions, PIDs and backups are in the private operator receipt.
@@ -47,6 +47,14 @@ their old inputs and receipts stay private for audit.
 - The evening astronomy digest sends every item to its two groups, with an
   optional verified "今日 Top 速览" image as part 0 (#146, #147). The first
   image issue went out on 2026-11-22 with matching native receipts.
+- Favourite stickers are sent natively (type 47) through the public
+  `send_sticker` action (#153). The favourite order in `emoticon.db` locates
+  the cell, a private 68×68 reference crop must match it pixel for pixel, and
+  the receipt is one new self type-47 message with the same MD5 and status 2.
+  A live send to the owner chat matched. The six informal groups now use
+  sticker mode `send` with an MD5 for each label (3-hour gap); the formal
+  observatory group has no stickers. A fresh group sticker has not been
+  observed yet. `open_chat` now uses the owned navigation and was verified live.
 
 ## Recurring problems
 
@@ -80,6 +88,7 @@ paths and sustained availability remain unverified for local installs.
 | Group inputs expired while a reply turn was interrupted or waiting | An owner message typed into a reply thread interrupts the running WeChat turn; a model error ends one at once; the reply thread also waited on maintenance work | Interrupted or failed requests not yet read are requeued once (#150, live); reply threads must end the turn after handing work to maintenance |
 | Reply threads idle after a Codex Desktop restart | Reloaded conversations stay `notLoaded` and do not drain their queue; the receiver cannot wake them without the private desktop IPC | Open: wake each reply thread by hand after a desktop update |
 | New installs stopped at the WeChat download | Tencent replaced the package at the same URL on 2026-11-20 | The installer reuses a verified 4.1.13.26 copy from `RSI-WeChat-Setup/packages/<sha256>`; newer builds need recalibration |
+| Group stickers never sent; `open_chat` failed with `SEARCH_RESULTS_NOT_SUPPORTED` | Groups only recorded sticker intents, and `open_chat` still used the old popup search | Fixed and live (#153); File Transfer is not found by the owned search, and animated favourite thumbnails cannot be pixel-matched |
 
 Before the image fixes, ordinary group photos succeeded about half the time
 since 11-17 (covers and quoted images all succeeded). Every failure kept its
