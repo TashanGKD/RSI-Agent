@@ -21,16 +21,24 @@ function Linux-Path([string]$File) {
     '/mnt/' + $Matches[1].ToLowerInvariant() + '/' + ($Matches[2] -replace '\\', '/')
 }
 function Get-Verified([string]$File, [string]$Url, [string]$Hash, [string]$Provided) {
+    # A reviewed copy from an earlier install of any distro is reused by its SHA-256.
+    $cache = Join-Path $env:LOCALAPPDATA "RSI-WeChat-Setup/packages/$($Hash.ToLowerInvariant())"
     if ($Provided) { $File = (Resolve-Path -LiteralPath $Provided).Path }
+    elseif (!(Test-Path -LiteralPath $File) -and (Test-Path -LiteralPath $cache)) { $File = $cache }
     elseif (!(Test-Path -LiteralPath $File)) {
         $part = "$File.part"
         curl.exe --proto '=https' --fail --silent --show-error --location --connect-timeout 20 --max-time 600 --output $part $Url
-        if ($LASTEXITCODE -ne 0 -or (Get-FileHash -Algorithm SHA256 -LiteralPath $part).Hash -ne $Hash) {
-            throw 'Download failed or differs from the reviewed SHA-256. Keep verification enabled; supply a reviewed offline file with -UbuntuArchive or -WeChatPackage.'
+        if ($LASTEXITCODE -ne 0) { throw 'Download failed. Check the network or supply a reviewed offline file with -UbuntuArchive or -WeChatPackage.' }
+        if ((Get-FileHash -Algorithm SHA256 -LiteralPath $part).Hash -ne $Hash) {
+            throw "The file at $Url is not the reviewed build (SHA-256 $Hash). The publisher may have replaced it with a newer, uncalibrated version. Keep verification enabled; supply the reviewed file with -UbuntuArchive or -WeChatPackage, or place it at $cache."
         }
         Move-Item -LiteralPath $part -Destination $File
     }
     if ((Get-FileHash -Algorithm SHA256 -LiteralPath $File).Hash -ne $Hash) { throw 'Input did not match the reviewed SHA-256.' }
+    if (!(Test-Path -LiteralPath $cache)) {
+        New-Item -ItemType Directory -Path (Split-Path $cache) -Force | Out-Null
+        Copy-Item -LiteralPath $File -Destination $cache
+    }
     $File
 }
 $version = @(Invoke-Wsl @('--version') | ForEach-Object { $_ -replace [char]0, '' })

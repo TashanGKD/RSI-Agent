@@ -40,6 +40,8 @@ WSL 未启用时，先按用户授权运行 `wsl --install --no-distribution` �
 
 `login=desktop_open` 才进入配对。若返回 `required`，保留窗口等手机确认。若返回 `window_unrecognized`，检查实际窗口和进程。扫码完成后，下面的账号绑定和回传步骤仍需在本机执行。
 
+本项目按官方客户端 4.1.13.26 校准，安装脚本只接受该版本的 SHA-256。腾讯 2026-11-20 起在同一下载地址提供更新的构建，直接下载会因哈希不符而停止，这是预期的保护。脚本会先使用本机共享缓存 `%LOCALAPPDATA%\RSI-WeChat-Setup\packages\<SHA-256>` 中的已核验副本，每次核验通过后也会把副本存入该处；新机器没有副本时，用 `-WeChatPackage` 指定一份哈希一致的安装包。不要为新版本关闭校验，新版本需要先重新校准界面。
+
 ## 准备接收器
 
 读[接收器运行说明](../../harness/LOCAL-CODEX.md)和[专用会话协议](../../harness/DESKTOP-WECHAT.md)。在 Codex 桌面为小号新建一个可见的专用回复会话。保存返回的真实会话 ID，在本机私有配置里设为 `desktop_thread_id`，同时设置 `desktop_all_requests: true`。该安装以后复用这个专用会话。目标缺失或入队结果不明时，保留原请求等待核对。
@@ -222,7 +224,9 @@ python3 -B -m rsi_agent --config /private/installation.json audit --profile wsl
 `Register` 为当前 Windows 用户创建 `RSI-WeChat-Receiver` 登录任务，但不立即运行。
 任务使用交互式登录身份和普通权限，不保存 Windows 密码；下次登录执行保留 release 中的
 `Start-Local.ps1`，先启动 WSL 桌面 target，再以前台子进程运行原接收器。
-接收器退出码交给任务计划程序，最多每分钟重试一次、共三次；已有任务不覆盖，重复实例忽略。
+任务通过 `conhost.exe --headless` 启动，不挂在 Windows Terminal 等终端窗口上；关闭终端不会再
+向接收器发送 Ctrl+C。除登录触发外还有每 5 分钟一次的定时触发：接收器运行时被忽略，退出后最迟
+5 分钟重新拉起。已有任务不覆盖，重复实例忽略。启动脚本会先结束本端口上父进程已不存在的旧 SSH 转发。
 接收器自己维护 SSH 隧道，继续使用原私有请求与完成记录。
 Linux 桌面或主号服务启动失败时不会继续拉起接收器，以免把不完整启动报告成成功。
 
@@ -234,7 +238,12 @@ Linux 桌面或主号服务启动失败时不会继续拉起接收器，以免�
 WSL 桌面模板以 `-s 0` 关闭内层 X 屏保，每次已获桌面锁的操作也先唤醒旧显示的屏保。
 这不更改 Windows 电源策略，不能阻止宿主睡眠、合盖或注销。插电熄屏与锁屏仍应分别用新请求验收。
 
-官方客户端每次重新启动后都要在机器人账号的手机上确认登录，这一步无法自动完成。Xephyr 窗口没有出现在 Windows 桌面时，运行 `.\deploy\wechat-wsl\Show-Login.ps1 -Distro <发行版>`：它只截取私有显示，在浏览器里每 2 秒刷新一次，扫码或确认后关闭即可。客户端启动时主窗口为 880×640，会话脚本会把官方主窗口调回发送器校准的 905×667；首次打开的 598×640 聊天窗口由发送器在核验前调为 623×667。`Start-Local.ps1` 为本发行版保持一个空闲的 `wsl.exe` 客户端，避免 WSL 在空闲 15 秒后关闭发行版、使客户端掉线。
+官方客户端重新启动后通常要在机器人账号的手机上确认登录（短时间内重启可能自动登录），这一步无法自动完成。Xephyr 窗口没有出现在 Windows 桌面时，运行 `.\deploy\wechat-wsl\Show-Login.ps1 -Distro <发行版>`：它只截取私有显示，在浏览器里每 2 秒刷新一次，扫码或确认后关闭即可。客户端启动时主窗口一般为 880×640，有时恢复成接近的尺寸（如 903×667）；会话脚本会把这两种情况都调回发送器校准的 905×667。首次打开的 598×640 聊天窗口由发送器在核验前调为 623×667。`Start-Local.ps1` 为本发行版保持一个空闲的 `wsl.exe` 客户端，避免 WSL 在空闲 15 秒后关闭发行版、使客户端掉线。
+
+发行版没有直连外网的路由。客户端收发消息走微信自身的长连接，不受影响；内置浏览器（公众号文章、链接卡片）需要 Windows 侧代理。在 WSL 里新建
+`/etc/systemd/system/wechat-gui-desktop.service.d/60-proxy.conf`，写入 `[Service]` 和一行
+`Environment=http_proxy=http://127.0.0.1:<端口> https_proxy=http://127.0.0.1:<端口> no_proxy=localhost,127.0.0.1,::1`
+（大写同名变量一并设置），再 `systemctl daemon-reload` 并只重启 `wechat-gui-desktop`。代理端口因机器而异，不写入仓库模板；删除该文件并重启客户端即撤销。
 
 这依赖 Windows 用户登录、电脑唤醒和 Codex 可用。WSL 服务 enable 只负责发行版启动后
 拉起服务；Windows 登录任务负责启动发行版与接收器，不能把仅有 enable 当作 Windows 开机验收。
