@@ -57,6 +57,11 @@ their old inputs and receipts stay private for audit.
   still warns `already has an active writer` because the desktop owns the
   thread; the queued item is picked up regardless, and the warning never
   resubmits. Daemon survival across logoff/reboot is not yet verified (M1).
+- Link reading was broken for every link after the WSL move: the local DNS is
+  a fake-IP resolver that answers `198.18.x.x`, which the public-destination
+  check refused (`PUBLIC_PAGE_UNAVAILABLE`). Names that resolve only to
+  `198.18.0.0/15` now tunnel by hostname through the loopback proxy in
+  `RSI_LINK_PROXY`, set by a drop-in on both reply services (#157).
 - The receiver's `/health` now separates `ready` (receiver only) from
   `pipeline_ready`, which also needs a fresh owner-worker heartbeat with native
   account, client and layout checks. After deploy all three checks were true.

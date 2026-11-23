@@ -4,6 +4,7 @@ from html.parser import HTMLParser
 import http.client
 import ipaddress
 import json
+import os
 import re
 import socket
 import ssl
@@ -22,6 +23,10 @@ BILIBILI_ID = r'(?:BV[0-9A-Za-z]{10}|av[1-9][0-9]{0,19})'
 BILIBILI_HEADERS = {'User-Agent': 'RSI-Agent-LinkReader/0.1', 'Accept-Encoding': 'identity'}
 XIAOHONGSHU_HOSTS = {'xiaohongshu.com', 'www.xiaohongshu.com'}
 XIAOHONGSHU_SHORT = 'xhslink.com'
+# A local fake-IP resolver (for example Clash) answers every public name from
+# the RFC 2544 benchmark range and maps it back inside its own proxy.
+FAKE_IP = ipaddress.ip_network('198.18.0.0/15')
+PROXY_ENV = 'RSI_LINK_PROXY'
 # Public article request headers as used by wechat-article-reader.
 # https://github.com/Rudy-114/wechat-article-reader
 WECHAT_HEADERS = {
@@ -164,10 +169,35 @@ def content(url, raw, charset='utf-8'):
             'source_sha256': hashlib.sha256(raw).hexdigest()}
 
 
+def loopback_proxy():
+    value = os.environ.get(PROXY_ENV)
+    if not value:
+        return None
+    parts = urlsplit(value)
+    if (parts.scheme != 'http' or parts.hostname not in ('127.0.0.1', '::1', 'localhost') or not parts.port
+            or parts.username or parts.password or parts.path not in ('', '/')):
+        raise ValueError('Loopback HTTP link proxy required.')
+    return parts.hostname, parts.port
+
+
 def public_connection(parts, timeout):
     host = parts.hostname.encode('idna').decode()
     resolved = socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)
-    if not resolved or any(not ipaddress.ip_address(row[4][0]).is_global for row in resolved):
+    addresses = [ipaddress.ip_address(row[4][0]) for row in resolved]
+    if addresses and not all(address.is_global for address in addresses):
+        try:
+            literal = ipaddress.ip_address(host)
+        except ValueError:
+            literal = None
+        proxy = loopback_proxy()
+        if proxy and literal is None and all(address.version == 4 and address in FAKE_IP for address in addresses):
+            # The real address is only known to the local proxy; tunnel by name.
+            # Private, loopback and literal destinations are still refused.
+            connection = http.client.HTTPSConnection(*proxy, timeout=timeout,
+                                                     context=ssl.create_default_context())
+            connection.set_tunnel(host, 443)
+            return connection
+    if not addresses or any(not address.is_global for address in addresses):
         raise ValueError('Public destination required.')
     # Pin the checked address; TLS still verifies the original hostname.
     connection = http.client.HTTPSConnection(host, timeout=timeout)

@@ -10,8 +10,37 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-from trigger.link_reader import content, fetch, linked_pages, shared_link, urls
+from urllib.parse import urlsplit
+
+from trigger.link_reader import content, fetch, linked_pages, public_connection, shared_link, urls
 from rsi_agent.config import WECHAT_LINUX
+
+
+class FakeIPTests(unittest.TestCase):
+    def connect(self, host, *addresses, proxy='http://127.0.0.1:7890'):
+        rows = [(2, 1, 6, '', (address, 443)) for address in addresses]
+        env = {'RSI_LINK_PROXY': proxy} if proxy else {}
+        with patch('trigger.link_reader.socket.getaddrinfo', return_value=rows), \
+                patch.dict('os.environ', env, clear=False), \
+                patch('trigger.link_reader.socket.create_connection', side_effect=AssertionError('direct')):
+            if not proxy:
+                import os
+                os.environ.pop('RSI_LINK_PROXY', None)
+            return public_connection(urlsplit('https://' + host + '/'), 5)
+
+    def test_fake_ip_names_tunnel_by_hostname_through_the_loopback_proxy(self):
+        connection = self.connect('mp.weixin.qq.com', '198.18.0.106')
+        self.assertEqual((connection.host, connection.port), ('127.0.0.1', 7890))
+        self.assertEqual((connection._tunnel_host, connection._tunnel_port), ('mp.weixin.qq.com', 443))
+
+    def test_private_literal_mixed_or_unproxied_destinations_are_still_refused(self):
+        for host, addresses, proxy in (('mp.weixin.qq.com', ['198.18.0.106'], None),
+                                       ('internal.example', ['10.0.0.5'], 'http://127.0.0.1:7890'),
+                                       ('198.18.0.7', ['198.18.0.7'], 'http://127.0.0.1:7890'),
+                                       ('mixed.example', ['198.18.0.9', '127.0.0.1'], 'http://127.0.0.1:7890'),
+                                       ('mp.weixin.qq.com', ['198.18.0.106'], 'http://10.0.0.2:7890')):
+            with self.assertRaises(ValueError):
+                self.connect(host, *addresses, proxy=proxy)
 
 
 class LinkReaderTests(unittest.TestCase):
