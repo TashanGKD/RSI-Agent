@@ -6,7 +6,8 @@ ACTIONS={
  'join_group':({'inviter','source_id'},set()),'request_friend':({'alias','greeting'},set()),
  'accept_friend':(set(),{'source_id'}),'reply':({'source_id','text'},set()),
  'mention':({'members','text'},set()),'forward':({'source_peer','source_id'},set()),
- 'get_group_qr':(set(),set()),'create_group':({'group_name','members'},set()),'invite_members':({'members'},set())}
+ 'get_group_qr':(set(),set()),'create_group':({'group_name','members'},set()),'invite_members':({'members'},set()),
+ 'send_sticker':({'md5'},set())}
 FAST_ACTIONS={'send_text','send_image','send_file'}
 def parse_request(raw):
  if not isinstance(raw,str):raise ValueError('JSON text required')
@@ -56,5 +57,7 @@ def validate_job(x):
    if not isinstance(v,str) or not re.fullmatch('[a-f0-9]{64}',v):raise ValueError('asset digest required, never a path')
   elif k=='source_id':
    if not isinstance(v,str) or not re.fullmatch('[0-9]{1,20}',v) or int(v)==0:raise ValueError('nonzero native source id required')
+  elif k=='md5':
+   if not isinstance(v,str) or not re.fullmatch('[a-f0-9]{32}',v):raise ValueError('lowercase native sticker MD5 required')
   elif not isinstance(v,str) or not v.strip() or '\0' in v:raise ValueError('actual nonempty text required')
  return dict(x,method=x.get('method','native'))

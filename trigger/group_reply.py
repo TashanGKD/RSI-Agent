@@ -124,6 +124,31 @@ class GroupLoop(ReplyLoop):
             with self.db:
                 self.db.execute('DELETE FROM expired_desktop WHERE id=?', (row['id'],))
 
+    def deliver_sticker(self):
+        """Advance at most one queued favourite sticker; text replies are never blocked by it."""
+        if not self.stickers or self.stickers['mode'] != 'send':
+            return None
+        row = self.db.execute("SELECT id,created,label,state FROM sticker_intents WHERE state IN ('pending','submitted') "
+                              'ORDER BY created,id LIMIT 1').fetchone()
+        if row is None:
+            return None
+        if row['state'] == 'pending' and time.time() - row['created'] > REPLY_TTL:
+            with self.db:
+                self.db.execute("UPDATE sticker_intents SET state='expired' WHERE id=? AND state='pending'", (row['id'],))
+            return 'expired'
+        md5 = self.stickers['md5'].get(row['label'])
+        try:
+            outcome = self.io({'op': 'sticker', 'server_id': row['id'], 'md5': md5})
+        except ValueError:
+            return None  # Same original request on the next cycle.
+        # Unknown or attention stays submitted: the next cycle only runs the
+        # original read-only proof or owned settlement, never a second click.
+        state = ('sent' if outcome.get('state') == 'succeeded' and outcome.get('outcome') == 'sent'
+                 else 'failed' if outcome.get('state') in ('failed', 'cancelled', 'expired') else 'submitted')
+        with self.db:
+            self.db.execute('UPDATE sticker_intents SET state=? WHERE id=?', (state, row['id']))
+        return state
+
     def cycle(self):
         self.flush_delivery()
         self.flush_expired_delivery()
@@ -140,6 +165,7 @@ class GroupLoop(ReplyLoop):
                 if state == 'sent':
                     self.save('last_spoken', time.time())
             return {'state': state, 'introduction': True, 'counts': self.counts()}
+        self.deliver_sticker()
         batch = self.io({'op': 'read'})
         with self.db:
             for event in batch.get('events', []):
@@ -406,11 +432,13 @@ class GroupLoop(ReplyLoop):
             else:
                 self.save_delivery(rows[-1]['id'], job, 'quiet')
                 if decision.get('sticker') and sticker_gap is not None:
-                    # Shadow mode records the intent only; nothing is sent.
-                    state = 'shadow' if sticker_gap >= self.stickers['min_gap_seconds'] else 'rate_limited'
+                    # Shadow mode records the intent only; send mode queues one native
+                    # favourite for the next cycle through the original V2 queue.
+                    state = ('rate_limited' if sticker_gap < self.stickers['min_gap_seconds']
+                             else 'pending' if self.stickers['mode'] == 'send' else 'shadow')
                     self.db.execute('INSERT OR IGNORE INTO sticker_intents VALUES(?,?,?,?,?)',
                                     (rows[-1]['id'], time.time(), decision['sticker'], self.stickers['mode'], state))
-                    if state == 'shadow':
+                    if state in ('shadow', 'pending'):
                         self.save('last_sticker', time.time())
             self.db.execute("DELETE FROM participation WHERE k='model_batch'")
         # Deliver only cached output on the next cycle, including after restart.

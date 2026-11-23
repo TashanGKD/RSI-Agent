@@ -47,14 +47,19 @@ def group_configs(path=REGISTRY, key='groups'):
             fields.add('recycle_since')
         if key == 'groups' and 'stickers' in config:
             stickers = config['stickers']
-            if (not isinstance(stickers, dict) or set(stickers) != {'mode', 'labels', 'min_gap_seconds'}
-                    or stickers['mode'] != 'shadow'
+            send = isinstance(stickers, dict) and stickers.get('mode') == 'send'
+            if (not isinstance(stickers, dict)
+                    or set(stickers) != {'mode', 'labels', 'min_gap_seconds'} | ({'md5'} if send else set())
+                    or stickers['mode'] not in ('shadow', 'send')
                     or not isinstance(stickers['labels'], list) or not 1 <= len(stickers['labels']) <= 12
                     or len(set(stickers['labels'])) != len(stickers['labels'])
                     or any(not isinstance(x, str) or not 1 <= len(x) <= 12 or not x.isprintable()
                            for x in stickers['labels'])
-                    or type(stickers['min_gap_seconds']) is not int or stickers['min_gap_seconds'] < 600):
-                raise ValueError('Bounded shadow sticker policy required.')
+                    or type(stickers['min_gap_seconds']) is not int or stickers['min_gap_seconds'] < 600
+                    or send and (not isinstance(stickers['md5'], dict) or set(stickers['md5']) != set(stickers['labels'])
+                                 or any(not isinstance(v, str) or not re.fullmatch('[a-f0-9]{32}', v)
+                                        for v in stickers['md5'].values()))):
+                raise ValueError('Bounded sticker policy required.')
             fields.add('stickers')
         if set(config) != fields:
             raise ValueError('Invalid group configuration.')

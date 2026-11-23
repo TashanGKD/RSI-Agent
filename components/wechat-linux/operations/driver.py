@@ -366,6 +366,9 @@ class NativeDriver:
   if j['action']=='get_group_qr':
    from .group_qr import prepare
    return prepare(self,j)
+  if j['action']=='send_sticker':
+   from .stickers import prepare
+   return prepare(self,j)
   if j['action'] in ('send_text','send_image','send_file'):
    try:self.registered_binding(j['peer'])
    except BeforeEffect:
@@ -392,6 +395,9 @@ class NativeDriver:
    return execute(self,j)
   if a=='get_group_qr':
    from .group_qr import execute
+   return execute(self,j)
+  if a=='send_sticker':
+   from .stickers import execute
    return execute(self,j)
   if p.get('senderRecipe'):
    from .sending import execute
@@ -475,13 +481,17 @@ class NativeDriver:
    from .group_qr import finish
    settled=finish(self,j)
    return dict(proof,navigationRestored=settled,navigationRecoveryPending=not settled,postActionPending=not settled)
+  if j['action']=='send_sticker':
+   from .stickers import finish
+   settled=finish(self,j)
+   return dict(proof,navigationRestored=settled,navigationRecoveryPending=not settled,postActionPending=not settled)
   if j['action']=='forward':
    if proof.get('state')!='accepted':return proof
    from .forwarding import finish_accepted
    settled=finish_accepted(self,j)
    return dict(proof,navigationRestored=settled,navigationRecoveryPending=not settled,draftRestored=settled,draftRecoveryPending=False,postActionPending=not settled)
   result=self._finalize_original(j,proof)
-  if j['action'] not in navigation.BASIC:return result
+  if j['action'] not in navigation.BASIC|{'open_chat'}:return result
   settled=bool(not result.get('draftRecoveryPending') and navigation.finish(self,j))
   return dict(result,navigationRestored=settled,navigationRecoveryPending=not settled,postActionPending=bool(result.get('postActionPending') or not settled))
  def _finalize_original(self,j,proof):
@@ -498,6 +508,9 @@ class NativeDriver:
    return verify(self,j)
   if j['action']=='get_group_qr':
    from .group_qr import verify
+   return verify(self,j)
+  if j['action']=='send_sticker':
+   from .stickers import verify
    return verify(self,j)
   if j['action']=='request_friend':
    receipt=self.root/(j['id']+'-friend-result.json')
@@ -670,6 +683,9 @@ class NativeDriver:
   if j['action']=='get_group_qr':
    from .group_qr import cleanup
    return cleanup(self,j)
+  if j['action']=='send_sticker':
+   from .stickers import cleanup
+   return cleanup(self,j)
   if j['action']=='forward':
    from .forwarding import finish
    return finish(self,j)
@@ -685,6 +701,10 @@ class NativeDriver:
   if j['action']=='forward' and not j.get('preview') and (j.get('result') or {}).get('reason')=='preparation_failed':
    from .forwarding import finish
    return finish(self,j)
+  if j['action']=='send_sticker' and not j.get('preview') and (j.get('result') or {}).get('reason')=='preparation_failed':
+   # Preparation never clicks a favourite cell; settle only without an attempt.
+   if (self.root/(j['id']+'-attempt.json')).exists():return False
+   return self.cleanup(j)
   if j['action'] not in navigation.BASIC or j.get('preview') or (j.get('result') or {}).get('reason')!='preparation_failed':return False
   if composer.path(self.root,j).exists() or (self.root/(j['id']+'-attempt.json')).exists() or (self.root/(j['id']+'-execution-check.json')).exists() or list(self.root.glob(j['id']+'-step-*')):return False
   return bool(navigation.load(self.root,j) and self.cleanup(j))

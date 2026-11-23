@@ -201,7 +201,7 @@ def handle(installation, value, request):
         'recycle_image': {'op', 'server_id'},
         'ack': {'op', 'batch_id', 'batch_hash', 'ack_ids'},
         'submit': {'op', 'server_id', 'text'}, 'advance': {'op', 'server_id'}, 'status': {'op', 'server_id'},
-        'settle': {'op', 'server_id'}, 'reconcile': {'op', 'server_id'}}
+        'settle': {'op', 'server_id'}, 'reconcile': {'op', 'server_id'}, 'sticker': {'op', 'server_id', 'md5'}}
     op = request.get('op')
     if op not in fields or set(request) != fields[op] or value.get('auto_reply_enabled') is not True:
         raise ValueError('Group action is outside its enabled scope.')
@@ -225,6 +225,8 @@ def handle(installation, value, request):
     from receive_source import sid
     server = request['server_id']
     if server == 'introduction':
+        if op == 'sticker':
+            raise ValueError('Stickers answer an original group message.')
         server = 'introduction:' + str(value['send_scope']['since'])
         if op == 'submit' and request['text'] != INTRODUCTION:
             raise ValueError('Only the fixed one-time introduction is allowed.')
@@ -238,6 +240,10 @@ def handle(installation, value, request):
         raise ValueError('Original group queue is missing.')
     api = PublicAPI(root / 'operations-state', policy)
     try:
+        if op == 'sticker':
+            from . import group_sticker
+            return group_sticker.handle(api, CLIENT, group_sticker.request_id(CLIENT, value['account'], value['group_peer'], server),
+                                        value['group_peer'], request['md5'], policy, advance)
         if op == 'submit':
             text = request['text']
             if not isinstance(text, str) or not text.strip() or '\0' in text or len(text.encode()) > 6000:
