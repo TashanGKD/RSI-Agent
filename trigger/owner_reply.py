@@ -79,7 +79,7 @@ class ReplyLoop:
         if 'voice_text' not in {r[1] for r in self.db.execute('PRAGMA table_info(inbox)')}:
             self.db.execute('ALTER TABLE inbox ADD COLUMN voice_text TEXT')
         columns = {r[1] for r in self.db.execute('PRAGMA table_info(inbox)')}
-        for column in ('desktop_job', 'desktop_report'):
+        for column in ('desktop_job', 'desktop_report', 'media'):
             if column not in columns:
                 self.db.execute(f'ALTER TABLE inbox ADD COLUMN {column} TEXT')
         identity = json.dumps([owner['account'], owner['peer'], owner['scope']], sort_keys=True)
@@ -149,13 +149,19 @@ class ReplyLoop:
         extra = {'native_parts': outcome['native_parts']} if 'native_parts' in outcome else {}
         if 'cleanup_pending' in outcome:
             extra['cleanup_pending'] = outcome['cleanup_pending']
+        media = self.db.execute('SELECT media FROM inbox WHERE id=?', (row['id'],)).fetchone()
+        if media and media['media']:
+            extra['images'] = json.loads(media['media'])['images']
         self.save_delivery(row['id'], row['desktop_job'], state, outcome['request_id'], digest, outcome.get('code'), **extra)
 
-    def save_delivery(self, source, job, state, native_id=None, digest=None, code=None, native_parts=None, cleanup_pending=None):
+    def save_delivery(self, source, job, state, native_id=None, digest=None, code=None, native_parts=None,
+                      cleanup_pending=None, images=None):
         if job:
             extra = {'native_parts': native_parts} if native_parts is not None else {}
             if cleanup_pending is not None:
                 extra['cleanup_pending'] = cleanup_pending
+            if images is not None:
+                extra['images'] = images
             self.db.execute('UPDATE inbox SET desktop_report=? WHERE id=?', (json.dumps({
                 'id': job, 'state': state, 'native_request_id': native_id, 'reply_sha256': digest, 'code': code, **extra}), source))
 
@@ -164,8 +170,37 @@ class ReplyLoop:
         if outcome['state'] in ('queued', 'confirmed'):
             outcome = self.io({'op': 'advance', 'server_id': key})
         if outcome['state'] == 'succeeded' and outcome.get('outcome') == 'sent' and not outcome.get('cleanup_pending'):
-            return 'sent', outcome
+            return ('sent' if self.deliver_media(key) else 'pending'), outcome
         return ('pending' if outcome['state'] in ('queued', 'confirmed', 'busy') else 'attention'), outcome
+
+    def frozen_media(self):
+        """Images frozen with the completion that produced the pending reply."""
+        media = getattr(self.model, 'last_media', None)
+        return json.dumps(media, sort_keys=True) if isinstance(media, dict) else None
+
+    def deliver_media(self, key):
+        """After the sent text, each frozen image once; True when none is still pending."""
+        row = self.db.execute('SELECT media FROM inbox WHERE id=?', (key,)).fetchone()
+        if not row or not row['media']:
+            return True
+        media = json.loads(row['media'])
+        for index, item in enumerate(media['images']):
+            if item['state'] != 'pending':
+                continue
+            try:
+                sha256, data = self.model.fetch_media(media['key'], index)
+                if sha256 != item['sha256']:
+                    raise ValueError('Frozen reply image digest changed.')
+                outcome = self.io({'op': 'image_send', 'server_id': key, 'index': index,
+                                   'sha256': item['sha256'], 'data': data})
+            except (ModelError, ValueError, OSError):
+                return False  # Same original image on the next cycle.
+            item.update(state=outcome['state'], server_id=outcome.get('server_id'))
+            with self.db:
+                self.db.execute('UPDATE inbox SET media=? WHERE id=?', (json.dumps(media, sort_keys=True), key))
+            if item['state'] == 'pending':
+                return False
+        return True
 
     def reconcile_attention(self, stopped):
         outcome = self.io({'op': 'status', 'server_id': stopped['id']})
@@ -337,8 +372,8 @@ class ReplyLoop:
                 raise ValueError('Model reply does not satisfy the text-only sender contract.')
             with self.db:
                 job = self.desktop_job()
-                self.db.execute("UPDATE inbox SET reply=?,state='pending',desktop_job=? WHERE id=?",
-                                (reply, job, row['id']))
+                self.db.execute("UPDATE inbox SET reply=?,state='pending',desktop_job=?,media=? WHERE id=?",
+                                (reply, job, self.frozen_media(), row['id']))
             row = self.db.execute('SELECT * FROM inbox WHERE id=?', (row['id'],)).fetchone()
         state, outcome = self.deliver(row['id'], reply)
         with self.db:

@@ -14,7 +14,7 @@ from urllib.request import ProxyHandler, Request, build_opener
 if __package__ in (None, ''):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from receiver.codex_worker import completion_text, encoded
+from receiver.codex_worker import completion_text, encoded, media_descriptors, media_file, static_image_kind, MEDIA_BYTES
 
 
 def save_once(path, value):
@@ -70,7 +70,29 @@ def delivery(config, identity, thread, turn, wait):
         time.sleep(min(1, remaining))
 
 
-def chat_reply(config, identity, thread, turn, reply=None):
+def freeze_images(folder, paths):
+    """Copy each reply image once into the original's private folder."""
+    items = []
+    for index, path in enumerate(paths, 1):
+        data = Path(path).read_bytes()
+        kind = static_image_kind(data)
+        if kind is None or len(data) > MEDIA_BYTES:
+            raise ValueError('Reply images must be static PNG or JPEG files up to 10 MB.')
+        item = {'name': f'image-{index}.' + ('png' if kind == 'png' else 'jpg'), 'bytes': len(data),
+                'sha256': hashlib.sha256(data).hexdigest()}
+        target = media_file(folder, item)
+        target.parent.mkdir(mode=0o700, exist_ok=True)
+        try:
+            with open(target, 'xb') as stream:
+                stream.write(data);stream.flush();os.fsync(stream.fileno())
+        except FileExistsError:
+            if target.read_bytes() != data:
+                raise ValueError('A frozen reply image differs. Reconcile the original.') from None
+        items.append(item)
+    return media_descriptors(items)
+
+
+def chat_reply(config, identity, thread, turn, reply=None, images=()):
     folder = Path(config['state']) / identity
     checkpoint = folder / 'desktop-execution.json'
     if reply is None:
@@ -91,6 +113,8 @@ def chat_reply(config, identity, thread, turn, reply=None):
         raise ValueError('Use the checkpoint from this actual chat turn.')
     completion_path = folder / 'desktop-completion.json'
     completion = dict(binding, text=reply)
+    if images:
+        completion['images'] = freeze_images(folder, images)
     if not completion_path.exists() or json.loads(completion_path.read_bytes()) != completion:
         # Windows pipelines add CRLF framing. Keep an exact legacy retry intact.
         reply = reply.replace('\r\n', '\n').removesuffix('\n')
@@ -110,16 +134,20 @@ def main():
     parser.add_argument('thread_id')
     parser.add_argument('turn_id')
     parser.add_argument('--wait', action='store_true', help='Wait briefly for the original WeChat delivery receipt.')
+    parser.add_argument('--image', action='append', default=[], type=Path,
+                        help='Static PNG/JPEG to send after the reply text (repeat, up to 4).')
     args = parser.parse_args()
     if (not re.fullmatch('[a-f0-9]{64}', args.id)
             or any(not re.fullmatch('[a-f0-9-]{36}', value) for value in (args.thread_id, args.turn_id))):
         parser.error('Full request ID and actual desktop thread and turn IDs required.')
+    if args.image and args.action != 'complete':
+        parser.error('Images belong to complete.')
     try:
         config = json.loads(args.config.read_bytes())
         target = (config, args.id, args.thread_id, args.turn_id)
         if args.action != 'status':
             reply = sys.stdin.buffer.read(65537).decode() if args.action == 'complete' else None
-            result = chat_reply(*target, reply)
+            result = chat_reply(*target, reply, args.image)
         if args.action == 'status' or args.action == 'complete' and args.wait:
             result = delivery(*target, args.wait)
     except (OSError, ValueError) as error:

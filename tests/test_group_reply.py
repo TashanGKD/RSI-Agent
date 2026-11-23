@@ -30,6 +30,7 @@ class GroupTests(unittest.TestCase):
             'events': [self.event()]}
         self.effects, self.calls = {}, []
         self.sticker_results = []
+        self.image_results = []
         self.lose_result, self.unknown = False, False
 
     def event(self, server=1, **changes):
@@ -48,6 +49,8 @@ class GroupTests(unittest.TestCase):
         key = request['server_id']
         if request['op'] == 'sticker':
             return self.sticker_results.pop(0)
+        if request['op'] == 'image_send':
+            return self.image_results.pop(0)
         if request['op'] == 'status':
             return self.effects[key]
         if request['op'] == 'submit':
@@ -117,6 +120,28 @@ class GroupTests(unittest.TestCase):
         stickers = [c for c in self.calls if c['op'] == 'sticker']
         self.assertEqual(stickers, [{'op': 'sticker', 'server_id': '1', 'md5': 'c' * 32}] * 2)
         self.assertEqual(loop.db.execute('SELECT state FROM sticker_intents').fetchone()[0], 'sent')
+
+    def test_reply_images_follow_the_sent_text_and_reach_the_receipt(self):
+        self.model.last_delivery_key = 'd' * 64
+        self.model.last_media = {'key': 'd' * 64, 'images': [{'sha256': 'e' * 64, 'state': 'pending', 'server_id': None}]}
+        self.model.fetch_media.return_value = ('e' * 64, 'aW1n')
+        loop = self.loop()
+        loop.images = True
+        self.assertEqual(loop.cycle()['state'], 'pending')
+        self.batch = dict(self.batch, batch_id=None, events=[])
+        self.image_results = [{'state': 'pending'}, {'state': 'sent', 'server_id': '99'}]
+        loop.cycle()
+        self.assertEqual(loop.db.execute("SELECT state FROM inbox WHERE id='1'").fetchone()[0], 'pending')
+        # The fixture's original receipt carries the fields a real V2 status has.
+        self.effects['1'].update(request_id='rsi-group-x', reply_sha256=hashlib.sha256('有用的补充'.encode()).hexdigest())
+        loop.cycle()
+        sends = [c for c in self.calls if c['op'] == 'image_send']
+        self.assertEqual(sends, [{'op': 'image_send', 'server_id': '1', 'index': 0, 'sha256': 'e' * 64, 'data': 'aW1n'}] * 2)
+        self.assertEqual(list(self.effects), ['1'])  # the reply text was clicked once
+        self.assertEqual(loop.db.execute("SELECT state FROM inbox WHERE id='1'").fetchone()[0], 'sent')
+        loop.cycle()  # publishes the receipt recorded by the previous cycle
+        receipt = self.model.publish_delivery.call_args.args[0]
+        self.assertEqual(receipt['images'], [{'sha256': 'e' * 64, 'state': 'sent', 'server_id': '99'}])
 
     def test_unsent_sticker_intent_expires_with_its_group_message(self):
         loop = self.loop()

@@ -201,7 +201,8 @@ def handle(installation, value, request):
         'recycle_image': {'op', 'server_id'},
         'ack': {'op', 'batch_id', 'batch_hash', 'ack_ids'},
         'submit': {'op', 'server_id', 'text'}, 'advance': {'op', 'server_id'}, 'status': {'op', 'server_id'},
-        'settle': {'op', 'server_id'}, 'reconcile': {'op', 'server_id'}, 'sticker': {'op', 'server_id', 'md5'}}
+        'settle': {'op', 'server_id'}, 'reconcile': {'op', 'server_id'}, 'sticker': {'op', 'server_id', 'md5'},
+        'image_send': {'op', 'server_id', 'index', 'sha256', 'data'}}
     op = request.get('op')
     if op not in fields or set(request) != fields[op] or value.get('auto_reply_enabled') is not True:
         raise ValueError('Group action is outside its enabled scope.')
@@ -228,7 +229,7 @@ def handle(installation, value, request):
         if op == 'sticker':
             raise ValueError('Stickers answer an original group message.')
         server = 'introduction:' + str(value['send_scope']['since'])
-        if op == 'submit' and request['text'] != INTRODUCTION:
+        if op == 'image_send' or op == 'submit' and request['text'] != INTRODUCTION:
             raise ValueError('Only the fixed one-time introduction is allowed.')
     else:
         server = sid(server)
@@ -240,6 +241,10 @@ def handle(installation, value, request):
         raise ValueError('Original group queue is missing.')
     api = PublicAPI(root / 'operations-state', policy)
     try:
+        if op == 'image_send':
+            from . import media_send
+            return media_send.send(api, CLIENT, rid, value['group_peer'], request['index'],
+                                   request['sha256'], request['data'], policy, advance)
         if op == 'sticker':
             from . import group_sticker
             return group_sticker.handle(api, CLIENT, group_sticker.request_id(CLIENT, value['account'], value['group_peer'], server),
@@ -274,10 +279,13 @@ def main():
             'enabled': value.get('auto_reply_enabled') is True, 'binding_token': token(value),
             'member_count': len(members)}, ensure_ascii=False))
     else:
-        raw = sys.stdin.read(1000001)
-        if len(raw.encode()) > 1000000:
+        from .media_send import INPUT_LIMIT
+        raw = sys.stdin.read(INPUT_LIMIT + 1)
+        size = len(raw.encode())
+        request = json.loads(raw) if size <= INPUT_LIMIT else None
+        if not isinstance(request, dict) or size > 1000000 and request.get('op') != 'image_send':
             raise ValueError('Group request too large.')
-        print(json.dumps(handle(installation, value, json.loads(raw)), ensure_ascii=False))
+        print(json.dumps(handle(installation, value, request), ensure_ascii=False))
 
 
 def cli():

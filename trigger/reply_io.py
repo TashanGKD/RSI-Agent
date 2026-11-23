@@ -272,7 +272,7 @@ def handle(installation, owner, request):
               'ack': {'op', 'batch_id', 'batch_hash', 'ack_ids'},
               'submit': {'op', 'server_id', 'text'}, 'advance': {'op', 'server_id'},
               'status': {'op', 'server_id'}, 'cleanup': {'op', 'server_id'}, 'settle': {'op', 'server_id'},
-              'reconcile': {'op', 'server_id'}}
+              'reconcile': {'op', 'server_id'}, 'image_send': {'op', 'server_id', 'index', 'sha256', 'data'}}
     if 'friend_peer' not in owner and owner['send_scope']['mode'] == 'owner-private-text':
         fields['voice'] = {'op', 'server_id'}
     if op not in fields or set(request) != fields[op]:
@@ -312,6 +312,9 @@ def handle(installation, owner, request):
         raise ValueError('Original sender queue is missing.')
     api = PublicAPI(state, policy)
     try:
+        if op == 'image_send':
+            from .media_send import send
+            return send(api, client, rid, peer, request['index'], request['sha256'], request['data'], policy, advance)
         if op == 'submit':
             text = request['text']
             if not isinstance(text, str) or not text.strip() or '\0' in text or len(text.encode()) > 16384:
@@ -358,10 +361,13 @@ def main():
         return
     os.environ.update(environment(installation))
     sys.path.insert(0, str(WECHAT_LINUX))
-    raw = sys.stdin.read(1000001)
-    if len(raw.encode()) > 1000000:
+    from .media_send import INPUT_LIMIT
+    raw = sys.stdin.read(INPUT_LIMIT + 1)
+    size = len(raw.encode())
+    request = json.loads(raw) if size <= INPUT_LIMIT else None
+    if not isinstance(request, dict) or size > 1000000 and request.get('op') != 'image_send':
         raise ValueError('Owner reply transport input too large.')
-    print(json.dumps(handle(installation, owner, json.loads(raw)), ensure_ascii=False))
+    print(json.dumps(handle(installation, owner, request), ensure_ascii=False))
 
 
 def cli():
