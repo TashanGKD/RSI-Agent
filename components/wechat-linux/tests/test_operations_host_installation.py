@@ -102,6 +102,28 @@ class HostInstallationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'existing contents retained'):
             require_empty_editor(ui)
 
+    def test_local_client_separator_shade_also_hides_the_chat_tail(self):
+        from PIL import Image, ImageDraw
+        from host_support.file_transport import require_empty_editor
+        from operations.navigation import popout_binding
+
+        # Observed live: a chat image ends just above the 234-grey separator.
+        window = {'x': 341, 'y': 80, 'width': 623, 'height': 667}
+        image = Image.new('RGB', (1280, 800), (250, 250, 250))
+        draw = ImageDraw.Draw(image)
+        draw.rectangle((412, 598, 571, 605), fill=(97, 82, 72))
+        draw.line((362, 606, 922, 606), fill=(234, 234, 234))
+        cfg = popout_binding({}, window, image)
+        ui = SimpleNamespace(cfg=cfg, ui=SimpleNamespace(screenshot=lambda: image))
+        require_empty_editor(ui)
+        draw.line((412, 620, 571, 620), fill=(38, 40, 38))
+        with self.assertRaisesRegex(ValueError, 'existing contents retained'):
+            require_empty_editor(ui)
+        draw.line((412, 620, 571, 620), fill=(250, 250, 250))
+        draw.point((500, 606), fill=(233, 233, 233))
+        with self.assertRaisesRegex(ValueError, 'existing contents retained'):
+            require_empty_editor(ui)
+
     def test_reparented_window_uses_absolute_screen_coordinates(self):
         raw = '  0x400019 "File Transfer": ("wechat" "wechat") 600x642+0+0  +393+300\n'
         window = parse_app_windows(raw)[0]
