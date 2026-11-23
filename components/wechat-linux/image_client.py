@@ -99,6 +99,9 @@ GALLERY_SAVE_TOOLBARS={
     # text scan and Save; Save sits at 520. The two differ only in the edge menu glyph.
     'ffe29c98e58558ed33ffd40690c110389210eaee47e59539553a078488609d6c':('wsl-translate-scan',520),
     'bf08007131dd709b6a63d16abda522f77e08aeb2d61cd8ce3386fbbe346b31d7':('wsl-translate-scan',520),
+    # Same local toolbar with the text-scan control greyed out (seen live
+    # from 2026-11-23 on every viewer); Save is unchanged at 520.
+    '213c4540f0a7d6272af5cd273d99732263eeb2e99f12041eb887eaa818719766':('wsl-translate-scan-inactive',520),
 }
 
 class UnrecognizedSaveToolbar(ValueError):

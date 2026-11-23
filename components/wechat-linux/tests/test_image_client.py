@@ -156,6 +156,21 @@ class ClientImageTests(unittest.TestCase):
         self.assertIsNone(proof)
         control.click.assert_not_called()
 
+    def test_local_viewer_with_inactive_text_scan_keeps_save_in_place(self):
+        from PIL import Image
+        # Real local WSL toolbar (icons only): text scan greyed out, Save at 520.
+        fixture=Path(__file__).resolve().parents[1]/'test-fixtures/toolbars/save-wsl-scan-inactive.png'
+        toolbar=Image.open(fixture).convert('RGB')
+        viewer={'id':'0x4000d0','title':'Photos and Videos','x':12,'y':30,'width':900,'height':600}
+        capture=Image.new('RGB',(1000,700),(10,10,10))
+        capture.paste(toolbar,(12,30))
+        opened=image_client.viewer_save_proof(viewer,capture)
+        self.assertEqual((opened['layout'],opened['point']),('wsl-translate-scan-inactive',[12+520,30+21]))
+        changed=capture.copy()
+        changed.putpixel((12+520,30+21),(0,0,0))
+        with self.assertRaises(image_client.UnrecognizedSaveToolbar):
+            image_client.viewer_save_proof(viewer,changed)
+
     def test_text_image_translate_control_moves_save_to_the_next_slot(self):
         from PIL import Image
         # Real official toolbar captured from two failed exports of images with text.
