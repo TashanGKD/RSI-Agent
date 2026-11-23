@@ -1,5 +1,18 @@
 # Decisions
 
+## D027 — Inline ceremony, resume-wake and settled receipts stay ledger-only
+
+A chat handoff may inline the fixed read/complete/status steps with absolute
+helper and config paths and print the full original ID and digest; the inlined
+text carries the same authority as the protocol document and changes no
+verification rule. Every desktop queue (handoff, delivery notice, interrupted
+requeue) uses `codex queue --resume` to wake an unloaded conversation; a failed
+resume only warns, the queue result stays authoritative and nothing is
+resubmitted because of a wake failure. A settled success (`sent`, no cleanup
+pending, no code) stays in the V2 ledger without a visible notice; failures,
+partial, unknown and cleanup-pending still notify the original thread.
+Candidate in PR #152; live before/after timing needs a separate upgrade window.
+
 ## D026 — Delivery, cleanup and late feedback keep the original binding
 
 Private consumers may settle a proven restored pre-input failure as failed and
