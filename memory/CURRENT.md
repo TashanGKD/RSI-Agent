@@ -56,6 +56,11 @@ their old inputs and receipts stay private for audit.
   unloaded conversation was never accepted). Auto-wake needs either a packaged
   standalone CLI daemon or an accepted desktop-side activation path; recorded
   as the remaining M6 batch-2 gap.
+- Link reading was broken for every link after the WSL move: the local DNS is
+  a fake-IP resolver that answers `198.18.x.x`, which the public-destination
+  check refused (`PUBLIC_PAGE_UNAVAILABLE`). Names that resolve only to
+  `198.18.0.0/15` now tunnel by hostname through the loopback proxy in
+  `RSI_LINK_PROXY`, set by a drop-in on both reply services (#157).
 - The receiver's `/health` now separates `ready` (receiver only) from
   `pipeline_ready`, which also needs a fresh owner-worker heartbeat with native
   account, client and layout checks. After deploy all three checks were true.
