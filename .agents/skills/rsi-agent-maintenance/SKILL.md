@@ -64,6 +64,11 @@ when they change the next decision. No material delta means no commit or PR.
   收到模型结果、微信已发出及素材载体各保留对应证据。
 - **RSI Skills**：把可泛化的做法写到下次会读的 skill 或规则。单次成功、失败假设和
   适用范围只留一条[脱敏经验](../../../memory/lessons.md)。用户认可可复用的素材用私有索引按场景检索。
+- **同步给回复会话**：凡是改变回复会话能做之事的交付（新载体或入口、修好的读取、
+  取消的限制），上线后同一轮更新[会话侧 skill](../rsi-wechat-learn/SKILL.md)的
+  「回复会话能做的事」，并用 Codex 会话消息给两个回复会话各留一条简短同步说明，
+  写清能力、入口和边界。该说明不是微信输入，不触发发送。只在维护会话里能用、
+  回复会话不知道的能力，不算交付完成。
 
 收到自动报备时，按[私有绑定](../../../harness/DESKTOP-WECHAT.md#learning-reports)核
 实际来源会话和原验证轮次。先按同一来源轮次、类别查重，再从原回执、产物或隔离
