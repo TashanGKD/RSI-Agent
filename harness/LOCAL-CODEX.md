@@ -94,6 +94,15 @@ own process was stopped. This does not prove that every possible desktop entry
 point is unavailable. No private IPC/authentication bypass or target-host CLI is
 used. Direct event activation remains a separate, unaccepted experiment.
 
+Update 2026-11-23: the Store CLI cannot install a daemon (`no complete local
+package`), but a complete npm standalone `@openai/codex` sharing `~/.codex` can.
+`app-server daemon start` + `bootstrap` from it installed the managed daemon;
+the Store CLI reaches the same control socket, and a queued WeChat original was
+processed with no manual step (turn started ~7 s after queue, completion at
+42.2 s, V2 sent). `queue --resume` may still warn `already has an active writer`
+while the desktop owns the thread; the queued item is picked up regardless and
+the warning never resubmits. Daemon survival across logoff/reboot is unverified.
+
 Official protocol: [App Server](https://learn.chatgpt.com/docs/app-server) supports
 initialize → thread/resume → turn/start, with turn/completed as the completion
 evidence. Its existence alone does not prove a connection to the running desktop.
