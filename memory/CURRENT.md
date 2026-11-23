@@ -57,6 +57,18 @@ their old inputs and receipts stay private for audit.
   still warns `already has an active writer` because the desktop owns the
   thread; the queued item is picked up regardless, and the warning never
   resubmits. Daemon survival across logoff/reboot is not yet verified (M1).
+- Full-machine reboot acceptance was prepared but deferred by the owner on
+  2026-11-23. Pre-reboot snapshots and checks passed (queue clean at 8
+  completed, logon+timer task, systemd enabled, AC no-sleep); scripts live in
+  ignored var/local-setup (`pre_reboot_snapshot_m1.*`). Two live findings:
+  1) the account was displaced at 13:01 by the owner's own MacBook Air login
+  and needed a QR re-login after the client restarted; 2) closing the Xephyr
+  window kills `wechat-gui-x.service`, whose `Restart=on-failure` rebuilds the
+  whole desktop in ~3 s and resets the WeChat login — a clean stop must use
+  `systemctl stop wechat-gui.target`. The Codex daemon has no autostart
+  registration anywhere (tasks/Run keys/startup folder checked); a reboot
+  will need one manual `daemon start` until persistence is added. Both gaps
+  are recorded in the roadmap under M1.
 - Link reading was broken for every link after the WSL move: the local DNS is
   a fake-IP resolver that answers `198.18.x.x`, which the public-destination
   check refused (`PUBLIC_PAGE_UNAVAILABLE`). Names that resolve only to
