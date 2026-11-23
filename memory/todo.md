@@ -3,11 +3,11 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-0. **M6 batches 1–2 (PR #152).** Review candidate: inline chat protocol,
+0. **M6 batches 1–2 (PR #152, merged `a6a6abb`).** Inline chat protocol,
    `--resume` wake on every desktop queue, settled successes stay ledger-only.
-   Local Windows/Linux gates pass. Next: CI + review, then a scoped upgrade
-   window to deploy and compare real-message timing before/after. Later M6
-   batches (Router/Worker, subscription, Spill/recall) stay design-gated per
+   Gates and CI passed. Next: a scoped upgrade window to deploy the receiver
+   and compare real-message timing before/after. Later M6 batches
+   (Router/Worker, subscription, Spill/recall) stay design-gated per
    docs/ROADMAP.md.
 1. **Photos and documents, fresh acceptance.** Ordinary photos work; follow
    the next slow-painting viewer (#132) and the next fresh Word file from native

@@ -11,7 +11,8 @@ resume only warns, the queue result stays authoritative and nothing is
 resubmitted because of a wake failure. A settled success (`sent`, no cleanup
 pending, no code) stays in the V2 ledger without a visible notice; failures,
 partial, unknown and cleanup-pending still notify the original thread.
-Candidate in PR #152; live before/after timing needs a separate upgrade window.
+Merged as `a6a6abb` (PR #152); live before/after timing needs a separate
+upgrade window.
 
 ## D026 — Delivery, cleanup and late feedback keep the original binding
 

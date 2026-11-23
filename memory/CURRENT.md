@@ -32,13 +32,14 @@ their old inputs and receipts stay private for audit.
 - The official client's built-in browser reaches the internet through a private
   systemd drop-in with the Windows proxy (2026-11-23); WeChat articles opened in
   the client can be copied out and read.
-- M6 batches 1–2 are a review candidate in
-  [PR #152](https://github.com/TashanGKD/RSI-Agent/pull/152): chat handoffs
+- M6 batches 1–2 merged as `a6a6abb`
+  ([PR #152](https://github.com/TashanGKD/RSI-Agent/pull/152)): chat handoffs
   inline the read/complete/status ceremony with absolute paths and the original
   ID/digest, every desktop queue uses `--resume` to wake an unloaded
   conversation, and a settled success stays in the V2 ledger without a visible
-  notice. Windows and Linux regression gates pass locally; merge, deploy and
-  before/after live timing are separate states, none done yet.
+  notice. Windows and Linux regression gates and PR CI passed; deploy and
+  before/after live timing are separate states, neither done yet — the Windows
+  receiver task still runs `40d7935`.
 - The receiver's `/health` now separates `ready` (receiver only) from
   `pipeline_ready`, which also needs a fresh owner-worker heartbeat with native
   account, client and layout checks. After deploy all three checks were true.
