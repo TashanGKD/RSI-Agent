@@ -25,9 +25,11 @@ their old inputs and receipts stay private for audit.
 - Production moved on 2026-11-22 01:13 from the remote host to the local WSL
   distribution `RSI-WeChat-Main` (WeChat 4.1.13.26, same account). The remote
   host's reply services are stopped and kept as a cold standby. Both reply
-  services and the Windows receiver task run release `9adda20` (#160, #161)
-  since the 2026-11-23 evening window; `6475450` and earlier releases stay for
-  rollback. The task now uses
+  services and the Windows receiver task run release `f0994a1` (#166) since
+  2026-11-23 19:50. A WSL restart at 17:29 that day relaunched the receiver from
+  the task's older registered release (`40d7935`), so #152 and #160 were not
+  live until the task was repointed; after any upgrade, check the task action and
+  the `/health` `source_sha256`. Earlier releases stay for rollback. The task now uses
   `conhost --headless` with the five-minute restart timer (#148). Prior
   releases and unit backups are kept for rollback. Exact revisions, PIDs and
   backups are in the private operator receipt.
@@ -83,6 +85,16 @@ their old inputs and receipts stay private for audit.
   check refused (`PUBLIC_PAGE_UNAVAILABLE`). Names that resolve only to
   `198.18.0.0/15` now tunnel by hostname through the loopback proxy in
   `RSI_LINK_PROXY`, set by a drop-in on both reply services (#157).
+- Reply turns can attach up to four static PNG/JPEG images to a chat reply
+  (`desktop_reply.py complete --image`, #166). The receiver freezes them with
+  the completion; the trigger sends the text first and then each image once
+  through V2 `send_image` (`<original>-image-<index>`), and the delivery
+  receipt lists every image's state and server ID. Not yet observed with a fresh
+  WeChat reply.
+- Group image reading broke at about 17:30 on 2026-11-23 when the local viewer
+  showed new toolbar variants; the export now locates the Save icon itself
+  (#163, #165), and a 234-grey editor separator no longer blocks cleanup (#162).
+  Fresh group photos exported again from 18:30.
 - The receiver's `/health` now separates `ready` (receiver only) from
   `pipeline_ready`, which also needs a fresh owner-worker heartbeat with native
   account, client and layout checks. After deploy all three checks were true.
