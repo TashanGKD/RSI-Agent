@@ -171,6 +171,28 @@ class ClientImageTests(unittest.TestCase):
         with self.assertRaises(image_client.UnrecognizedSaveToolbar):
             image_client.viewer_save_proof(viewer,changed)
 
+    def test_save_glyph_is_found_whatever_the_neighbouring_controls_show(self):
+        from PIL import Image
+        from unittest.mock import patch
+        base=Path(__file__).resolve().parents[1]/'test-fixtures/toolbars'
+        viewer={'id':'0x4000d0','title':'Photos and Videos','x':12,'y':30,'width':900,'height':600}
+        for name,x in (('save-wsl-fit.png',520),('save-wsl-with-qr.png',560),('save-with-translate.png',561)):
+            with self.subTest(name=name):
+                toolbar=Image.open(base/name).convert('RGB')
+                capture=Image.new('RGB',(1000,700),(10,10,10))
+                capture.paste(toolbar,(12,30))
+                with patch.object(image_client,'SAVE_TOOLBARS',{}),patch.object(image_client,'GALLERY_SAVE_TOOLBARS',{}):
+                    opened=image_client.viewer_save_proof(viewer,capture)
+                    self.assertEqual((opened['layout'],opened['point']),('save-glyph',[12+x,30+21]))
+                    changed=capture.copy()
+                    changed.putpixel((12+x,30+21),(0,0,0))
+                    with self.assertRaises(image_client.UnrecognizedSaveToolbar):
+                        image_client.viewer_save_proof(viewer,changed)
+                    twice=capture.copy()
+                    twice.paste(capture.crop((12+x-9,30+12,12+x+7,30+31)),(12+430,30+12))
+                    with self.assertRaises(image_client.UnrecognizedSaveToolbar):
+                        image_client.viewer_save_proof(viewer,twice)
+
     def test_text_image_translate_control_moves_save_to_the_next_slot(self):
         from PIL import Image
         # Real official toolbar captured from two failed exports of images with text.

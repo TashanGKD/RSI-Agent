@@ -108,6 +108,20 @@ class UnrecognizedSaveToolbar(ValueError):
     pass
 
 
+# The Save (download) icon itself, 16x19 with a one-pixel margin, identical in
+# the server and local renderings. Neighbouring controls change state and order
+# (fit/1:1, text scan on/off, QR present), so a whole-toolbar fingerprint keeps
+# breaking; this proves the exact Save control and that it occurs once.
+SAVE_GLYPH=((16,19),'5b6c47a557d384608cc59df0f4e585736333e3d47c1e44af34a0e7b2cf9b702e')
+
+
+def save_glyph_point(toolbar):
+    (w,h),digest=SAVE_GLYPH
+    hits=[(x,y) for y in range(0,toolbar.height-h+1) for x in range(400,toolbar.width-w+1)
+          if hashlib.sha256(toolbar.crop((x,y,x+w,y+h)).tobytes()).hexdigest()==digest]
+    return (hits[0][0]+9,hits[0][1]+9) if len(hits)==1 else None
+
+
 def viewer_save_proof(viewer,image):
     if (not isinstance(viewer,dict) or viewer.get('title')!='Photos and Videos'
         or not re.fullmatch(r'0x[0-9a-fA-F]{1,16}',viewer.get('id',''))
@@ -127,6 +141,12 @@ def viewer_save_proof(viewer,image):
         for box in ((73,16,87,28),(113,16,127,28),(635,19,639,23)):
             controls.paste((0,0,0),box)
         layout=GALLERY_SAVE_TOOLBARS.get(hashlib.sha256(controls.tobytes()).hexdigest())
+    if layout is None:
+        point=save_glyph_point(toolbar)
+        if point is not None:
+            box=[x,y,x+w,y+44]
+            return {'point':[x+point[0],y+point[1]],'layout':'save-glyph','prefixSHA256':prefix,
+                    'toolbarBox':box,'toolbarSHA256':hashlib.sha256(image.crop(tuple(box)).tobytes()).hexdigest()}
     if layout is None:
         error=UnrecognizedSaveToolbar('current Save/QR toolbar is not a calibrated inactive layout')
         error.image_toolbar_fingerprint=prefix
