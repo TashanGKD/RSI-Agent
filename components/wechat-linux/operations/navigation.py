@@ -173,6 +173,24 @@ def begin(d,j):
  d.navigation_job_id=j['id']
 
 def search_named(d,j,target,cfg,query):
+ return _search_named(d,j,target,cfg,query)
+
+def refresh_search(v,windows,main):
+ """The same owned search popup after it grew to show its sections.
+
+ Only the height may change: the window ID, title, position, width and the
+ calibrated search geometry must still match. Returns None otherwise.
+ """
+ from .windows import search_geometry
+ s=v.get('search')
+ if not s:return None
+ found=[w for w in windows if w['id']==s['id']]
+ if len(found)!=1:return None
+ w=found[0]
+ if (w['title'],w['x'],w['y'],w['width'])!=(s['title'],s['x'],s['y'],s['width']) or not search_geometry(w,main):return None
+ v['search']=w;return w
+
+def _search_named(d,j,target,cfg,query):
  from .recipes import controls,activate,paste_field,rows,screen,main_window,PreparationError
  from .selectors import selected_chat_row
  from .windows import window_identity,search_parent_proof,search_geometry
@@ -186,12 +204,22 @@ def search_named(d,j,target,cfg,query):
   windows=d.app_windows();pop=[w for w in windows if w['id'] not in {x['id'] for x in v['beforeWindows']} and search_geometry(w,main)]
   if len(pop)!=1:raise PreparationError('SEARCH_RESULTS_NOT_SUPPORTED','Exact official native-search popup missing.')
   popup=pop[0];search_parent_proof(popup,main);v.update(state='search-open',search=popup);save(d.root,j,v)
-  box=[popup['x'],popup['y'],popup['x']+popup['width'],popup['y']+popup['height']]
-  image=screen(d)
-  try:point=first_native_candidate([],j['peer'],box,image=image)
-  except ValueError:
-   try:point=first_native_candidate(rows(d,box),j['peer'],box,image=image)
-   except ValueError:raise PreparationError('RECIPIENT_NOT_VISIBLE','No native chat row proven; web results never selected.') from None
+  # The official popup first shows only the web-search row and grows when the
+  # contact and group sections load. Re-read the same owned popup until a
+  # native row is proven; never select a web result or a different window.
+  point=None
+  for pause in (0,300,500,800,1200):
+   if pause:
+    c.wait(pause);current=refresh_search(v,d.app_windows(),main)
+    if current is None:raise PreparationError('SEARCH_RESULTS_NOT_SUPPORTED','Owned native-search popup changed.',clean=False)
+    if current!=popup:popup=current;save(d.root,j,v)
+   box=[popup['x'],popup['y'],popup['x']+popup['width'],popup['y']+popup['height']]
+   image=screen(d)
+   try:point=first_native_candidate([],j['peer'],box,image=image);break
+   except ValueError:
+    try:point=first_native_candidate(rows(d,box),j['peer'],box,image=image);break
+    except ValueError:continue
+  if point is None:raise PreparationError('RECIPIENT_NOT_VISIBLE','No native chat row proven; web results never selected.')
   c.click(*point);c.wait(350)
   if popup['id'] in {w['id'] for w in d.app_windows()}:raise PreparationError('SEARCH_SELECTION_UNPROVEN','Native chat selection did not dismiss its own search.')
   # Opening a chat is navigation only. Its system title must prove the recipient
@@ -249,6 +277,11 @@ def finish(d,j):
   if birth(v['mainIdentity']['pid'])!=v['processBirth']:return False
   windows=d.app_windows();main=v['main'];own=v.get('ownPopout');retained=False
   if main not in windows or window_identity(main)!=v['mainIdentity']:return False
+  search=v.get('search')
+  if search and any(w['id']==search['id'] for w in windows) and search not in windows:
+   # The popup grew after it was recorded; accept only the same owned window.
+   if refresh_search(v,windows,main) is None:return False
+   save(d.root,j,v)
   if v['state']=='popout-opening':
    # A failed double-click is navigation, not an uncertain Send. Observe its
    # bounded result under the original guard; never guess an unrelated dialog.
@@ -343,6 +376,10 @@ def _yield_owned_read(d,j,owned,store,force=False):
   windows=d.app_windows();baseline=v['beforeWindows'];ids={w['id'] for w in baseline}
   if v['main'] not in windows or window_identity(v['main'])!=host:return False
   if set(owned)&ids:return False # Never adopt a pre-existing window as own.
+  search=v.get('search')
+  if search and any(w['id']==search['id'] for w in windows) and search not in windows:
+   if refresh_search(v,windows,v['main']) is None:return False
+   save(d.root,j,v)
   expected=list(baseline)
   for original in (v.get('ownPopout'),v.get('search')):
    if not original:continue
