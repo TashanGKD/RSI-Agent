@@ -121,6 +121,9 @@ class Executor:
     if proof.get('state')=='accepted':
      proof=self.finalize(j,proof)
      self.s.set_state(j['id'],'succeeded',proof);self.d.release();return {'state':'succeeded','job':j['id']}
+    if state=='unknown' and j['action']=='send_sticker' and proof.get('state')=='not_sent' and self.d.cleanup(j):
+     # One click, no native row at all afterwards, owned panel/chat settled.
+     self.s.set_state(j['id'],'failed',{'code':'STICKER_NOT_SENT','reason':proof['reason'],'noSend':True,'sendClicks':1,'navigationRestored':True,'automaticReplay':False});self.d.release();return {'state':'failed','job':j['id']}
     return {'state':state,'job':j['id'],'automaticReplay':False}
    if state in ('awaiting_confirmation','needs_assistance','preparing'):
     from .dispatch import spec

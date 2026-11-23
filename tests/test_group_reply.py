@@ -29,6 +29,7 @@ class GroupTests(unittest.TestCase):
         self.batch = {'batch_id': 'batch', 'batch_hash': 'hash', 'ack_ids': ['1'], 'context': [],
             'events': [self.event()]}
         self.effects, self.calls = {}, []
+        self.sticker_results = []
         self.lose_result, self.unknown = False, False
 
     def event(self, server=1, **changes):
@@ -45,6 +46,8 @@ class GroupTests(unittest.TestCase):
                 self.assertGreater(db.execute('SELECT count(*) FROM inbox').fetchone()[0], 0)
             return {'state': 'acked'}
         key = request['server_id']
+        if request['op'] == 'sticker':
+            return self.sticker_results.pop(0)
         if request['op'] == 'status':
             return self.effects[key]
         if request['op'] == 'submit':
@@ -98,6 +101,30 @@ class GroupTests(unittest.TestCase):
         intents = loop.db.execute('SELECT label,mode,state FROM sticker_intents ORDER BY created').fetchall()
         self.assertEqual([tuple(row) for row in intents], [('好笑', 'shadow', 'shadow'), ('好笑', 'shadow', 'rate_limited')])
         self.assertFalse(any(c['op'] in ('submit', 'advance') for c in self.calls))
+
+    def test_send_mode_advances_one_original_sticker_request_until_its_receipt(self):
+        policy = {'mode': 'send', 'labels': ['好笑'], 'min_gap_seconds': 3600, 'md5': {'好笑': 'c' * 32}}
+        self.model.complete.return_value = {'message': {'content': '{"speak":false,"text":"","sticker":"好笑"}'}}
+        loop = self.loop()
+        loop.stickers = policy
+        self.assertEqual(loop.cycle()['state'], 'quiet')
+        self.assertFalse(any(c['op'] == 'sticker' for c in self.calls))
+        self.batch = dict(self.batch, batch_id=None, events=[])
+        self.sticker_results = [{'state': 'queued', 'outcome': 'pending'}, {'state': 'succeeded', 'outcome': 'sent'}]
+        loop.cycle()
+        loop.cycle()
+        loop.cycle()
+        stickers = [c for c in self.calls if c['op'] == 'sticker']
+        self.assertEqual(stickers, [{'op': 'sticker', 'server_id': '1', 'md5': 'c' * 32}] * 2)
+        self.assertEqual(loop.db.execute('SELECT state FROM sticker_intents').fetchone()[0], 'sent')
+
+    def test_unsent_sticker_intent_expires_with_its_group_message(self):
+        loop = self.loop()
+        loop.stickers = {'mode': 'send', 'labels': ['好笑'], 'min_gap_seconds': 3600, 'md5': {'好笑': 'c' * 32}}
+        with loop.db:
+            loop.db.execute("INSERT INTO sticker_intents VALUES('9',1,'好笑','send','pending')")
+        self.assertEqual(loop.deliver_sticker(), 'expired')
+        self.assertFalse(any(c['op'] == 'sticker' for c in self.calls))
 
     def test_sticker_cannot_accompany_text_or_leave_the_catalog(self):
         for content in ('{"speak":true,"text":"哈哈","sticker":"好笑"}', '{"speak":false,"text":"","sticker":"别的"}'):

@@ -9,7 +9,7 @@ from receive_source import sid
 ROOT=Path(os.environ.get('WECHAT_TOOL_ROOT','/var/lib/secretary-wechat'))
 ACCOUNT=os.environ.get('WECHAT_ACCOUNT_ID','wxid_fixture_operator')
 PROFILE=Path(os.environ.get('WECHAT_PROFILE',str(ROOT/'xwechat_files/fixture-profile')))
-READABLE={'message/message_0.db','message/media_0.db','contact/contact.db','session/session.db','message/message_resource.db','hardlink/hardlink.db'}
+READABLE={'message/message_0.db','message/media_0.db','contact/contact.db','session/session.db','message/message_resource.db','hardlink/hardlink.db','emoticon/emoticon.db'}
 
 def parse_request(raw):
     if not isinstance(raw,str) or len(raw.encode())>1500000:raise ValueError('request size cap')
