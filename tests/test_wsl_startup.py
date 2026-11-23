@@ -12,7 +12,8 @@ from rsi_agent.config import ROOT
 @unittest.skipUnless(sys.platform == 'win32', 'requires Windows PowerShell and Task Scheduler types')
 class WindowsStartupTests(unittest.TestCase):
     def test_startup_scripts_parse_in_windows_powershell(self):
-        for name in ('Start-Local.ps1', 'Register-Startup.ps1', 'Install-WeChat.ps1', 'Show-Login.ps1'):
+        for name in ('Start-Local.ps1', 'Register-Startup.ps1', 'Install-WeChat.ps1', 'Show-Login.ps1',
+                     'Desktop-Control.ps1'):
             script = str(ROOT / 'deploy/wechat-wsl' / name).replace("'", "''")
             command = ("$tokens=$null; $errors=$null; "
                 "[System.Management.Automation.Language.Parser]::ParseFile('" + script
@@ -119,3 +120,37 @@ function Unregister-ScheduledTask { throw 'Must not remove a task' }
                     capture_output=True, text=True, timeout=30)
                 self.assertEqual(marker.exists(), active == '1')
                 self.assertEqual(result.returncode == 0, active == '1', result.stderr)
+
+    def test_desktop_control_only_stops_and_starts_the_target(self):
+        with tempfile.TemporaryDirectory(prefix='rsi control ') as folder:
+            root = Path(folder)
+            fake_windows = root / 'Windows/System32'
+            fake_windows.mkdir(parents=True)
+            log = root / 'wsl-args.txt'
+            powershell = str(Path(os.environ['WINDIR']) / 'System32/WindowsPowerShell/v1.0/powershell.exe')
+            def literal(value):
+                return "'" + str(value).replace("'", "''") + "'"
+            source = ('public class Stub { public static int Main(string[] args) { '
+                'System.IO.File.AppendAllText(System.Environment.GetEnvironmentVariable("RSI_FIXTURE_WSL_LOG"), '
+                'string.Join(" ", args) + System.Environment.NewLine); return 0; } }')
+            compiled = subprocess.run([powershell, '-NoProfile', '-NonInteractive', '-Command',
+                'Add-Type -TypeDefinition ' + literal(source) + ' -OutputAssembly '
+                + literal(fake_windows / 'wsl.exe') + ' -OutputType ConsoleApplication'],
+                capture_output=True, text=True, timeout=30)
+            self.assertEqual(compiled.returncode, 0, compiled.stderr)
+            harness = root / 'control.ps1'
+            actions = []
+            for action in ('Pause', 'Resume', 'Status'):
+                actions.append('& ' + literal(ROOT / 'deploy/wechat-wsl/Desktop-Control.ps1')
+                    + ' -Action ' + action + ' -Distro ' + literal('RSI-WeChat'))
+            harness.write_text('$ErrorActionPreference="Stop"\n$env:WINDIR=' + literal(root / 'Windows')
+                + '\n' + '\n'.join(actions), encoding='utf-8-sig')
+            result = subprocess.run([powershell, '-NoProfile', '-NonInteractive', '-File', str(harness)],
+                env=dict(os.environ, RSI_FIXTURE_WSL_LOG=str(log)),
+                capture_output=True, text=True, timeout=30)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            lines = [line.strip() for line in log.read_text().splitlines()]
+            self.assertIn('-d RSI-WeChat -u root --exec /usr/bin/systemctl stop wechat-gui.target', lines)
+            self.assertIn('-d RSI-WeChat -u root --exec /usr/bin/systemctl start wechat-gui.target', lines)
+            self.assertFalse(any('wechat-gui-x.service' in line and (' stop ' in line or ' start ' in line)
+                                 for line in lines), lines)

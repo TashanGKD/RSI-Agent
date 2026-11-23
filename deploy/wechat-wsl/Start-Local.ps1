@@ -29,6 +29,15 @@ if ($remotePort) {
             -not (Get-Process -Id $_.ParentProcessId -ErrorAction SilentlyContinue) } |
         ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 }
+# A queued WeChat original starts its turn only when the local app-server daemon is
+# running. Start it on every launch so a reboot needs no manual step; the command is
+# idempotent and a failure only warns, because the queue and the receiver still work.
+$codex = (Get-Content -Raw -LiteralPath $Config | ConvertFrom-Json).codex
+if ($codex -and (Test-Path -LiteralPath $codex -PathType Leaf)) {
+    $ErrorActionPreference = 'Continue'
+    try { & $codex app-server daemon start *> $null } catch { Write-Warning "Codex daemon did not start: $_" }
+    $ErrorActionPreference = 'Stop'
+}
 Push-Location -LiteralPath $Release
 try {
     & $Python -B -m receiver.codex_worker --config $Config
