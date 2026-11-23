@@ -1,9 +1,9 @@
 # Current checkpoint
 
-Checked 2026-11-21. Memory is a checkpoint; verify the host's
-`/var/lib/rsi-agent/release.json`, the `current` symlink, both service
-working directories and the local receiver's authenticated `/health` before
-relying on it.
+Checked 2026-11-23. Memory is a checkpoint; verify the WSL distribution's
+`/opt/rsi-agent/current` symlink, both reply services' working directories,
+the Windows receiver task's release and the receiver's authenticated
+`/health` before relying on it.
 
 ## Shape
 
@@ -22,11 +22,16 @@ their old inputs and receipts stay private for audit.
 
 ## Verified live
 
-- Release `d59e490` (#124, #131, #132 on top of the Word and PDF work) runs both
-  remote services. The local receiver runs the same commit from a full release
-  directory as `python -m receiver.codex_worker`; a lone copied `codex_worker.py`
-  is no longer a valid install. Exact revisions, PIDs and backups are in the
-  private operator receipt.
+- Production moved on 2026-11-22 01:13 from the remote host to the local WSL
+  distribution `RSI-WeChat-Main` (WeChat 4.1.13.26, same account). The remote
+  host's reply services are stopped and kept as a cold standby. Both reply
+  services run release `1f1b38f` from `/opt/rsi-agent/releases`; the Windows
+  receiver task runs release `40d7935` (#150) through
+  `conhost --headless` with a five-minute restart timer (#148). Exact
+  revisions, PIDs and backups are in the private operator receipt.
+- The official client's built-in browser reaches the internet through a private
+  systemd drop-in with the Windows proxy (2026-11-23); WeChat articles opened in
+  the client can be copied out and read.
 - The receiver's `/health` now separates `ready` (receiver only) from
   `pipeline_ready`, which also needs a fresh owner-worker heartbeat with native
   account, client and layout checks. After deploy all three checks were true.
@@ -39,7 +44,9 @@ their old inputs and receipts stay private for audit.
   receiver `desktop_queued` job without a turn, settles as `not_sent` with
   `GROUP_INPUT_EXPIRED`. Expiries fell from 9 (11-19) and 12 (11-20) to 2 (11-21)
   after engineering moved to the maintenance thread.
-- The evening astronomy digest sends every item to its three groups.
+- The evening astronomy digest sends every item to its two groups, with an
+  optional verified "今日 Top 速览" image as part 0 (#146, #147). The first
+  image issue went out on 2026-11-22 with matching native receipts.
 
 ## Recurring problems
 
@@ -66,6 +73,13 @@ paths and sustained availability remain unverified for local installs.
 | Evening digest reported failure after sending | The local wait for the remote batch was fixed at 175 s; 18 parts take longer | Fixed in the cleanup PR; the remote wait scales with the batch |
 | Xiaohongshu notes | Public pages require login | Card metadata only; not fixable without an account |
 | Sender SSH dropped | Host-side outage | Recovered by the host; no code change |
+| Group replies not sent after the WSL move (`RECIPIENT_NOT_VISIBLE`) | The local client draws the search section labels differently | Fixed and live (#143, #144) |
+| Replies sent but recorded `unknown`, blocking the queue | The post-click native proof raised while WeChat was writing its database, and nothing re-read the receipt | Fixed and live (#145): the proof is re-read, and an `unknown` original is reconciled from native evidence without another click. The exact exception is now recorded as `causeType`/`lastProofError` |
+| Receiver down for 3.5 h (11-22 16:51–20:28) | Its console was hosted by Windows Terminal, which sent Ctrl+C on exit; the task's restart setting covers only launch failures; an orphan ssh forward then held the return port | Fixed and live (#148); a forced exit was restarted by the timer in 16 s |
+| First send after a client restart failed (`UNSUPPORTED_LAYOUT`) | The main window reopened at 903×667, which the resize helper ignored | Fixed and live (#149) |
+| Group inputs expired while a reply turn was interrupted or waiting | An owner message typed into a reply thread interrupts the running WeChat turn; a model error ends one at once; the reply thread also waited on maintenance work | Interrupted or failed requests not yet read are requeued once (#150, live); reply threads must end the turn after handing work to maintenance |
+| Reply threads idle after a Codex Desktop restart | Reloaded conversations stay `notLoaded` and do not drain their queue; the receiver cannot wake them without the private desktop IPC | Open: wake each reply thread by hand after a desktop update |
+| New installs stopped at the WeChat download | Tencent replaced the package at the same URL on 2026-11-20 | The installer reuses a verified 4.1.13.26 copy from `RSI-WeChat-Setup/packages/<sha256>`; newer builds need recalibration |
 
 Before the image fixes, ordinary group photos succeeded about half the time
 since 11-17 (covers and quoted images all succeeded). Every failure kept its
