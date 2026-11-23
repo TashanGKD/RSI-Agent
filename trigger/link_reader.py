@@ -190,7 +190,11 @@ def public_connection(parts, timeout):
         except ValueError:
             literal = None
         proxy = loopback_proxy()
-        if proxy and literal is None and all(address.version == 4 and address in FAKE_IP for address in addresses):
+        fake = [address for address in addresses if address.version == 4 and address in FAKE_IP]
+        # The same resolver also answers with real IPv6 records that have no egress here,
+        # so tunnel when every address is either fake or global.
+        if (proxy and literal is None and fake
+                and all(address in fake or address.is_global for address in addresses)):
             # The real address is only known to the local proxy; tunnel by name.
             # Private, loopback and literal destinations are still refused.
             connection = http.client.HTTPSConnection(*proxy, timeout=timeout,

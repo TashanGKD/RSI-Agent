@@ -33,6 +33,11 @@ class FakeIPTests(unittest.TestCase):
         self.assertEqual((connection.host, connection.port), ('127.0.0.1', 7890))
         self.assertEqual((connection._tunnel_host, connection._tunnel_port), ('mp.weixin.qq.com', 443))
 
+    def test_fake_ip_with_a_global_ipv6_record_still_tunnels_by_name(self):
+        connection = self.connect('mp.weixin.qq.com', '198.18.0.41', '2408:80f1:21:c120::84')
+        self.assertEqual((connection.host, connection.port), ('127.0.0.1', 7890))
+        self.assertEqual((connection._tunnel_host, connection._tunnel_port), ('mp.weixin.qq.com', 443))
+
     def test_private_literal_mixed_or_unproxied_destinations_are_still_refused(self):
         for host, addresses, proxy in (('mp.weixin.qq.com', ['198.18.0.106'], None),
                                        ('internal.example', ['10.0.0.5'], 'http://127.0.0.1:7890'),
