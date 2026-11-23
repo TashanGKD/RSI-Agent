@@ -31,7 +31,9 @@ def require_empty_editor(ui):
         # An exact full-width separator proves the draft starts below it.
         # The strip above can contain the tail of the scrolled chat.
         row = frame_y - content_top
-        if im.crop((0, row, im.width, row + 1)).getextrema() == ((222, 222),) * 3:
+        # The separator is a uniform grey line: 222 on the remote host's
+        # client, 234 on the local WSL client (same 4.1.13.26 build).
+        if im.crop((0, row, im.width, row + 1)).getextrema() in (((222, 222),) * 3, ((234, 234),) * 3):
             im = im.crop((0, row + 1, im.width, im.height))
     dark_pixels = sum(min(pixel) < 230 for pixel in im.getdata())
     # A caret is tiny; text, existing file cards and images are not. OCR alone could miss Chinese or an image.
