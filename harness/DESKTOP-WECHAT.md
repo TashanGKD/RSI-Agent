@@ -107,6 +107,15 @@ send one sanitized report to `maintenance_thread_id` using the app's
 kind to reconcile an uncertain submission in the destination before trying again.
 If the binding or tool is unavailable, keep the report in the original turn.
 
+The same binding carries the opposite direction. After maintenance resolves a
+problem that a reply conversation handed over or reported, it sends one
+`【处理回执与建议】` back to that source conversation: the cause, whether the fix
+was code or a working method, when it took effect, and how the reply
+conversation handles the same case itself next time. Reusable steps go into the
+learning skill first, and the hand-back cites that section. The hand-back is not
+a WeChat input; the reply conversation confirms it in one line and neither
+repeats the original request nor sends anything.
+
 Maintenance checks the source conversation and verification turn against the
 original evidence, then publishes the reusable rule through the corresponding
 Skill and PR. Reuse requires a later independent case showing the rule applied
