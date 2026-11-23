@@ -502,6 +502,18 @@ class ImageExecutionTests(unittest.TestCase):
    self.assertIs(adapter.locked,locked);self.assertNotIn('raw XML',str(e.exception));self.assertEqual(e.exception.code,'IMAGE_EXPORT_NOT_PROVEN')
    self.assertIn('save-control',str(e.exception));self.assertIn('a'*64,str(e.exception))
 
+ def test_failure_before_the_viewer_keeps_its_code_generated_cause(self):
+  import types
+  from unittest.mock import patch,Mock
+  with tempfile.TemporaryDirectory() as td:
+   d,j,c,im,r=self.fixture(td)
+   adapter=types.SimpleNamespace(locked=object(),dispatch=Mock(side_effect=ValueError('image source snapshot is not committed <raw>')))
+   with patch.dict('sys.modules',{'image_client':adapter}),patch('operations.images.load_context',return_value=c),patch('operations.recipes.screen',return_value=im):
+    with self.assertRaises(images.ImageReadError) as e:images.export(d,j)
+   self.assertEqual(e.exception.code,'IMAGE_EXPORT_NOT_PROVEN')
+   self.assertIn('Cause: ValueError: image source snapshot is not committed raw.',str(e.exception))
+   self.assertNotIn('<',str(e.exception))
+
  def test_unknown_toolbar_evidence_survives_without_changing_failure_or_old_files(self):
   import types
   from unittest.mock import Mock,patch

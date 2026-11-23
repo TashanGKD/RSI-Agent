@@ -1,12 +1,30 @@
 """Read source-bound native media without sending anything."""
 import base64
 import hashlib
+import time
 from pathlib import Path
 
 from .reply_io import advance, request_id
 from .media import document_name, check_document, MediaUnavailable
 
 CLIENT = 'rsi-vision'
+# A visible image read can fail once while the client is still settling a new
+# message (history scroll, viewer toolbar, snapshot timing). These failures
+# start no side effect, so the same source gets a bounded second look.
+RETRY_CODES = frozenset({'IMAGE_EXPORT_NOT_PROVEN', 'IMAGE_SOURCE_MISMATCH', 'IMAGE_CONTEXT_CHANGED'})
+RETRIES = 2
+RETRY_COOLDOWN = 10
+
+
+def retry_ids(rid):
+    return [rid] + [rid + '-retry-' + str(n) for n in range(1, RETRIES + 1)]
+
+
+def retryable(job):
+    result = job.get('result') or {}
+    return (job['state'] == 'failed' and job['payload'].get('representation') == 'visible'
+            and result.get('code') in RETRY_CODES and result.get('noSend') is True
+            and result.get('sideEffectStarted') is not True)
 
 
 def cancel_queued_image(root, account, peer, server):
@@ -22,14 +40,15 @@ def cancel_queued_image(root, account, peer, server):
     rid = request_id(account, peer, server, CLIENT)
     store = Store(state)
     try:
-        try:
-            job = store.get(CLIENT, rid)
-        except KeyError:
-            return
-        if (job['peer'] != peer or job['action'] != 'save_attachment'
-                or job['payload'].get('source_id') != server or job['payload'].get('source_mode') != 'inbound'):
-            raise ValueError('Original inbound image carrier changed.')
-        store.cancel(CLIENT, rid, queued_only=True)
+        for attempt in retry_ids(rid):
+            try:
+                job = store.get(CLIENT, attempt)
+            except KeyError:
+                return
+            if (job['peer'] != peer or job['action'] != 'save_attachment'
+                    or job['payload'].get('source_id') != server or job['payload'].get('source_mode') != 'inbound'):
+                raise ValueError('Original inbound image carrier changed.')
+            store.cancel(CLIENT, attempt, queued_only=True)
     finally:
         store.close()
 
@@ -123,6 +142,18 @@ def image(root, account, peer, server, allowed_senders):
                 'action': 'save_attachment', 'payload': {'source_id': server, 'source_mode': 'inbound',
                                                        'representation': 'visible'}}})
             job = api.s.get(CLIENT, rid)
+        for attempt in retry_ids(rid)[1:]:
+            if not retryable(job):
+                break
+            try:
+                job = api.s.get(CLIENT, attempt)
+            except KeyError:
+                if time.time() - job['updated'] < RETRY_COOLDOWN:
+                    return {'state': 'media_pending', 'code': 'IMAGE_RETRY_SCHEDULED'}
+                api.call({'op': 'submit', 'job': {'client': CLIENT, 'request_id': attempt, 'peer': peer,
+                    'action': 'save_attachment', 'payload': dict(job['payload'])}})
+                job = api.s.get(CLIENT, attempt)
+            rid = attempt
         visible = job['payload'].get('representation') == 'visible'
         if job['state'] in ('queued', 'confirmed'):
             advance(api, job, policy)
