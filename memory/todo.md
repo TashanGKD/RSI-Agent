@@ -3,13 +3,13 @@
 One active improvement at a time. Keep the denominator fixed; add discoveries
 as candidates rather than silently expanding the active task.
 
-0. **M6 wake gap (deployed `6475450`).** Inline protocol and ledger-only
-   settled receipts are live-accepted (turn 96.3 s → 88.0 s; no notice row).
-   Auto-wake failed: the Store CLI cannot start a local daemon, `--resume`
-   only warns, and the queued item waited for an authorized in-app nudge
-   (queue-to-completion 414.8 s vs 107.2 s baseline). Next: evaluate a
-   packaged standalone CLI daemon or an accepted desktop-side activation
-   path, then re-measure end to end. Later M6 batches (Router/Worker,
+0. **M6 batches 1–2 accepted (deployed `6475450`).** Inline protocol,
+   ledger-only settled receipts and auto-wake all live-accepted: the npm
+   standalone CLI installed the managed app-server daemon, and a fresh
+   message ran with no manual step (queue → turn in ~7 s, completion at
+   42.2 s vs 107.2 s baseline, V2 sent, no notice row). Remaining: daemon
+   survival across logoff/reboot folds into M1; optional warning triage for
+   `already has an active writer`. Later M6 batches (Router/Worker,
    subscription, Spill/recall) stay design-gated per docs/ROADMAP.md.
 1. **Photos and documents, fresh acceptance.** Ordinary photos work; follow
    the next slow-painting viewer (#132) and the next fresh Word file from native

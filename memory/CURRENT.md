@@ -46,16 +46,17 @@ their old inputs and receipts stay private for audit.
   no notice row. Turn time 88.0 s vs the 11-22 baseline's 96.3 s for the same
   shape of request; queue-to-completion 414.8 s vs 107.2 s because the wake
   did not fire (below).
-- Wake limitation found live: the Store CLI has no complete local package, so
-  `app-server daemon start`/`bootstrap` and `remote-control start` all refuse,
-  and `queue --resume` warns `start a local daemon or specify a server with
-  --remote`. The queued message waited until a user-authorized
-  `send_message_to_thread` nudge loaded the conversation; the queued item was
-  then processed normally with no resubmission. This matches the documented
-  historical boundary in harness/LOCAL-CODEX.md (direct activation of an
-  unloaded conversation was never accepted). Auto-wake needs either a packaged
-  standalone CLI daemon or an accepted desktop-side activation path; recorded
-  as the remaining M6 batch-2 gap.
+- Wake resolved and live-accepted on 2026-11-23: the Store CLI cannot install
+  a daemon itself, but the already-installed npm standalone `@openai/codex`
+  0.171.0 is a complete package sharing `~/.codex`. `app-server daemon start`
+  plus `bootstrap` from it installed the managed daemon under
+  `~/.codex/packages/app-server-daemon`; the Store CLI now reaches the same
+  control socket. A fresh owner message then ran end to end with no manual
+  step: queue → automatic turn start ~7 s later → frozen completion at
+  42.2 s (baseline 107.2 s), V2 `sent`, no notice row. The `--resume` call
+  still warns `already has an active writer` because the desktop owns the
+  thread; the queued item is picked up regardless, and the warning never
+  resubmits. Daemon survival across logoff/reboot is not yet verified (M1).
 - Link reading was broken for every link after the WSL move: the local DNS is
   a fake-IP resolver that answers `198.18.x.x`, which the public-destination
   check refused (`PUBLIC_PAGE_UNAVAILABLE`). Names that resolve only to
