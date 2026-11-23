@@ -356,6 +356,30 @@ class DesktopRelayTests(unittest.TestCase):
             self.assertIn('先核原 ID、摘要和附件，再查同一 ID、thread、turn 的 V2 回执', message)
             self.assertEqual(jobs.get(packet()['id'])['state'], 'desktop_queued')
 
+    def test_inline_chat_protocol_carries_the_absolute_helper_config_and_resume(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            jobs = Jobs(root / 'state')
+            original = jobs.accept(packet())
+            repository = root / 'current checkout'
+            config_file = root / 'config.json'
+            config_file.write_text('{}', encoding='utf-8')
+            config = {'codex': 'existing-codex', 'desktop_thread_id': THREAD,
+                      'desktop_all_requests': True, 'repository': str(repository),
+                      'config_path': str(config_file.resolve())}
+            with patch('receiver.codex_worker.subprocess.run', return_value=queued()) as cli:
+                notify_desktop(config, jobs, jobs.claim('chat'))
+            argv = cli.call_args.args[0]
+            self.assertIn('--resume', argv)
+            message = argv[-1]
+            helper = (repository / 'receiver/desktop_reply.py').as_posix()
+            self.assertIn('python -B "' + helper + '" read "' + config_file.resolve().as_posix() + '"', message)
+            self.assertIn('complete ... --wait', message)
+            self.assertIn('原请求 ID：' + packet()['id'], message)
+            self.assertIn('input_sha256：' + original['digest'], message)
+            self.assertNotIn('rsi-wechat-learn/SKILL.md', message)
+            self.assertEqual(jobs.get(packet()['id'])['state'], 'desktop_queued')
+
     def test_chat_cli_checks_the_binding_and_reuses_only_the_frozen_completion(self):
         from urllib.error import HTTPError
         from urllib.request import ProxyHandler, Request, build_opener

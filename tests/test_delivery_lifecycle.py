@@ -73,6 +73,29 @@ class DeliveryLifecycleTests(unittest.TestCase):
             notify({'state': str(self.root), 'codex': 'existing-codex'}, self.jobs)
         command.assert_not_called()
 
+    def test_settled_success_stays_in_ledger_without_a_notice(self):
+        self.age_original()
+        settled = dict(self.receipt, cleanup_pending=False)
+        self.jobs.report_delivery(settled)
+        with patch('receiver.delivery_updates.subprocess.run') as command:
+            notify({'state': str(self.root), 'codex': 'existing-codex'}, self.jobs)
+        command.assert_not_called()
+        view = self.jobs.desktop_delivery(self.packet['id'], THREAD, 'original-turn', THREAD)
+        self.assertEqual(view['state'], 'sent')
+        self.assertFalse(view['cleanup_pending'])
+        with self.jobs.connect() as db:
+            self.assertEqual(db.execute('SELECT count(*) FROM delivery_updates').fetchone()[0], 0)
+
+    def test_failure_and_pending_cleanup_still_notify_with_resume(self):
+        self.age_original()
+        failed = dict(self.receipt, state='not_sent', code='DRAFT_PROTECTED', cleanup_pending=False)
+        self.jobs.report_delivery(failed)
+        result = subprocess.CompletedProcess([], 0, f'Queued message {MESSAGE} for thread {THREAD}.\n', '')
+        with patch('receiver.delivery_updates.subprocess.run', return_value=result) as command:
+            notify({'state': str(self.root), 'codex': 'existing-codex'}, self.jobs)
+        command.assert_called_once()
+        self.assertIn('--resume', command.call_args.args[0])
+
     def test_uncertain_notice_and_interrupted_submission_are_not_requeued(self):
         self.age_original()
         self.jobs.report_delivery(self.receipt)
