@@ -427,8 +427,8 @@ class GroupLoop(ReplyLoop):
             self.db.executemany("UPDATE inbox SET state='quiet' WHERE id=?", [(r['id'],) for r in rows])
             job = self.desktop_job()
             if decision['speak']:
-                self.db.execute("UPDATE inbox SET reply=?,state='pending',desktop_job=? WHERE id=?",
-                                (decision['text'], job, rows[work if work is not None else -1]['id']))
+                self.db.execute("UPDATE inbox SET reply=?,state='pending',desktop_job=?,media=? WHERE id=?",
+                                (decision['text'], job, self.frozen_media(), rows[work if work is not None else -1]['id']))
             else:
                 self.save_delivery(rows[-1]['id'], job, 'quiet')
                 if decision.get('sticker') and sticker_gap is not None:

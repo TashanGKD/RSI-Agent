@@ -337,12 +337,31 @@ checkpoint before repeating work.
 
 In that same private per-id directory, freeze desktop-completion.json containing
 exactly id, input_sha256, thread_id,
-turn_id and text. POST that exact object to /desktop-completions. An uncertain
+turn_id and text, plus an optional `images` list. POST that exact object to /desktop-completions. An uncertain
 upload only permits re-posting the same frozen object; changed digest, target,
 turn or output is rejected. Completion only readies the original model result
 for its original V2 sender; it is not a send receipt. Do not manually send another
 WeChat reply. No old input or synthetic production probe substitutes for genuine
 native visible-input/completion/send acceptance.
+
+### Reply images
+
+A chat reply may carry up to four images when the answer needs one: a diagram,
+an infographic, a sticker or a design draft the person asked for. Generate it in
+the reply turn, open it and check every word and number, then pass it to
+`receiver/desktop_reply.py complete --image PATH` (repeatable). Each file must be
+a static PNG or JPEG of at most 10 MB. The helper copies it once to
+`state/<id>/desktop-media/<sha256>.<ext>` and freezes name, size and SHA-256 in
+the completion, so the image list cannot change afterwards. Images need a
+speaking reply text; a quiet group decision carries none.
+
+The trigger sends the reply text first. After the text's native receipt it fetches
+each image from `GET /desktop-media/<id>/<index>` and submits it through V2
+`send_image` as `<original request>-image-<index>`: one stable ID, one click, and
+a receipt with a unique server ID and the frozen SHA-256. Repeated calls read the
+same job. A proven noSend failure is recorded as `not_sent`; an uncertain result
+is `unknown` and is reconciled, never resent. The delivery receipt that
+`status` returns lists every image as `{sha256, state, server_id}`.
 
 ### Scheduled public astronomy news
 

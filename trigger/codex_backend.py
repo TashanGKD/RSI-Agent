@@ -70,13 +70,16 @@ class CodexBackend:
             if private_file(path):
                 yield path.stem
 
-    def exchange(self, route, value=None, *, timeout=8):
+    def exchange(self, route, value=None, *, timeout=8, limit=1000001):
         data = None if value is None else json.dumps(value, ensure_ascii=False).encode()
         request = Request(self.config['endpoint'].rstrip('/') + route, data=data,
             headers={'Authorization': 'Bearer ' + self.token, 'Content-Type': 'application/json'})
         try:
             with self.http.open(request, timeout=timeout) as response:
-                body = json.loads(response.read(1000001))
+                raw = response.read(limit)
+                if len(raw) >= limit:
+                    raise ValueError('Local Codex response exceeds its bound.')
+                body = json.loads(raw)
                 return response.status, body
         except HTTPError as error:
             raise ModelError('Local Codex rejected the original request: HTTP ' + str(error.code)) from None
@@ -100,6 +103,7 @@ class CodexBackend:
     def _run(self, messages, mode, stage=None, schema=None):
         if not self.scope or not self.request:
             raise ModelError('Native account, peer and original request IDs required.')
+        self.last_media = None
         path = self.original_input_path(self.request, mode=mode, stage=stage)
         key = path.stem
         self.last_input_key = key
@@ -130,8 +134,24 @@ class CodexBackend:
         if value.get('state') != 'completed' or not isinstance(value.get('text'), str):
             raise ModelError('Original local Codex result needs inspection; do not regenerate it.')
         self.last_delivery_key = key
+        images = value.get('images')
+        if images is not None:
+            if (not isinstance(images, list) or not 1 <= len(images) <= 4
+                    or any(not isinstance(item, dict) or set(item) != {'name', 'bytes', 'sha256'}
+                           or not isinstance(item['sha256'], str) or len(item['sha256']) != 64
+                           for item in images)):
+                raise ModelError('Original reply images need inspection; do not regenerate them.')
+            self.last_media = {'key': key, 'images': [{'sha256': item['sha256'], 'state': 'pending',
+                                                       'server_id': None} for item in images]}
         return {'model': self.model, 'message': {'role': 'assistant', 'content': value['text']},
                 'finish_reason': 'stop', 'usage': {}}
+
+    def fetch_media(self, key, index):
+        """Read one frozen reply image; its digest was fixed with the completion."""
+        _, value = self.exchange('/desktop-media/' + key + '/' + str(index), timeout=20, limit=15000001)
+        if not isinstance(value, dict) or not isinstance(value.get('data'), str):
+            raise ModelError('Original reply image is unavailable.')
+        return value['sha256'], value['data']
 
     def complete(self, messages, *, tools=None, tool_choice=None, json_output=False, stickers=None):
         if tools is not None or tool_choice is not None:
