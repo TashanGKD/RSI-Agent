@@ -9,7 +9,7 @@ from .assets import AssetBudgetError
 from . import assets as asset_limits
 from .owner_prefix import OwnerPrefixError
 
-PROGRAM_ACTIONS={'send_text','send_image','send_file','open_chat','open_message','reply','forward','join_group','save_attachment','get_group_qr','create_group','invite_members'}
+PROGRAM_ACTIONS={'send_text','send_image','send_file','open_chat','open_message','reply','forward','join_group','save_attachment','get_group_qr','create_group','invite_members','send_sticker'}
 class PublicError(ValueError):
  def __init__(self,code,message,details=None):
   super().__init__(message);self.code=code;self.details=details or {}
@@ -112,7 +112,7 @@ class PublicAPI(API):
    # This is capability metadata only; no unsupported terminal recipe is enabled.
    'messageMethods':{
     'emojiText':{'action':'send_text','nativeType':1,'programmatic':True},
-    'nativeSticker':{'nativeType':47,'programmatic':False,'imageIsEquivalent':False,'reason':'NO_VERIFIED_PROGRAMMATIC_STICKER_SELECTION_RECIPE','manualOfficialSearch':{'verified':True,'sourceMD5MatchedNativeReceipt':True,'requiresOperatorFinalPreview':True,'publicActionEnabled':False,'acceptance':'controlled owner sample via official caption search; one terminal click; exact native47 MD5 receipt'}},
+    'nativeSticker':{'nativeType':47,'action':'send_sticker','programmatic':True,'imageIsEquivalent':False,'selection':'official favourite order MD5 plus private reference-pixel match of the exact panel cell','manualConfirmationRequired':True,'scope':'first visible favourites page','acceptance':'one terminal click; exact native type-47 MD5 receipt with status 2'},
     'reply':{'action':'reply','programmaticSourceKinds':[1,49],'nativeReceiptType':49,'nativeReceiptAppmsgType':57,'exactSourceServerIdRequired':True},
     'forward':{'action':'forward','programmaticSourceKinds':[1,49],'appmsgTypes':[5,6],'allCardsOrMedia':False,'articleSourceLocator':'exact native source id/title/url; unique label or source-day-unique exact title prefix plus official history date/time','forwardJournalVersion':1,'manualConfirmationRequired':True,'liveAcceptance':'controlled text forward and one original native app5 business receipt accepted; source-specific preparation and new-source positioning remain distinct; not an all-layout claim'},
     'friendOperations':{'programmatic':False,'contactDirectoryProvesFriendship':False,'freshControlledIdentityRequiredForLiveAcceptance':True,'manualOfficialGroupMemberRequest':{'verified':True,'state':'request-sent-pending-verification','mutualFriendshipVerified':False,'requiresExactAuthorisedMember':True,'privacyUsed':'Chats Only'}},'groupQRCode':{'action':'get_group_qr','publicActionEnabled':True,'manualConfirmationRequired':True,'manualOfficialExportVerified':True,'programmaticExport':'implemented; live acceptance tracked separately','codePixelsMatchRequired':True,'decodeInServer':False,'scope':'exact configured current group and native self membership','joinVerified':False,'invitationPayloadPrivate':True}},

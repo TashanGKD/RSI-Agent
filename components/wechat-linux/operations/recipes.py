@@ -471,4 +471,14 @@ def prepare(driver,j):
   if kind!=49:raise PreparationError('UNSUPPORTED_ATTACHMENT','Only exact ordinary-file or supported native-image exports are available.')
   return dict(driver.screenshot(j),context='cache-read',cacheReadOnly=True,summary={'peer':j['peer'],'action':action,'source_id':j['payload']['source_id']})
  if action not in ('send_text','send_image','send_file','open_chat'):raise PreparationError('UNSUPPORTED_ACTION','This action has no public deterministic recipe.')
+ if action=='open_chat':
+  # Same owned native navigation as a send; the composer is never touched and
+  # the chat window is settled again when the request finishes.
+  from . import navigation
+  from .contract import digest
+  navigation.begin(driver,j);driver._select(j)
+  binding=driver.session_bindings.get(j['peer'])
+  if not (binding or {}).get('nativeTargetProof'):raise PreparationError('RECIPIENT_NOT_VERIFIED','The exact chat window was not proven.')
+  return dict(driver.screenshot(j),programRecipe=True,openChatRecipe=True,uiBinding=binding,context=digest(binding['nativeTargetProof']),
+              summary={'peer':j['peer'],'action':'open_chat','messagesSent':0})
  return driver.prepare_basic(j)
