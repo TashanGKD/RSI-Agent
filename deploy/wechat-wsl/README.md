@@ -254,3 +254,23 @@ WSL 桌面模板以 `-s 0` 关闭内层 X 屏保，每次已获桌面锁的操�
 Remove 不停止进程、不删除配置或 state，且拒绝移除运行中的任务或其他来源的任务。
 回滚保留原配置和队列，恢复上一个 release 的任务注册；Linux 端在维护窗口内恢复原服务
 定义和启动方式。任务注册、服务运行、系统重启后恢复及原生微信送达应分别记录实测状态。
+
+### 会话守护进程与桌面暂停
+
+排入固定会话的微信输入要等本机 Codex app-server daemon 在运行才会自动开轮。`Start-Local.ps1`
+每次启动接收器时顺带执行配置里 `codex` 的 `app-server daemon start`：该命令幂等，已运行时直接
+返回，失败只告警，不影响原队列与接收器。Store 版 CLI 自身不含完整本地包，需要先用完整安装版
+CLI 执行一次 `app-server daemon start`（或 `bootstrap`）装好受管守护包；之后两者共用同一个
+控制套接字与登录态。守护进程没有独立的开机注册，随登录任务和 5 分钟定时触发一起恢复。
+
+暂停与恢复整套桌面使用显式入口，不要关闭 Xephyr 窗口：
+
+```powershell
+.\deploy\wechat-wsl\Desktop-Control.ps1 -Action Status
+.\deploy\wechat-wsl\Desktop-Control.ps1 -Action Pause
+.\deploy\wechat-wsl\Desktop-Control.ps1 -Action Resume
+```
+
+`Pause` 只停止 `wechat-gui.target`（X 显示、官方客户端与回复服务），`Resume` 原样拉起；客户端
+重启后通常需要手机确认登录。直接关闭 Xephyr 窗口不是暂停：`wechat-gui-x.service` 以
+`Restart=on-failure` 在约 3 秒内重建整套桌面，同样会重置登录态。

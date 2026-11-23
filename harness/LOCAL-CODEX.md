@@ -102,6 +102,9 @@ processed with no manual step (turn started ~7 s after queue, completion at
 42.2 s, V2 sent). `queue --resume` may still warn `already has an active writer`
 while the desktop owns the thread; the queued item is picked up regardless and
 the warning never resubmits. Daemon survival across logoff/reboot is unverified.
+The receiver launcher runs `app-server daemon start` on every launch, so the
+daemon returns with the logon task and its five-minute timer; it has no separate
+boot registration of its own.
 
 Official protocol: [App Server](https://learn.chatgpt.com/docs/app-server) supports
 initialize → thread/resume → turn/start, with turn/completed as the completion
