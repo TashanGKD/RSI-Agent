@@ -11,6 +11,9 @@ import time
 def enqueue(db, row, receipt):
     if not row['desktop_message_id'] or time.time() - row['updated'] <= 18:
         return
+    if (receipt.get('state') == 'sent' and receipt.get('cleanup_pending') is False
+            and receipt.get('code') is None):
+        return
     raw = json.dumps(receipt, sort_keys=True, ensure_ascii=False, separators=(',', ':'))
     digest = hashlib.sha256(raw.encode()).hexdigest()
     db.execute('INSERT OR IGNORE INTO delivery_updates VALUES(?,?,?,?,?,?)',
@@ -51,7 +54,7 @@ def notify(config, jobs):
             created = True
             stream.write(json.dumps(proof));stream.flush();os.fsync(stream.fileno())
         journal.chmod(0o600)
-        result = subprocess.run([config['codex'], 'queue', '--thread', row['thread_id'], '--message', message],
+        result = subprocess.run([config['codex'], 'queue', '--thread', row['thread_id'], '--resume', '--message', message],
             capture_output=True, text=True, encoding='utf-8', timeout=30,
             creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
         match = re.fullmatch(r'Queued message ([a-f0-9-]{36}) for thread ([a-f0-9-]{36})\.\s*', result.stdout)

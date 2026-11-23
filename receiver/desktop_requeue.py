@@ -119,7 +119,7 @@ def requeue_interrupted(config, jobs, group_input_time, group_max_age, now=None,
             json.dump(proof, stream)
             stream.flush()
             os.fsync(stream.fileno())
-        result = subprocess.run([config['codex'], 'queue', '--thread', row['thread_id'], '--message', text],
+        result = subprocess.run([config['codex'], 'queue', '--thread', row['thread_id'], '--resume', '--message', text],
                                 capture_output=True, text=True, encoding='utf-8', timeout=30,
                                 creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
         match = re.fullmatch(r'Queued message ([a-f0-9-]{36}) for thread ([a-f0-9-]{36})\.\s*', result.stdout)
