@@ -332,6 +332,10 @@ def export_error(driver,j,error):
  reason='Official image export did not prove the expected source.'
  if stage in ('viewer','save-control','save-dialog','filename','export','verification'):
   reason='Official image export failed at '+stage+'.'
+ elif stage is None:
+  # Keep the code-generated cause so a pre-viewer failure can be diagnosed.
+  detail=re.sub(r'[^A-Za-z0-9 _.,:;()/-]','',str(error))[:120].strip()
+  reason+=' Cause: '+type(error).__name__+(': '+detail if detail else '')+'.'
  fingerprint=getattr(error,'image_toolbar_fingerprint',None)
  if stage=='save-control' and isinstance(fingerprint,str) and re.fullmatch('[a-f0-9]{64}',fingerprint):
   reason='Unrecognized save-control toolbar '+fingerprint+'.'

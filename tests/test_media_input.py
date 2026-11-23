@@ -256,3 +256,90 @@ class InboundImageTests(unittest.TestCase):
                 result=image(root,'account','group@chatroom','42',{'member'})
             self.assertEqual(result,{'state':'media_attention','code':'UNSUPPORTED_IMAGE_LAYOUT'})
             self.assertEqual(api.s.get(CLIENT,rid),before)
+
+    def test_transient_visible_read_failure_gets_a_bounded_second_look(self):
+        from PIL import Image
+        from operations.public_api import PublicAPI
+        from trigger import media_io
+        from trigger.media_io import image, CLIENT
+        output = io.BytesIO()
+        Image.new('RGB', (40, 30), 'red').save(output, format='PNG')
+        data = output.getvalue()
+        native = {'senderId': 'member', 'imageMetadata': {'md5': hashlib.md5(data).hexdigest()}}
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            policy = {'account': 'account', 'clients': {}}
+            api = PublicAPI(root / 'operations-state', policy)
+            self.addCleanup(api.close)
+            (root / 'operations-state/config.json').write_text(json.dumps(policy))
+            (root / 'operations-state/config.json').chmod(0o600)
+            rid = CLIENT + '-' + hashlib.sha256(('account\0group@chatroom\0' + '42').encode()).hexdigest()
+            payload = {'source_id': '42', 'source_mode': 'inbound', 'representation': 'visible'}
+            first = api.s.submit({'client': CLIENT, 'request_id': rid, 'peer': 'group@chatroom',
+                                  'action': 'save_attachment', 'payload': payload})
+            failure = {'code': 'IMAGE_EXPORT_NOT_PROVEN', 'noSend': True, 'sideEffectStarted': False}
+            api.s.set_state(first['id'], 'failed', failure)
+
+            class Native:
+                executions = 0
+                def acquire(self): return True
+                def release(self): pass
+                def cleanup(self, job): return True
+                def prepare(self, job):
+                    return {'imageRecipe': True, 'programRecipe': True, 'context': 'fixture',
+                            'imageContext': {'peer': job['peer'], 'sourceId': job['payload']['source_id'],
+                                             'nativeMD5': native['imageMetadata']['md5']}}
+                def execute(self, job):
+                    self.executions += 1
+                    asset = api.assets.put(job['client'], 'image.png', data, hashlib.sha256(data).hexdigest())
+                    return {'state': 'accepted', 'asset': asset, 'sourcePeer': job['peer'],
+                        'sourceId': job['payload']['source_id'], 'sender': 'member', 'nativeMessageMD5Matched': True,
+                        'contentReady': True, 'format': 'PNG', 'messagesSent': 0}
+
+            driver = Native()
+            with patch('image_client.source', return_value=({}, native)), patch('linux_tool.Tool'), \
+                    patch('operations.driver.NativeDriver', return_value=driver):
+                waiting = image(root, 'account', 'group@chatroom', '42', {'member'})
+                self.assertEqual(waiting, {'state': 'media_pending', 'code': 'IMAGE_RETRY_SCHEDULED'})
+                self.assertEqual(driver.executions, 0)
+                with patch.object(media_io, 'RETRY_COOLDOWN', 0):
+                    ready = image(root, 'account', 'group@chatroom', '42', {'member'})
+                    again = image(root, 'account', 'group@chatroom', '42', {'member'})
+            self.assertEqual(ready['state'], 'image_ready')
+            self.assertEqual(base64.b64decode(ready['data']), data)
+            self.assertEqual(again, ready)
+            self.assertEqual(driver.executions, 1)
+            self.assertEqual(api.s.get(CLIENT, rid)['state'], 'failed')
+            self.assertEqual(api.s.get(CLIENT, rid + '-retry-1')['state'], 'succeeded')
+
+    def test_retries_stop_after_the_bound_and_skip_unsafe_failures(self):
+        from operations.public_api import PublicAPI
+        from trigger import media_io
+        from trigger.media_io import image, CLIENT
+        native = {'senderId': 'member', 'imageMetadata': {'md5': 'a' * 32}}
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            policy = {'account': 'account', 'clients': {}}
+            api = PublicAPI(root / 'operations-state', policy)
+            self.addCleanup(api.close)
+            (root / 'operations-state/config.json').write_text(json.dumps(policy))
+            (root / 'operations-state/config.json').chmod(0o600)
+            payload = {'source_id': '42', 'source_mode': 'inbound', 'representation': 'visible'}
+            rid = CLIENT + '-' + hashlib.sha256(('account\0group@chatroom\0' + '42').encode()).hexdigest()
+            failure = {'code': 'IMAGE_SOURCE_MISMATCH', 'noSend': True, 'sideEffectStarted': False}
+            for attempt in media_io.retry_ids(rid):
+                job = api.s.submit({'client': CLIENT, 'request_id': attempt, 'peer': 'group@chatroom',
+                                    'action': 'save_attachment', 'payload': payload})
+                api.s.set_state(job['id'], 'failed', failure)
+            unsafe = CLIENT + '-' + hashlib.sha256(('account\0group@chatroom\0' + '43').encode()).hexdigest()
+            job = api.s.submit({'client': CLIENT, 'request_id': unsafe, 'peer': 'group@chatroom',
+                                'action': 'save_attachment', 'payload': dict(payload, source_id='43')})
+            api.s.set_state(job['id'], 'failed', {'code': 'IMAGE_EXPORT_NOT_PROVEN', 'noSend': True,
+                                                   'sideEffectStarted': True})
+            with patch('image_client.source', return_value=({}, native)), patch('linux_tool.Tool'), \
+                    patch.object(media_io, 'RETRY_COOLDOWN', 0):
+                capped = image(root, 'account', 'group@chatroom', '42', {'member'})
+                kept = image(root, 'account', 'group@chatroom', '43', {'member'})
+            self.assertEqual(capped, {'state': 'media_attention', 'code': 'IMAGE_SOURCE_MISMATCH'})
+            self.assertEqual(kept, {'state': 'media_attention', 'code': 'IMAGE_EXPORT_NOT_PROVEN'})
+            self.assertEqual(len(api.s.list_jobs()), 4)
