@@ -113,8 +113,9 @@ problem that a reply conversation handed over or reported, it sends one
 was code or a working method, when it took effect, and how the reply
 conversation handles the same case itself next time. Reusable steps go into the
 learning skill first, and the hand-back cites that section. The hand-back is not
-a WeChat input; the reply conversation confirms it in one line and neither
-repeats the original request nor sends anything.
+a WeChat input; the reply conversation applies it without replying, and neither
+repeats the original request nor sends anything. Routine capability updates go
+only into the skill, with no chat notice or acknowledgement.
 
 Maintenance checks the source conversation and verification turn against the
 original evidence, then publishes the reusable rule through the corresponding
