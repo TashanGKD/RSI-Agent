@@ -25,10 +25,9 @@ their old inputs and receipts stay private for audit.
 - Production moved on 2026-11-22 01:13 from the remote host to the local WSL
   distribution `RSI-WeChat-Main` (WeChat 4.1.13.26, same account). The remote
   host's reply services are stopped and kept as a cold standby. Both reply
-  services and the Windows receiver task run release `6475450` (#152, #155)
-  since the 2026-11-23 maintenance window. The owner unit was swapped with a
-  scoped stop/start (client untouched); the desktop session later restarted
-  and the client needed one phone-confirmed Log In. The task now uses
+  services and the Windows receiver task run release `9adda20` (#160, #161)
+  since the 2026-11-23 evening window; `6475450` and earlier releases stay for
+  rollback. The task now uses
   `conhost --headless` with the five-minute restart timer (#148). Prior
   releases and unit backups are kept for rollback. Exact revisions, PIDs and
   backups are in the private operator receipt.
@@ -65,10 +64,20 @@ their old inputs and receipts stay private for audit.
   and needed a QR re-login after the client restarted; 2) closing the Xephyr
   window kills `wechat-gui-x.service`, whose `Restart=on-failure` rebuilds the
   whole desktop in ~3 s and resets the WeChat login — a clean stop must use
-  `systemctl stop wechat-gui.target`. The Codex daemon has no autostart
-  registration anywhere (tasks/Run keys/startup folder checked); a reboot
-  will need one manual `daemon start` until persistence is added. Both gaps
-  are recorded in the roadmap under M1.
+  `systemctl stop wechat-gui.target`. The daemon now starts from the receiver
+  launcher (#160), so a reboot no longer needs a manual start; actual survival
+  is still unverified until the reboot window runs.
+- Link reading is restored live (#157 plus #161): the fake-IP resolver answers
+  one name with both a 198.18/15 IPv4 record and real IPv6 records, so the
+  tunnel rule now accepts that mix and still refuses private, loopback and
+  literal destinations. `RSI_LINK_PROXY=http://127.0.0.1:7890` is a private
+  drop-in on the owner reply unit; a public page returns `state=ready`.
+- Upgrade hazard: `wechat-gui.target` `Requires=rsi-owner-replies.service`, so
+  restarting the reply worker stops the whole target and restarts X and the
+  client, which can drop the WeChat login. The 18:04 deploy hit this; the
+  client came back on its own this time, but a trigger upgrade must be treated
+  as a desktop restart with phone availability until the unit coupling is
+  redesigned.
 - Link reading was broken for every link after the WSL move: the local DNS is
   a fake-IP resolver that answers `198.18.x.x`, which the public-destination
   check refused (`PUBLIC_PAGE_UNAVAILABLE`). Names that resolve only to
