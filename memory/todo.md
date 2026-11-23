@@ -11,6 +11,12 @@ as candidates rather than silently expanding the active task.
    survival across logoff/reboot folds into M1; optional warning triage for
    `already has an active writer`. Later M6 batches (Router/Worker,
    subscription, Spill/recall) stay design-gated per docs/ROADMAP.md.
+0b. **M1 reboot window (prepared, deferred 2026-11-23).** Snapshot scripts
+   and pre-checks are ready in var/local-setup. Before the window: add
+   daemon autostart (or accept one manual start), and design the explicit
+   desktop pause/resume entry so closing Xephyr no longer resets login.
+   In the window: owner reboots, scripts diff the snapshots, phone confirms
+   login once, grade each item auto/one-manual-step/needs-fix.
 1. **Photos and documents, fresh acceptance.** Ordinary photos work; follow
    the next slow-painting viewer (#132) and the next fresh Word file from native
    export to their original V2 reply. Grouped photo albums stay unsupported until
