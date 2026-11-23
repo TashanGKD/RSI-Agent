@@ -89,8 +89,11 @@ their old inputs and receipts stay private for audit.
   (`desktop_reply.py complete --image`, #166). The receiver freezes them with
   the completion; the trigger sends the text first and then each image once
   through V2 `send_image` (`<original>-image-<index>`), and the delivery
-  receipt lists every image's state and server ID. Not yet observed with a fresh
-  WeChat reply.
+  receipt lists every image's state and server ID. Live-accepted 2026-11-23
+  20:18 on the local WSL install: one owner message produced the text `收到`
+  plus one 4344-byte PNG, the receipt reported the image `sent` with server ID
+  `3626455118555848459` and the same frozen SHA-256, and the phone showed the
+  text and the image as two separate bubbles (queue-to-completion 112.2 s).
 - Group image reading broke at about 17:30 on 2026-11-23 when the local viewer
   showed new toolbar variants; the export now locates the Save icon itself
   (#163, #165), and a 234-grey editor separator no longer blocks cleanup (#162).
