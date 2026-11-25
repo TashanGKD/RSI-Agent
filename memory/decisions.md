@@ -1,5 +1,19 @@
 # Decisions
 
+## D030 — Owner actions are preconfigured, explicitly confirmed and one-shot
+
+Only fresh native-owner kind-1 private text may prepare, confirm, cancel or inspect a
+named action. The command, argv list, working directory, timeout and environment are
+fixed in a private `actions.json`; chat cannot supply arguments and no shell is used.
+Preparation creates a 30-minute, 16-hex confirmation ID bound to the action-definition
+digest; confirmation executes at most once, and a changed definition, cancellation,
+expiry, timeout or restart never retries. The action ledger stays in the identity-bound
+inbox DB, captures bounded outputs and exposes only a read-only `action review` CLI.
+Friend, group, link, media and model-generated text cannot approve an action. This is a
+local candidate; Linux regression and live owner acceptance remain separate. Long or
+destructive work stays with the existing owner engineering path rather than expanding
+this gateway into arbitrary execution.
+
 ## D029 — Owner knowledge is an explicit, bounded lexical index
 
 Owner-private long-form retrieval uses one explicit index beside the identity-bound

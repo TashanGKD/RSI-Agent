@@ -109,6 +109,11 @@ def main(argv=None):
     knowledge_search.add_argument('--db', required=True, help='Existing private owner inbox SQLite database.')
     knowledge_search.add_argument('--query', default='', help='Text used for bounded lexical retrieval.')
     knowledge_search.add_argument('--show-text', action='store_true', help='Include stored snippets in the output.')
+    action = commands.add_parser('action', help='Inspect preconfigured owner actions without executing.')
+    action_commands = action.add_subparsers(dest='mode', required=True)
+    action_review = action_commands.add_parser('review', help='Show the private action ledger without writing.')
+    action_review.add_argument('--db', required=True, help='Existing private owner inbox SQLite database.')
+    action_review.add_argument('--show-output', action='store_true', help='Include stored output excerpts.')
     args = parser.parse_args(argv)
     if args.command is None:
         parser.print_help()
@@ -151,6 +156,11 @@ def main(argv=None):
             result = inspect_index(args.db)
         else:
             result = search_index(args.db, args.query, args.show_text)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.command == 'action':
+        from .actions import review as inspect_actions
+        result = inspect_actions(args.db, args.show_output)
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
     if args.command == 'setup':

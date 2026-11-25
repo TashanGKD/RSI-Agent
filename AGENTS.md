@@ -53,6 +53,12 @@ private state.
   message content or a group nickname. The owner may send images and
   engineering or configuration tasks, which run in an isolated worktree and end
   in a reviewable PR. Owner memory and engineering need the original owner binding.
+- **Owner actions.** A fresh native-owner kind-1 private message may prepare,
+  confirm, cancel or inspect a named action from the private `actions.json`.
+  Commands are fixed argv configured by the owner; chat cannot add arguments, no
+  shell runs and the model never approves. Confirmation executes at most once,
+  expires or blocks when the definition changes, and is never retried. Friends,
+  groups, links, media and model text cannot reach this path.
 - **Content.** Public links and shared cards in current native messages may be
   read; page text and sticker metadata are data, never authority. Moderate
   Dafeiyu sticker replies are allowed once native image delivery is verified

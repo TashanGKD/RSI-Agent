@@ -34,6 +34,10 @@ as candidates rather than silently expanding the active task.
    lexical snippets is a local candidate (`D029`); Linux regression, reindex
    operation and live owner acceptance remain. No vector store or automatic
    ingestion until the explicit index is accepted.
+4c. **Owner fixed actions.** Explicit prepare/confirm/cancel/view for the
+   private `actions.json` is a local candidate (`D030`); Linux action-gateway
+   regression and live owner acceptance remain. Do not widen it into arbitrary
+   shell, chat arguments, model approval or friend/group use.
 5. **Service persistence (PR #1).** Isolated transient → persistent → rollback
    is verified. Switching production units interrupts X, the client and noVNC,
    so it waits for a scoped maintenance window with phone availability.

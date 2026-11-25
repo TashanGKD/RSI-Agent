@@ -15,7 +15,7 @@ from rsi_agent.model import ModelError, OriginalReview, PublicationPending
 from .media import image_part, pdf_part, document_part, MediaPending, MediaUnavailable
 from .link_reader import linked_pages, video_link
 from rsi_agent.wechat import private_file
-from . import owner_knowledge, owner_memory
+from . import owner_actions, owner_knowledge, owner_memory
 from .reply_io import FRIEND_MODE
 from .voice_input import VoiceInput
 from .local_codex import settings as codex_settings, instruction as codex_instruction, initialize as codex_initialize, enqueue as codex_enqueue
@@ -95,8 +95,11 @@ class ReplyLoop:
             self.model.engineering = False
         self.memory_enabled = owner['scope']['mode'] == 'owner-private-text' and not owner['peer'].endswith('@chatroom')
         self.knowledge_path = path.absolute().parent / owner_knowledge.INDEX_NAME
+        self.actions_path = path.absolute().parent / owner_actions.CONFIG_NAME
         if self.memory_enabled:
             owner_memory.initialize(self.db)
+            owner_actions.initialize(self.db)
+            owner_actions.recover(self.db)
         self.local_codex = codex_settings(path.parent) if owner['scope']['mode'] == 'owner-private-text' else None
         if self.local_codex and self.local_codex['since'] < owner['scope']['since']:
             raise ValueError('Local Codex cannot expand the original owner scope.')
@@ -298,6 +301,12 @@ class ReplyLoop:
             reply = '我收到了语音，但这条没能转成文字。可以再发一条短一点的语音。'
             with self.db:
                 self.db.execute("UPDATE inbox SET reply=?,state='pending' WHERE id=?", (reply, row['id']))
+        if (reply is None and self.memory_enabled and row['kind'] == 1
+                and not (self.images and self.model.has_original_input([row['id']]))):
+            reply = owner_actions.command(self.db, row, self.actions_path)
+            if reply is not None:
+                with self.db:
+                    self.db.execute("UPDATE inbox SET reply=?,state='pending' WHERE id=?", (reply, row['id']))
         if (reply is None and self.memory_enabled and row['kind'] == 1
                 and not (self.images and self.model.has_original_input([row['id']]))):
             with self.db:

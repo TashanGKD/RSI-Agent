@@ -1,3 +1,5 @@
+import json
+import os
 from pathlib import Path
 import sqlite3
 import sys
@@ -176,3 +178,28 @@ class OwnerMemoryTests(unittest.TestCase):
         second = backend.exchange.call_args.args[1]
         self.assertEqual(second['messages'][1:], revised)
         self.assertNotEqual(first['id'], second['id'])
+
+    def test_action_gateway_is_explicit_one_shot_and_model_free(self):
+        marker = self.root / 'action-runs.txt'
+        code = ("from pathlib import Path;"
+                "p=Path(%r);p.write_text((p.read_text() if p.exists() else '')+'x')" % str(marker))
+        config = self.root / 'actions.json'
+        config.write_text(json.dumps({'version': 1, 'actions': {'append': {
+            'description': '校验一次性执行', 'command': [sys.executable, '-c', code]}}}),
+            encoding='utf-8')
+        os.chmod(config, 0o600)
+        self.message('动作 准备 append')
+        self.model.reply.assert_not_called()
+        action_id = self.loop.db.execute(
+            "SELECT id FROM owner_actions WHERE state='pending'").fetchone()[0]
+        self.message('动作 确认 ' + action_id)
+        self.model.reply.assert_not_called()
+        self.assertEqual(self.loop.db.execute(
+            'SELECT state FROM owner_actions WHERE id=?', (action_id,)).fetchone()[0], 'succeeded')
+        self.assertEqual(marker.read_text(), 'x')
+        self.message('动作 确认 ' + action_id)
+        self.assertEqual(marker.read_text(), 'x')
+        self.message('普通聊天')
+        self.model.reply.assert_called_once()
+        self.assertEqual(self.loop.db.execute(
+            "SELECT reply FROM inbox WHERE id='4'").fetchone()[0], 'ordinary reply')
