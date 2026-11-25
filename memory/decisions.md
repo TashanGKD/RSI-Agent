@@ -1,5 +1,19 @@
 # Decisions
 
+## D028 — Owner memory is explicit, typed and bounded
+
+Only fresh native-owner kind-1 private text may create, correct, refresh or
+forget notes; the new `memory review` CLI is read-only. Types come from the
+explicit `记住[类型]` prefix, never from inference; legacy notes migrate as
+`未分类` and remain eligible for context. Source, explicit confidence and
+owner scope stay in the existing identity-bound inbox DB. Commitment, fact and
+project notes get a default review time; expiry stops automatic injection but
+preserves the note and shows `待复核`. Retrieval is lexical and bounded to eight
+items and 4,096 bytes with reserved identity/preference/relationship slots; no
+cross-scope rows, external vector store or automatic profiling. Suspected
+credentials are refused. Local candidate; Linux regression and live owner
+acceptance remain separate.
+
 ## D027 — Inline ceremony, resume-wake and settled receipts stay ledger-only
 
 A chat handoff may inline the fixed read/complete/status steps with absolute

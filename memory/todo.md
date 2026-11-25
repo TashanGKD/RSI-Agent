@@ -26,8 +26,10 @@ as candidates rather than silently expanding the active task.
    completion and native send are distinct; report each from its own record.
 3. **Dafeiyu sticker output (Issue #26).** Verify favourite-to-asset selection
    without sending, then bind it to one original V2 effect.
-4. **Group and semantic memory.** Keep native identities and peer stores
-   separate; no raw Codex mirror, automatic profiling or nickname authority.
+4. **Group and semantic memory.** Owner-private typed notes with bounded lexical
+   retrieval are a local candidate (`D028`); Linux regression and live owner
+   acceptance remain. Keep native identities and peer stores separate; no raw
+   Codex mirror, automatic profiling or nickname authority.
 5. **Service persistence (PR #1).** Isolated transient → persistent → rollback
    is verified. Switching production units interrupts X, the client and noVNC,
    so it waits for a scoped maintenance window with phone availability.

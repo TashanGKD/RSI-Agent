@@ -324,7 +324,8 @@ class ReplyLoop:
             cutoff, memory = 0, []
             if self.memory_enabled:
                 epoch, cutoff = owner_memory.position(self.db)
-                memory = owner_memory.context(self.db)
+                prompt = row['text'] or voice_text or ''
+                memory = owner_memory.context(self.db, prompt)
                 query += ' AND rowid>? AND id NOT IN (SELECT source_id FROM owner_note_actions)'
                 if self.images:
                     self.model.memory_epoch = epoch

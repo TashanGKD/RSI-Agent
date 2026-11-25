@@ -92,6 +92,12 @@ def main(argv=None):
     workbook_refresh.add_argument('--execute', action='store_true', help='Write the generated view.')
     workbook_check = workbook_commands.add_parser('check', help='Fail if the generated view differs from the notes.')
     workbook_check.add_argument('--root', required=True, help='Project memory directory containing workbook/.')
+    memory = commands.add_parser('memory', help='Inspect owner private named memory without writing.')
+    memory_commands = memory.add_subparsers(dest='mode', required=True)
+    memory_review = memory_commands.add_parser('review', help='Show bounded memory metadata and current retrieval selection.')
+    memory_review.add_argument('--db', required=True, help='Existing private owner inbox SQLite database.')
+    memory_review.add_argument('--query', default='', help='Optional text used in the same bounded retrieval.')
+    memory_review.add_argument('--show-values', action='store_true', help='Include stored values in the output.')
     args = parser.parse_args(argv)
     if args.command is None:
         parser.print_help()
@@ -119,6 +125,11 @@ def main(argv=None):
             result = refresh(args.root, args.execute)
         else:
             result = check(args.root)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.command == 'memory':
+        from .memory import review as inspect_memory
+        result = inspect_memory(args.db, args.query, args.show_values)
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
     if args.command == 'setup':
