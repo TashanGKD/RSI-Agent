@@ -15,7 +15,7 @@ from rsi_agent.model import ModelError, OriginalReview, PublicationPending
 from .media import image_part, pdf_part, document_part, MediaPending, MediaUnavailable
 from .link_reader import linked_pages, video_link
 from rsi_agent.wechat import private_file
-from . import owner_actions, owner_knowledge, owner_memory
+from . import owner_actions, owner_context, owner_knowledge, owner_memory
 from .reply_io import FRIEND_MODE
 from .voice_input import VoiceInput
 from .local_codex import settings as codex_settings, instruction as codex_instruction, initialize as codex_initialize, enqueue as codex_enqueue
@@ -343,9 +343,8 @@ class ReplyLoop:
             for old in reversed(self.db.execute(query + ' ORDER BY created DESC,id DESC LIMIT 3',
                     (cutoff,) if self.memory_enabled else ()).fetchall()):
                 history.extend([{'role': 'user', 'content': old['text']}, {'role': 'assistant', 'content': old['reply']}])
-            if self.context:
-                history = self.context(row['text'] if row['kind'] == 1 else '') + history
-            history = memory + knowledge + history
+            base = self.context(row['text'] if row['kind'] == 1 else '') if self.context else []
+            history = owner_context.assemble(base, memory, knowledge, history)
             if attachment_error:
                 history += [{'role': 'system', 'content':
                     '本条附件未取得可核验的内容。以下是原消息的读取状态，不是图片或文档正文。'

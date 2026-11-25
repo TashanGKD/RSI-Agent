@@ -1,5 +1,17 @@
 # Decisions
 
+## D031 — Owner context is assembled under one byte budget
+
+The owner reply loop assembles identity/authorized group context, named memory,
+knowledge snippets and recent history under a 16 KiB budget. Identity and
+explicitly read group context are required and may exceed the budget; named
+memory and knowledge are added atomically; recent history is added newest-first
+and older turns are omitted first. Duplicate messages are injected once, and any
+omission appends one system note saying omitted content must not be claimed. The
+assembler changes no storage, retrieval, tool, identity or send permission;
+attachments and linked pages remain separate inputs. Local candidate; Linux
+regression and live owner acceptance remain separate.
+
 ## D030 — Owner actions are preconfigured, explicitly confirmed and one-shot
 
 Only fresh native-owner kind-1 private text may prepare, confirm, cancel or inspect a

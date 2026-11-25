@@ -38,6 +38,10 @@ as candidates rather than silently expanding the active task.
    private `actions.json` is a local candidate (`D030`); Linux action-gateway
    regression and live owner acceptance remain. Do not widen it into arbitrary
    shell, chat arguments, model approval or friend/group use.
+4d. **Owner context budget.** The owner loop assembles identity, memory,
+   knowledge and history under one 16 KiB budget with an omission note
+   (`D031`); Linux regression and live owner acceptance remain. Do not turn it
+   into semantic retrieval or automatic profiling.
 5. **Service persistence (PR #1).** Isolated transient → persistent → rollback
    is verified. Switching production units interrupts X, the client and noVNC,
    so it waits for a scoped maintenance window with phone availability.

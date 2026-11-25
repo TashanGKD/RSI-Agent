@@ -38,6 +38,8 @@ RSI Agent 用可见的 Codex 会话分工。任务按范围进入对应会话，
 | 想找什么 | 入口 |
 | --- | --- |
 | 本人私聊接入与回传 | [owner_reply.py](trigger/owner_reply.py)、[reply_io.py](trigger/reply_io.py) |
+| 本人私聊的受控动作 | [owner_actions.py](trigger/owner_actions.py)、[动作网关说明](harness/OWNER-ACTIONS.md) |
+| 本人私聊的上下文预算 | [owner_context.py](trigger/owner_context.py)、[上下文预算说明](harness/OWNER-CONTEXT.md) |
 | 群聊接入与回传 | [group_reply.py](trigger/group_reply.py)、[group_io.py](trigger/group_io.py)、[群聊准入](harness/GROUP-ADMISSION.md) |
 | 固定原始请求并投递 | [codex_backend.py](trigger/codex_backend.py) |
 | 图片与 PDF/Markdown/文本原件校验 | [media_io.py](trigger/media_io.py)、[微信图像适配](components/wechat-linux/operations/images.py) |
@@ -84,10 +86,12 @@ python -B -m receiver.codex_worker --config /private/local-codex.json
 python -m rsi_agent --help
 python -m rsi_agent --config /private/installation.json doctor
 python -m rsi_agent --config /private/installation.json audit
+python -m rsi_agent knowledge status --db /private/state/inbox.sqlite
+python -m rsi_agent action review --db /private/state/inbox.sqlite
 python -B scripts/check.py --linux
 ```
 
-`doctor` 检查依赖、权限和读写条件。 `audit` 检查实际 Linux 窗口和服务，发现退化会返回非零状态。回归运行环境及依赖见[验证说明](harness/README.md)。两侧就绪、Codex 完成、微信回执是不同的证据，收发验收需要核对原消息。
+`doctor` 检查依赖、权限和读写条件。 `audit` 检查实际 Linux 窗口和服务，发现退化会返回非零状态。本人私聊可选地从私有文本目录构建知识索引，按查询限量注入带出处的片段；好友和群聊不读取。构建、预算和边界见[私有知识索引](harness/OWNER-KNOWLEDGE.md)。本人私聊还可在私有 `actions.json` 中配置固定动作，经「准备—确认」一次性执行并保留审计；不接受聊天参数、不经过 shell，说明见[动作网关](harness/OWNER-ACTIONS.md)。本人私聊的群上下文、命名记忆、知识片段和最近历史统一受 16 KiB 总预算约束，超限先省略低优先级内容并标注；说明见[上下文预算](harness/OWNER-CONTEXT.md)。回归运行环境及依赖见[验证说明](harness/README.md)。两侧就绪、Codex 完成、微信回执是不同的证据，收发验收需要核对原消息。
 
 Linux 安装配置示例见 [examples/linux.json](examples/linux.json)，默认关闭写操作。相对路径以配置文件所在目录为准，账号资料和授权文件归实际调用用户持有。手动读取、原 V2 回执查询和桌面服务准备见 [Linux 微信操作说明](docs/INTEGRATION.md#linux-微信操作)。
 
