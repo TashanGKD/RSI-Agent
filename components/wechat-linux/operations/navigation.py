@@ -70,6 +70,32 @@ def resize_own_popout(d,own):
   if current and (current['width'],current['height'])==(623,667):return current,after
  return own,d.app_windows()
 
+def refresh_own(v,windows):
+ """The same owned chat window after WeChat renamed it.
+
+ A new chat window is first mapped with the generic title and named shortly
+ after. Only the title may change: the window ID, position and size must
+ still match. Returns None otherwise.
+ """
+ own=v.get('ownPopout')
+ if not own:return None
+ found=[w for w in windows if w['id']==own['id']]
+ if len(found)!=1:return None
+ w=found[0]
+ if (w['x'],w['y'],w['width'],w['height'])!=(own['x'],own['y'],own['width'],own['height']):return None
+ v['ownPopout']=w
+ return w
+
+def settle_popout_title(d,v,name):
+ own=v['ownPopout']
+ for delay in (0.15,0.3,0.5,0.8):
+  if own['title']==name:break
+  time.sleep(delay)
+  current=refresh_own(v,d.app_windows())
+  if current is None:break
+  own=current
+ return own
+
 def open_selected_popout(d,j,c,v):
  """Only bounded, pre-input navigation; an observed new window ends gestures."""
  from .recipes import screen,activate,PreparationError
@@ -231,6 +257,7 @@ def _search_named(d,j,target,cfg,query):
   # so exact owned non-editing cleanup can still run. No stage has occurred.
   if (own['width'],own['height'])!=(623,667) or identity['class']!=v['mainIdentity']['class'] or identity['pid']!=v['mainIdentity']['pid'] or identity['leader']!=v['mainIdentity']['leader'] or identity['transientFor'] is not None:raise PreparationError('RECIPIENT_NOT_VERIFIED','New window identity is not the official chat.',clean=False)
   v.update(state='popout-created',ownPopout=own,ownIdentity=identity);save(d.root,j,v)
+  own=settle_popout_title(d,v,target['displayName']);save(d.root,j,v)
   try:prove_popout(own,target['displayName'],identity,v['mainIdentity'])
   except ValueError:raise PreparationError('RECIPIENT_NOT_VERIFIED','Opened chat system title differs from the exact native target.') from None
   if {w['id'] for w in after}!={w['id'] for w in before}|{own['id']}:raise PreparationError('RECIPIENT_NOT_VERIFIED','Official window set drifted.',clean=False)
@@ -302,6 +329,10 @@ def finish(d,j):
     v.update(state='popout-created',ownPopout=own,ownIdentity=identity,lateWindowVerified=True)
    else:v.update(state='navigation-no-new-window-observed')
    save(d.root,j,v)
+  if own and own not in windows:
+   # The owned window may have been renamed after it was recorded.
+   current=refresh_own(v,windows)
+   if current is not None:own=current;save(d.root,j,v)
   expected=list(v['beforeWindows'])
   for w in (own,v.get('search')):
    if w and w in windows and w not in expected:expected.append(w)

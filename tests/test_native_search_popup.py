@@ -41,7 +41,7 @@ class NativeSearchPopupTests(unittest.TestCase):
     def navigate(self, before=None, title='Fixture group', extra=()):
         from operations.navigation import search_named
         driver = types.SimpleNamespace(root=Path(self.folder.name), session_bindings={}, fast_versions=Mock(),
-            app_windows=Mock(side_effect=[[self.main, self.popup, *extra], [self.main], [self.main]]))
+            app_windows=Mock(side_effect=[[self.main, self.popup, *extra], [self.main], [self.main], [self.main]]))
         original = {'state': 'started', 'main': self.main, 'mainIdentity': self.identity,
                     'beforeWindows': [self.main] if before is None else before}
         own = {'id': '0x100003', 'title': title, 'x': 60, 'y': 90, 'width': 623, 'height': 667}
