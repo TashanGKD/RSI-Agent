@@ -18,6 +18,11 @@
 
 ## Unreleased
 
+### 新增
+
+- 新增逐件八字段工作本与 `python -m rsi_agent workbook` 生成/检查入口；派生 `memory/CURRENT.workbook.md`，不覆盖人工维护的 `memory/CURRENT.md`。本地候选，待审查与合并。
+- 工作本新增 `set`、`review`、`archive`：可更新当前摘要并追加过程、查看活跃/归档与预算状态、把已结束事项移入 `workbook/archive/` 且不再进入当前视图；`new`/`set`/`refresh` 统一执行 20 条活跃、30 条可见、单篇摘要 1,200 字和视图 8,192 字节上限。本地候选，待回归与审查。
+
 ### 已合并主线（2026-11-22，随 `009bbda`）
 
 [PR #124：本地接入、回复恢复与送达反馈](https://github.com/TashanGKD/RSI-Agent/pull/124) 已合并；部署与验收范围见 [CURRENT](memory/CURRENT.md)：

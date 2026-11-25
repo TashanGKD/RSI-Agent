@@ -4,13 +4,25 @@ User instructions take precedence. Keep changes narrow and preserve unfinished w
 
 ## Working loop
 
-For ongoing maintenance, read `memory/CURRENT.md`, `memory/todo.md` and
-`memory/decisions.md` first, then check the actual branch, open PR, deployed
-revision and runtime again; memory is a checkpoint, not proof of current health.
-Use `.agents/skills/rsi-agent-maintenance/SKILL.md` for the recurring loop.
-Work on one active improvement at a time, on a branch, and leave a reviewable PR
-with the problem, resulting behavior and relevant verification. Do not
-manufacture a commit or PR when no useful change is supported.
+For ongoing maintenance, read `memory/CURRENT.md`,
+`memory/CURRENT.workbook.md`, `memory/todo.md` and `memory/decisions.md` first,
+then check the actual branch, open PR, deployed revision and runtime again;
+memory is a checkpoint, not proof of current health. Use
+`.agents/skills/rsi-agent-maintenance/SKILL.md` for the recurring loop. Work on
+one active improvement at a time, on a branch, and leave a reviewable PR with
+the problem, resulting behavior and relevant verification. Do not manufacture a
+commit or PR when no useful change is supported.
+
+For a bounded work item, keep one eight-field note in `memory/workbook/` and
+refresh the derived view with
+`python -m rsi_agent workbook refresh --root memory --execute`. Use
+`workbook review` before choosing work, `workbook set` to update the current
+summary or append one process line, and `workbook archive --execute` to move a
+closed note to `workbook/archive/`; archiving is a move, not a deletion. Update
+the original note, never `CURRENT.workbook.md`; `CURRENT.md` stays the curated
+project baseline. The generator enforces active, visible, summary and view-size
+budgets and rejects an over-limit view. A generated view is not proof of live
+behavior.
 
 `scripts/check.py --linux` is the regression gate and `python -m rsi_agent audit`
 checks the live process, layout and services without input. Neither establishes
@@ -20,11 +32,12 @@ acceptance as separate states in PRs and project memory.
 ## Data and delivery rules
 
 Keep account data, credentials, raw chats, desktop captures and full production
-logs outside Git; only sanitized facts belong in project memory. Preserve the
-original request when a send result is uncertain and never change its ID to
-retry. The owner authorizes routine automatic execution and reversible recovery
-without repeated confirmation. Verify the original effects first: never
-regenerate completed work, replay an uncertain send or discard private state.
+logs outside Git; only sanitized facts belong in project memory or `workbook/`.
+Preserve the original request when a send result is uncertain and never change
+its ID to retry. The owner authorizes routine automatic execution and
+reversible recovery without repeated confirmation. Verify the original effects
+first: never regenerate completed work, replay an uncertain send or discard
+private state.
 
 ## Current authorized scope
 

@@ -7,6 +7,7 @@ from .audit import audit
 from .config import ROOT, load
 from .service_bundle import stage
 from .wechat import call, doctor
+from .workbook import STATES as WORKBOOK_STATES
 
 
 def main(argv=None):
@@ -55,12 +56,70 @@ def main(argv=None):
     setup_capture.add_argument('--binary', default='/opt/wechat/wechat')
     wx = commands.add_parser('wechat', help='Use the original on-demand WeChat SDK.')
     wx.add_argument('mode', choices=['read', 'operations'], help='One JSON request from stdin.')
+    workbook = commands.add_parser('workbook', help='Maintain per-item work notes and their derived view.')
+    workbook_commands = workbook.add_subparsers(dest='mode', required=True)
+    workbook_new = workbook_commands.add_parser('new', help='Create one eight-field work note.')
+    workbook_new.add_argument('--root', required=True, help='Project memory directory containing workbook/.')
+    workbook_new.add_argument('--title', required=True, help='Distinct result title.')
+    workbook_new.add_argument('--source', required=True, help='Who asked, when and where.')
+    workbook_new.add_argument('--goal', required=True, help='Observable result for this round.')
+    workbook_new.add_argument('--next', dest='next_step', required=True, help='The next own step or waiting condition.')
+    workbook_new.add_argument('--thought', default='待补充当前判断', help='Current understanding or open question.')
+    workbook_new.add_argument('--time', default='未安排复看时间', help='Deadline, review time or resume condition.')
+    workbook_new.add_argument('--state', choices=WORKBOOK_STATES, default='待推进')
+    workbook_new.add_argument('--file', dest='file_name', help='Optional plain .md file name.')
+    workbook_set = workbook_commands.add_parser('set', help='Update one active note current summary or append a process line.')
+    workbook_set.add_argument('--root', required=True, help='Project memory directory containing workbook/.')
+    workbook_set.add_argument('--title', help='Distinct result title; choose this or --file.')
+    workbook_set.add_argument('--file', dest='file_name', help='Plain .md note name; choose this or --title.')
+    workbook_set.add_argument('--source', help='Who asked, when and where.')
+    workbook_set.add_argument('--goal', help='Observable result for this round.')
+    workbook_set.add_argument('--thought', help='Current understanding or open question.')
+    workbook_set.add_argument('--state', choices=WORKBOOK_STATES)
+    workbook_set.add_argument('--next', dest='next_step', help='The next own step or waiting condition.')
+    workbook_set.add_argument('--time', help='Deadline, review time or resume condition.')
+    workbook_set.add_argument('--process-note', help='Short latest meaningful change for the current summary.')
+    workbook_set.add_argument('--log', help='Append one dated line under 过程.')
+    workbook_review = workbook_commands.add_parser('review', help='Show active work, archive count and limit status without writing.')
+    workbook_review.add_argument('--root', required=True, help='Project memory directory containing workbook/.')
+    workbook_archive = workbook_commands.add_parser('archive', help='Preview or move a closed note out of the current view.')
+    workbook_archive.add_argument('--root', required=True, help='Project memory directory containing workbook/.')
+    workbook_archive.add_argument('--title', help='Distinct result title; choose this or --file.')
+    workbook_archive.add_argument('--file', dest='file_name', help='Plain .md note name; choose this or --title.')
+    workbook_archive.add_argument('--execute', action='store_true', help='Move the closed note into workbook/archive/.')
+    workbook_refresh = workbook_commands.add_parser('refresh', help='Preview or write CURRENT.workbook.md.')
+    workbook_refresh.add_argument('--root', required=True, help='Project memory directory containing workbook/.')
+    workbook_refresh.add_argument('--execute', action='store_true', help='Write the generated view.')
+    workbook_check = workbook_commands.add_parser('check', help='Fail if the generated view differs from the notes.')
+    workbook_check.add_argument('--root', required=True, help='Project memory directory containing workbook/.')
     args = parser.parse_args(argv)
     if args.command is None:
         parser.print_help()
         return 0
     if args.command == 'sources':
         print((ROOT / 'SOURCES.lock.json').read_text(encoding='utf-8'))
+        return 0
+    if args.command == 'workbook':
+        from .workbook import archive, check, create, refresh, review, update_note
+        if args.mode == 'new':
+            result = create(args.root, args.title, args.source, args.goal, args.next_step,
+                            thought=args.thought, time=args.time, state=args.state,
+                            file_name=args.file_name)
+        elif args.mode == 'set':
+            result = update_note(args.root, title=args.title, file_name=args.file_name,
+                                 source=args.source, goal=args.goal, thought=args.thought,
+                                 state=args.state, next_step=args.next_step, time=args.time,
+                                 process_note=args.process_note, log=args.log)
+        elif args.mode == 'review':
+            result = review(args.root)
+        elif args.mode == 'archive':
+            result = archive(args.root, title=args.title, file_name=args.file_name,
+                             execute=args.execute)
+        elif args.mode == 'refresh':
+            result = refresh(args.root, args.execute)
+        else:
+            result = check(args.root)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
     if args.command == 'setup':
         from .onboarding import check, prepare_capture, stage_pairing

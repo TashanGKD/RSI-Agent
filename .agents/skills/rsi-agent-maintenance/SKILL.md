@@ -6,9 +6,20 @@ description: Improve RSI Agent usability through a bounded runtime check, one re
 # RSI Agent maintenance
 
 Find the repository root with Git. Read `AGENTS.md`, `memory/CURRENT.md`,
-`memory/todo.md`, `memory/decisions.md` and the current PR before selecting work.
-Resolve disagreement against current source, the running installation and the
-user's latest instruction. Keep a single active problem and its acceptance path.
+`memory/CURRENT.workbook.md`, `memory/todo.md`, `memory/decisions.md` and the
+current PR before selecting work. Resolve disagreement against current source,
+the running installation and the user's latest instruction. Keep a single active
+problem and its acceptance path.
+
+For a bounded work item, keep one eight-field note in `memory/workbook/` and
+refresh `memory/CURRENT.workbook.md` with
+`python -m rsi_agent workbook refresh --root memory --execute`. Check
+`workbook review` before choosing work; use `workbook set` for the current
+summary or one process line, and `workbook archive --execute` to move closed
+work out of the active view. Archiving is a move, not a deletion. Update the
+original note, not the generated view; `CURRENT.md` remains the project
+baseline. Respect the active, visible, summary and view-size limits instead of
+letting the generated view grow without bound.
 
 Each round should improve a user's ability to install, diagnose, operate,
 recover or maintain the product. Start with the highest-value reproducible
