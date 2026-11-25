@@ -8,6 +8,7 @@ from unittest.mock import Mock, patch
 from trigger.codex_backend import CodexBackend
 from trigger.owner_reply import ReplyLoop
 from trigger.group_reply import GroupLoop
+from trigger import owner_knowledge
 
 
 @unittest.skipUnless(sys.platform == 'linux', 'private native-bound inbox and Codex inputs')
@@ -113,6 +114,25 @@ class OwnerMemoryTests(unittest.TestCase):
         self.model.reply.assert_not_called()
         self.message('接着聊')
         self.assertNotIn('NOT_STORED_', str(self.model.reply.call_args))
+
+    def test_owner_private_knowledge_is_bounded_and_stale_aware(self):
+        notes = self.root / 'notes'
+        notes.mkdir()
+        source = notes / 'deploy.md'
+        source.write_text('# 部署\n\n## 位置\n\nPRIVATE_KNOWLEDGE_WSL 在本地。\n',
+                          encoding='utf-8', newline='\n')
+        owner_knowledge.index(notes, self.root / 'inbox.sqlite', now=123)
+        self.message('部署位置 WSL')
+        self.assertIn('PRIVATE_KNOWLEDGE_WSL', str(self.model.reply.call_args))
+        self.assertIn('knowledge_snippets', str(self.model.reply.call_args))
+
+        source.write_text('# 部署\n\n## 位置\n\nSTALE_KNOWLEDGE_TOKEN 已改动，等待重建。\n',
+                          encoding='utf-8', newline='\n')
+        self.message('部署位置 WSL 再问')
+        self.assertNotIn('STALE_KNOWLEDGE_TOKEN', str(self.model.reply.call_args))
+        owner_knowledge.index(notes, self.root / 'inbox.sqlite', now=124)
+        self.message('部署位置 WSL 三问')
+        self.assertIn('STALE_KNOWLEDGE_TOKEN', str(self.model.reply.call_args))
 
     def test_group_scope_never_opens_private_notes_or_receives_the_private_context(self):
         self.message('记住 风格：PRIVATE_OWNER_ONLY')

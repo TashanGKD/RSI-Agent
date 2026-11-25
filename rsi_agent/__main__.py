@@ -98,6 +98,17 @@ def main(argv=None):
     memory_review.add_argument('--db', required=True, help='Existing private owner inbox SQLite database.')
     memory_review.add_argument('--query', default='', help='Optional text used in the same bounded retrieval.')
     memory_review.add_argument('--show-values', action='store_true', help='Include stored values in the output.')
+    knowledge = commands.add_parser('knowledge', help='Build, inspect or query the private owner text index.')
+    knowledge_commands = knowledge.add_subparsers(dest='mode', required=True)
+    knowledge_index = knowledge_commands.add_parser('index', help='Rebuild the index beside the private owner inbox.')
+    knowledge_index.add_argument('--db', required=True, help='Existing private owner inbox SQLite database.')
+    knowledge_index.add_argument('--root', required=True, help='Directory of UTF-8 .md, .markdown or .txt files.')
+    knowledge_status = knowledge_commands.add_parser('status', help='Report index size, age and changed sources without writing.')
+    knowledge_status.add_argument('--db', required=True, help='Existing private owner inbox SQLite database.')
+    knowledge_search = knowledge_commands.add_parser('search', help='Run the same bounded retrieval without writing.')
+    knowledge_search.add_argument('--db', required=True, help='Existing private owner inbox SQLite database.')
+    knowledge_search.add_argument('--query', default='', help='Text used for bounded lexical retrieval.')
+    knowledge_search.add_argument('--show-text', action='store_true', help='Include stored snippets in the output.')
     args = parser.parse_args(argv)
     if args.command is None:
         parser.print_help()
@@ -130,6 +141,16 @@ def main(argv=None):
     if args.command == 'memory':
         from .memory import review as inspect_memory
         result = inspect_memory(args.db, args.query, args.show_values)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+    if args.command == 'knowledge':
+        from .knowledge import index as build_index, search as search_index, status as inspect_index
+        if args.mode == 'index':
+            result = build_index(args.db, args.root)
+        elif args.mode == 'status':
+            result = inspect_index(args.db)
+        else:
+            result = search_index(args.db, args.query, args.show_text)
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
     if args.command == 'setup':

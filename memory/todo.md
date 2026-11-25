@@ -30,6 +30,10 @@ as candidates rather than silently expanding the active task.
    retrieval are a local candidate (`D028`); Linux regression and live owner
    acceptance remain. Keep native identities and peer stores separate; no raw
    Codex mirror, automatic profiling or nickname authority.
+4b. **Owner knowledge retrieval.** An explicit private text index with bounded
+   lexical snippets is a local candidate (`D029`); Linux regression, reindex
+   operation and live owner acceptance remain. No vector store or automatic
+   ingestion until the explicit index is accepted.
 5. **Service persistence (PR #1).** Isolated transient → persistent → rollback
    is verified. Switching production units interrupts X, the client and noVNC,
    so it waits for a scoped maintenance window with phone availability.

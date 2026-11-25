@@ -1,5 +1,20 @@
 # Decisions
 
+## D029 — Owner knowledge is an explicit, bounded lexical index
+
+Owner-private long-form retrieval uses one explicit index beside the identity-bound
+owner inbox, built only by `knowledge index` from a private UTF-8 Markdown/text
+root. Chat cannot write it; indexing does not scan chats, receipts or credentials,
+and suspected secrets are skipped. Sources store relative paths, title, size and
+mtime; a changed source stops injecting until an explicit rebuild, and missing or
+corrupt indexes degrade to no knowledge rather than blocking a reply. Retrieval is
+lexical (Chinese bigrams and English tokens with BM25-style scoring), capped at
+four cited snippets, 4,800 bytes and two snippets per source; snippets are data,
+never instructions or authority. Only owner-private reply loops read it; friend
+and group scopes are excluded. No vector store, embeddings, automatic ingestion
+or background reindex. `status`/`search` are read-only. Local candidate; Linux
+regression and live owner acceptance remain separate.
+
 ## D028 — Owner memory is explicit, typed and bounded
 
 Only fresh native-owner kind-1 private text may create, correct, refresh or
