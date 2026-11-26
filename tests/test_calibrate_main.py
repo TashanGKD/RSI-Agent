@@ -19,6 +19,26 @@ class CalibrateMainTests(unittest.TestCase):
         ])
         self.assertEqual(calibrate_main.default_main_windows(tree), ['0x400011'])
 
+    def test_an_unfocused_calibrated_main_window_is_activated(self):
+        tree = '\n'.join([
+            '     0x400011 "Weixin": ("wechat" "wechat")  905x667+0+0  +200+80',
+            '     0x400040 "Group": ("wechat" "wechat")  623x667+0+0  +341+80',
+        ])
+        for unset in ('XGetWindowProperty[_NET_ACTIVE_WINDOW] failed (code=1)\n',
+                      '_NET_ACTIVE_WINDOW(WINDOW): window id # 0x0\n'):
+            self.assertIsNone(calibrate_main.active_window(unset))
+            self.assertEqual(calibrate_main.main_window_to_focus(tree, calibrate_main.active_window(unset)), '0x400011')
+
+    def test_existing_focus_and_ambiguous_mains_are_left_alone(self):
+        tree = '     0x400011 "Weixin": ("wechat" "wechat")  905x667+0+0  +200+80'
+        focused = calibrate_main.active_window('_NET_ACTIVE_WINDOW(WINDOW): window id # 0x400040\n')
+        self.assertEqual(focused, '0x400040')
+        self.assertIsNone(calibrate_main.main_window_to_focus(tree, focused))
+        two = tree + '\n     0x400012 "Weixin": ("wechat" "wechat")  905x667+0+0  +200+80'
+        self.assertIsNone(calibrate_main.main_window_to_focus(two, None))
+        login = '     0x400007 "Weixin": ("wechat" "wechat")  280x380+0+0  +500+210'
+        self.assertIsNone(calibrate_main.main_window_to_focus(login, None))
+
     def test_a_restored_main_window_near_the_calibrated_size_is_corrected(self):
         tree = '\n'.join([
             '     0x400011 "Weixin": ("wechat" "wechat")  903x667+0+0  +200+80',
