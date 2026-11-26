@@ -90,6 +90,14 @@ class JobTests(unittest.TestCase):
                 xhs_publish.command_publish(self.args(job=self.job['id'], confirm='01234567'), self.jobs)
             self.assertEqual(caught.exception.code, 'JOB_STATE')
 
+    def test_a_form_filled_while_blocked_must_be_prepared_again(self):
+        self.job['blocker'] = 'PHONE_NOT_BOUND'
+        self.jobs.save(self.job)
+        with self.assertRaises(PublishError) as caught:
+            xhs_publish.command_publish(self.args(job=self.job['id'], confirm='01234567'), self.jobs)
+        self.assertEqual(caught.exception.code, 'PREPARED_WHILE_BLOCKED')
+        self.assertEqual(self.jobs.load(self.job['id'])['state'], 'prepared')
+
     def test_unknown_outcomes_are_resolved_by_a_person(self):
         with self.assertRaises(PublishError):
             xhs_publish.command_resolve(argparse.Namespace(job=self.job['id'], outcome='published', evidence='x'), self.jobs)

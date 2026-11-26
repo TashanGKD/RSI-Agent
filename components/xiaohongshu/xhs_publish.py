@@ -499,13 +499,30 @@ def fill_body(page, body, topics):
         wanted = '#' + topic
         item = ('[...document.querySelectorAll(%s)].find(e => e.innerText.trim().split("\\n")[0].trim() === %s)'
                 % (js(SELECTORS['topic_item']), js(wanted)))
-        if not page.wait('!!(%s)' % item, 8):
-            raise PublishError('TOPIC_NOT_FOUND', '%s has no exact suggestion' % wanted)
-        page.click(item)
-        bound = page.wait('[...document.querySelectorAll(%s)].some(a => JSON.parse(a.dataset.topic).name === %s)'
-                          % (js(SELECTORS['bound_topic']), js(topic)), 5)
-        if not bound:
+        bound = ('[...document.querySelectorAll(%s)].some(a => JSON.parse(a.dataset.topic).name === %s)'
+                 % (js(SELECTORS['bound_topic']), js(topic)))
+        # The list refreshes after each typed character; click only once it has stopped changing.
+        for attempt in range(2):
+            if not wait_for_stable_suggestions(page, item):
+                raise PublishError('TOPIC_NOT_FOUND', '%s has no exact suggestion' % wanted)
+            page.click(item)
+            if page.wait(bound, 4):
+                break
+        else:
             raise PublishError('TOPIC_NOT_BOUND', wanted)
+
+
+def wait_for_stable_suggestions(page, item, timeout=10):
+    listing = 'document.querySelector(%s)?.innerText || ""' % js(SELECTORS['topic_list'])
+    deadline = time.monotonic() + timeout
+    previous = None
+    while time.monotonic() < deadline:
+        current = page.eval('(%s) ? %s : null' % (item, listing))
+        if current and current == previous:
+            return True
+        previous = current
+        time.sleep(0.7)
+    return False
 
 
 def choose_option(page, current_js, option):
@@ -668,6 +685,10 @@ def command_publish(args, jobs):
     if args.confirm != job['content_sha256'][:8]:
         raise PublishError('CONFIRM_MISMATCH', 'pass --confirm %s after reviewing the previews' % job['content_sha256'][:8])
     browser = Browser(args.cdp)
+    if job.get('blocker'):
+        # The creator page keeps the account state it loaded with; a form filled while the
+        # account was blocked ignores the publish click even after the block is lifted.
+        raise PublishError('PREPARED_WHILE_BLOCKED', 'job was filled under %s; discard it and run prepare again' % job['blocker'])
     page = verified_page(browser, job)
     try:
         blocker = probe_account(browser)
