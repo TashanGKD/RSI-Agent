@@ -1,0 +1,12 @@
+[Unit]
+Description=Xiaohongshu browser (Chrome) on the private display
+Requires=rsi-xhs-display.service
+After=rsi-xhs-display.service network-online.target
+[Service]
+User=xhs-browser
+Environment=DISPLAY=:93 HOME=/home/xhs-browser LANG=zh_CN.UTF-8
+ExecStart=/usr/bin/google-chrome --user-data-dir=/home/xhs-browser/chrome-profile --proxy-server=http://127.0.0.1:7890 --proxy-bypass-list=<local>;127.0.0.1;localhost --remote-debugging-address=127.0.0.1 --remote-debugging-port=9333 --no-first-run --no-default-browser-check --lang=zh-CN --window-size=1280,900 --window-position=0,0 https://www.xiaohongshu.com/explore
+Restart=on-failure
+RestartSec=5
+[Install]
+WantedBy=multi-user.target
