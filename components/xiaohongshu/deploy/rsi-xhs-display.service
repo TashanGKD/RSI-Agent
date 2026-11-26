@@ -1,0 +1,8 @@
+[Unit]
+Description=Private X display for the Xiaohongshu browser
+[Service]
+User=xhs-browser
+ExecStart=/usr/bin/Xvfb :93 -screen 0 1280x900x24 -nolisten tcp
+Restart=on-failure
+[Install]
+WantedBy=multi-user.target
