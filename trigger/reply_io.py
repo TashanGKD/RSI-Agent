@@ -13,6 +13,15 @@ from rsi_agent.wechat import environment, private_file
 CLIENT = 'rsi-owner'
 FRIEND_CLIENT = 'rsi-friend'
 FRIEND_MODE = 'friend-private-chat'
+# operations.recipes.main_window refusals raised before its first click; navigation.begin
+# calls it before activating the window or saving a journal, so no navigation exists.
+UNSTARTED_LAYOUT_REASONS = frozenset({
+    'A unique official main window is required; existing modal left unchanged.',
+    'The current official-client geometry is not a supported calibrated layout.',
+    'An unrelated or ambiguous official modal is visible; it was left unchanged.',
+    'An unrelated official modal is visible; it was left unchanged.',
+    'Official search parent or exact scene is unproven; it was left unchanged.',
+})
 
 
 def binding_token(owner):
@@ -160,6 +169,9 @@ def failed_before_input(store, job, client):
             or any(result.get(k) for k in ('postActionPending', 'draftRecoveryPending', 'navigationRecoveryPending'))):
         return False
     events = [row[0] for row in store.c.execute('SELECT state FROM events WHERE job_id=? ORDER BY seq', (job['id'],))]
+    if (events == ['queued', 'preparing', 'failed'] and result.get('code') == 'UNSUPPORTED_LAYOUT'
+            and result.get('reason') in UNSTARTED_LAYOUT_REASONS and not any(store.root.glob(job['id'] + '*'))):
+        return True  # Refused before navigation began: no click, journal, draft or receipt to clean.
     if events != ['queued', 'preparing', 'failed']:
         if (events != ['queued', 'preparing', 'needs_attention', 'failed']
                 or result.get('code') != 'NAVIGATION_PREPARATION_FAILED'
