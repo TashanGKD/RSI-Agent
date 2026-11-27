@@ -46,10 +46,14 @@ def native_reference_identity(path,account):
  from .assets import validate_image
  from PIL import Image
  if not isinstance(account,str) or not re.fullmatch(r'wxid_[A-Za-z0-9]{6,64}',account) or not isinstance(path,str):raise ValueError('configured native account required')
- root=BASE/'xwechat_files'
+ # The client keeps xwechat_files under its own home (WECHAT_PROFILE's parent on
+ # the WSL host), not under the tool root; use the configured profile when set.
+ profile=os.environ.get('WECHAT_PROFILE')
+ root=Path(profile).parent if profile else BASE/'xwechat_files'
  try:parts=Path(path).relative_to(root).parts
  except ValueError:raise ValueError('reference outside official input cache') from None
  if len(parts)!=4 or not re.fullmatch(re.escape(account)+r'_[0-9a-f]{4}',parts[0]) or parts[1:3]!=('temp','InputTemp') or not re.fullmatch(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.png',parts[3]):raise ValueError('reference is not a bounded current-account InputTemp PNG')
+ if profile and parts[0]!=Path(profile).name:raise ValueError('reference is not in the configured profile')
  fds=[];fd=None
  try:
   flags=os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW
