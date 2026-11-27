@@ -113,6 +113,45 @@ class GroupFailureRecoveryTests(unittest.TestCase):
         self.assertEqual([r['server_id'] for r in self.calls if r['op'] == 'submit'], ['2'])
         self.model.complete.assert_called_once()
 
+    def test_layout_refusal_before_navigation_resumes_new_input(self):
+        """main_window refused before navigation.begin clicked or saved a journal."""
+        from operations import navigation
+        navigation.path(self.state, self.job()).unlink()
+        refusal = dict(self.failure, code='UNSUPPORTED_LAYOUT',
+                       reason='A unique official main window is required; existing modal left unchanged.')
+        self.api.s.c.execute('UPDATE jobs SET result=? WHERE id=?', (json.dumps(refusal), self.key))
+        self.assert_intake_resumes_without_resending_original()
+
+    def test_layout_refusal_after_any_click_or_artifact_stays_blocked(self):
+        from operations import navigation
+        nav = navigation.path(self.state, self.job())
+        loop = self.loop()
+        for reason, keep_nav in [('A unique official main window is required; existing modal left unchanged.', True),
+                                 ('Search popup could not be dismissed by its supported non-editing action.', False),
+                                 ('Official window set changed during search cleanup; preserve the scene.', False)]:
+            with self.subTest(reason=reason):
+                if not keep_nav and nav.exists():
+                    nav.unlink()
+                refusal = dict(self.failure, code='UNSUPPORTED_LAYOUT', reason=reason)
+                self.api.s.c.execute('UPDATE jobs SET result=? WHERE id=?', (json.dumps(refusal), self.key))
+                if keep_nav:
+                    navigation.save(self.state, self.job(), {'state': 'started'})
+                self.assertEqual(loop.cycle()['state'], 'attention')
+        self.assertTrue(all(r['op'] == 'status' for r in self.calls))
+        self.model.complete.assert_not_called()
+
+    def test_unstarted_layout_reasons_are_raised_before_the_first_click(self):
+        import inspect
+        from operations import recipes
+        source = inspect.getsource(recipes.main_window)
+        first_click = source.index('controls(driver)')
+        for reason in reply_io.UNSTARTED_LAYOUT_REASONS:
+            with self.subTest(reason=reason):
+                self.assertLess(source.index(reason), first_click)
+        begin = inspect.getsource(__import__('operations.navigation', fromlist=['begin']).begin)
+        self.assertLess(begin.index('main_window(d)'), begin.index('activate(c,w)'))
+        self.assertLess(begin.index('activate(c,w)'), begin.index('save(d.root'))
+
     def test_unknown_or_cleanup_debt_cannot_resume_intake(self):
         loop = self.loop()
         for state, result in [('unknown', self.failure), ('needs_attention', self.failure),
