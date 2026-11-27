@@ -1,4 +1,4 @@
-import unittest, types, hashlib, tempfile
+import os, unittest, types, hashlib, tempfile
 from pathlib import Path
 from unittest.mock import patch
 from PIL import Image
@@ -19,6 +19,24 @@ class Pixbuf:
 
 
 class ImageDraftTests(unittest.TestCase):
+ @unittest.skipUnless(hasattr(os, 'getuid'), 'private POSIX ownership checks')
+ def test_input_cache_reference_is_read_from_the_configured_profile(self):
+  # On the WSL host the client writes InputTemp under /home/wechat-gui, not the tool root.
+  with tempfile.TemporaryDirectory() as home, tempfile.TemporaryDirectory() as tool_root:
+   files=Path(home)/'xwechat_files';profile=files/'wxid_abc123_4e22';cache=profile/'temp'/'InputTemp'
+   cache.mkdir(parents=True)
+   for folder in (files,profile,profile/'temp',cache):folder.chmod(0o700)
+   png=cache/'53195f9e-9f8d-46d1-81d0-d8528f23af95.png'
+   im=Image.new('RGB',(5,4),(10,20,30));im.save(png);png.chmod(0o600)
+   expected=image_draft.pixel_identity(Pixbuf(im))
+   with patch('operations.driver.BASE',Path(tool_root)):
+    with patch.dict(os.environ,{'WECHAT_PROFILE':str(profile)}):
+     self.assertEqual(image_draft.native_reference_identity(str(png),'wxid_abc123'),expected)
+    with patch.dict(os.environ,{'WECHAT_PROFILE':str(files/'wxid_abc123_ffff')}):
+     with self.assertRaises(ValueError):image_draft.native_reference_identity(str(png),'wxid_abc123')
+    with patch.dict(os.environ,{},clear=False):
+     os.environ.pop('WECHAT_PROFILE',None)
+     with self.assertRaisesRegex(ValueError,'outside official input cache'):image_draft.native_reference_identity(str(png),'wxid_abc123')
  def test_sparse_long_image_identity_is_not_a_connected_component(self):
   from operations.visual import attachment_box
   im=Image.new('RGB',(390,2118),'white');im.putpixel((20,50),(10,20,30))
