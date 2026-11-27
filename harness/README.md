@@ -66,3 +66,10 @@ into the next run. The first sanitized host audit is in
 For the agent self-improvement layer, see [Penguin integration](PENGUIN.md).
 The regressions and audit are usable engineering gates, not a Penguin Formal
 Baseline or evidence that an optimizer improves itself.
+
+Owner-private memory and retrieval boundaries are in
+[OWNER-MEMORY.md](OWNER-MEMORY.md) and [OWNER-KNOWLEDGE.md](OWNER-KNOWLEDGE.md).
+Owner context assembly and its one-budget omission rule are in
+[OWNER-CONTEXT.md](OWNER-CONTEXT.md).
+Owner-private fixed actions and their confirmation/audit boundary are in
+[OWNER-ACTIONS.md](OWNER-ACTIONS.md).

@@ -1,3 +1,5 @@
+import json
+import os
 from pathlib import Path
 import sqlite3
 import sys
@@ -8,6 +10,7 @@ from unittest.mock import Mock, patch
 from trigger.codex_backend import CodexBackend
 from trigger.owner_reply import ReplyLoop
 from trigger.group_reply import GroupLoop
+from trigger import owner_knowledge
 
 
 @unittest.skipUnless(sys.platform == 'linux', 'private native-bound inbox and Codex inputs')
@@ -114,6 +117,25 @@ class OwnerMemoryTests(unittest.TestCase):
         self.message('接着聊')
         self.assertNotIn('NOT_STORED_', str(self.model.reply.call_args))
 
+    def test_owner_private_knowledge_is_bounded_and_stale_aware(self):
+        notes = self.root / 'notes'
+        notes.mkdir()
+        source = notes / 'deploy.md'
+        source.write_text('# 部署\n\n## 位置\n\nPRIVATE_KNOWLEDGE_WSL 在本地。\n',
+                          encoding='utf-8', newline='\n')
+        owner_knowledge.index(notes, self.root / 'inbox.sqlite', now=123)
+        self.message('部署位置 WSL')
+        self.assertIn('PRIVATE_KNOWLEDGE_WSL', str(self.model.reply.call_args))
+        self.assertIn('knowledge_snippets', str(self.model.reply.call_args))
+
+        source.write_text('# 部署\n\n## 位置\n\nSTALE_KNOWLEDGE_TOKEN 已改动，等待重建。\n',
+                          encoding='utf-8', newline='\n')
+        self.message('部署位置 WSL 再问')
+        self.assertNotIn('STALE_KNOWLEDGE_TOKEN', str(self.model.reply.call_args))
+        owner_knowledge.index(notes, self.root / 'inbox.sqlite', now=124)
+        self.message('部署位置 WSL 三问')
+        self.assertIn('STALE_KNOWLEDGE_TOKEN', str(self.model.reply.call_args))
+
     def test_group_scope_never_opens_private_notes_or_receives_the_private_context(self):
         self.message('记住 风格：PRIVATE_OWNER_ONLY')
         self.message('问个问题')
@@ -156,3 +178,28 @@ class OwnerMemoryTests(unittest.TestCase):
         second = backend.exchange.call_args.args[1]
         self.assertEqual(second['messages'][1:], revised)
         self.assertNotEqual(first['id'], second['id'])
+
+    def test_action_gateway_is_explicit_one_shot_and_model_free(self):
+        marker = self.root / 'action-runs.txt'
+        code = ("from pathlib import Path;"
+                "p=Path(%r);p.write_text((p.read_text() if p.exists() else '')+'x')" % str(marker))
+        config = self.root / 'actions.json'
+        config.write_text(json.dumps({'version': 1, 'actions': {'append': {
+            'description': '校验一次性执行', 'command': [sys.executable, '-c', code]}}}),
+            encoding='utf-8')
+        os.chmod(config, 0o600)
+        self.message('动作 准备 append')
+        self.model.reply.assert_not_called()
+        action_id = self.loop.db.execute(
+            "SELECT id FROM owner_actions WHERE state='pending'").fetchone()[0]
+        self.message('动作 确认 ' + action_id)
+        self.model.reply.assert_not_called()
+        self.assertEqual(self.loop.db.execute(
+            'SELECT state FROM owner_actions WHERE id=?', (action_id,)).fetchone()[0], 'succeeded')
+        self.assertEqual(marker.read_text(), 'x')
+        self.message('动作 确认 ' + action_id)
+        self.assertEqual(marker.read_text(), 'x')
+        self.message('普通聊天')
+        self.model.reply.assert_called_once()
+        self.assertEqual(self.loop.db.execute(
+            "SELECT reply FROM inbox WHERE id='4'").fetchone()[0], 'ordinary reply')

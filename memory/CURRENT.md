@@ -5,6 +5,9 @@ Checked 2026-11-23. Memory is a checkpoint; verify the WSL distribution's
 the Windows receiver task's release and the receiver's authenticated
 `/health` before relying on it.
 
+Per-item work notes and their generated view are in `workbook/` and
+`CURRENT.workbook.md`; this checkpoint stays the project-level baseline.
+
 ## Shape
 
 One repository holds the Linux WeChat trigger and the local Codex receiver.

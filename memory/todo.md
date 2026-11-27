@@ -26,8 +26,22 @@ as candidates rather than silently expanding the active task.
    completion and native send are distinct; report each from its own record.
 3. **Dafeiyu sticker output (Issue #26).** Verify favourite-to-asset selection
    without sending, then bind it to one original V2 effect.
-4. **Group and semantic memory.** Keep native identities and peer stores
-   separate; no raw Codex mirror, automatic profiling or nickname authority.
+4. **Group and semantic memory.** Owner-private typed notes with bounded lexical
+   retrieval are a local candidate (`D028`); Linux regression and live owner
+   acceptance remain. Keep native identities and peer stores separate; no raw
+   Codex mirror, automatic profiling or nickname authority.
+4b. **Owner knowledge retrieval.** An explicit private text index with bounded
+   lexical snippets is a local candidate (`D029`); Linux regression, reindex
+   operation and live owner acceptance remain. No vector store or automatic
+   ingestion until the explicit index is accepted.
+4c. **Owner fixed actions.** Explicit prepare/confirm/cancel/view for the
+   private `actions.json` is a local candidate (`D030`); Linux action-gateway
+   regression and live owner acceptance remain. Do not widen it into arbitrary
+   shell, chat arguments, model approval or friend/group use.
+4d. **Owner context budget.** The owner loop assembles identity, memory,
+   knowledge and history under one 16 KiB budget with an omission note
+   (`D031`); Linux regression and live owner acceptance remain. Do not turn it
+   into semantic retrieval or automatic profiling.
 5. **Service persistence (PR #1).** Isolated transient → persistent → rollback
    is verified. Switching production units interrupts X, the client and noVNC,
    so it waits for a scoped maintenance window with phone availability.

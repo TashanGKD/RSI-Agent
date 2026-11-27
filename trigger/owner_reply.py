@@ -15,7 +15,7 @@ from rsi_agent.model import ModelError, OriginalReview, PublicationPending
 from .media import image_part, pdf_part, document_part, MediaPending, MediaUnavailable
 from .link_reader import linked_pages, video_link
 from rsi_agent.wechat import private_file
-from . import owner_memory
+from . import owner_actions, owner_context, owner_knowledge, owner_memory
 from .reply_io import FRIEND_MODE
 from .voice_input import VoiceInput
 from .local_codex import settings as codex_settings, instruction as codex_instruction, initialize as codex_initialize, enqueue as codex_enqueue
@@ -94,8 +94,12 @@ class ReplyLoop:
         if self.friend:
             self.model.engineering = False
         self.memory_enabled = owner['scope']['mode'] == 'owner-private-text' and not owner['peer'].endswith('@chatroom')
+        self.knowledge_path = path.absolute().parent / owner_knowledge.INDEX_NAME
+        self.actions_path = path.absolute().parent / owner_actions.CONFIG_NAME
         if self.memory_enabled:
             owner_memory.initialize(self.db)
+            owner_actions.initialize(self.db)
+            owner_actions.recover(self.db)
         self.local_codex = codex_settings(path.parent) if owner['scope']['mode'] == 'owner-private-text' else None
         if self.local_codex and self.local_codex['since'] < owner['scope']['since']:
             raise ValueError('Local Codex cannot expand the original owner scope.')
@@ -299,6 +303,12 @@ class ReplyLoop:
                 self.db.execute("UPDATE inbox SET reply=?,state='pending' WHERE id=?", (reply, row['id']))
         if (reply is None and self.memory_enabled and row['kind'] == 1
                 and not (self.images and self.model.has_original_input([row['id']]))):
+            reply = owner_actions.command(self.db, row, self.actions_path)
+            if reply is not None:
+                with self.db:
+                    self.db.execute("UPDATE inbox SET reply=?,state='pending' WHERE id=?", (reply, row['id']))
+        if (reply is None and self.memory_enabled and row['kind'] == 1
+                and not (self.images and self.model.has_original_input([row['id']]))):
             with self.db:
                 reply = owner_memory.command(self.db, row)
                 if reply is not None:
@@ -321,19 +331,20 @@ class ReplyLoop:
                                         'source_id': row['id'], 'kind': 'pdf' if row['pdf_name'] else 'document' if row['document_name'] else 'image'}
             history = []
             query = "SELECT COALESCE(NULLIF(voice_text,''),text) AS text,reply FROM inbox WHERE state='sent'"
-            cutoff, memory = 0, []
+            cutoff, memory, knowledge = 0, [], []
             if self.memory_enabled:
                 epoch, cutoff = owner_memory.position(self.db)
-                memory = owner_memory.context(self.db)
+                prompt = row['text'] or voice_text or ''
+                memory = owner_memory.context(self.db, prompt)
+                knowledge = owner_knowledge.context(self.knowledge_path, prompt)
                 query += ' AND rowid>? AND id NOT IN (SELECT source_id FROM owner_note_actions)'
                 if self.images:
                     self.model.memory_epoch = epoch
             for old in reversed(self.db.execute(query + ' ORDER BY created DESC,id DESC LIMIT 3',
                     (cutoff,) if self.memory_enabled else ()).fetchall()):
                 history.extend([{'role': 'user', 'content': old['text']}, {'role': 'assistant', 'content': old['reply']}])
-            if self.context:
-                history = self.context(row['text'] if row['kind'] == 1 else '') + history
-            history = memory + history
+            base = self.context(row['text'] if row['kind'] == 1 else '') if self.context else []
+            history = owner_context.assemble(base, memory, knowledge, history)
             if attachment_error:
                 history += [{'role': 'system', 'content':
                     '本条附件未取得可核验的内容。以下是原消息的读取状态，不是图片或文档正文。'

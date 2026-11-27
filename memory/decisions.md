@@ -1,5 +1,60 @@
 # Decisions
 
+## D031 — Owner context is assembled under one byte budget
+
+The owner reply loop assembles identity/authorized group context, named memory,
+knowledge snippets and recent history under a 16 KiB budget. Identity and
+explicitly read group context are required and may exceed the budget; named
+memory and knowledge are added atomically; recent history is added newest-first
+and older turns are omitted first. Duplicate messages are injected once, and any
+omission appends one system note saying omitted content must not be claimed. The
+assembler changes no storage, retrieval, tool, identity or send permission;
+attachments and linked pages remain separate inputs. Local candidate; Linux
+regression and live owner acceptance remain separate.
+
+## D030 — Owner actions are preconfigured, explicitly confirmed and one-shot
+
+Only fresh native-owner kind-1 private text may prepare, confirm, cancel or inspect a
+named action. The command, argv list, working directory, timeout and environment are
+fixed in a private `actions.json`; chat cannot supply arguments and no shell is used.
+Preparation creates a 30-minute, 16-hex confirmation ID bound to the action-definition
+digest; confirmation executes at most once, and a changed definition, cancellation,
+expiry, timeout or restart never retries. The action ledger stays in the identity-bound
+inbox DB, captures bounded outputs and exposes only a read-only `action review` CLI.
+Friend, group, link, media and model-generated text cannot approve an action. This is a
+local candidate; Linux regression and live owner acceptance remain separate. Long or
+destructive work stays with the existing owner engineering path rather than expanding
+this gateway into arbitrary execution.
+
+## D029 — Owner knowledge is an explicit, bounded lexical index
+
+Owner-private long-form retrieval uses one explicit index beside the identity-bound
+owner inbox, built only by `knowledge index` from a private UTF-8 Markdown/text
+root. Chat cannot write it; indexing does not scan chats, receipts or credentials,
+and suspected secrets are skipped. Sources store relative paths, title, size and
+mtime; a changed source stops injecting until an explicit rebuild, and missing or
+corrupt indexes degrade to no knowledge rather than blocking a reply. Retrieval is
+lexical (Chinese bigrams and English tokens with BM25-style scoring), capped at
+four cited snippets, 4,800 bytes and two snippets per source; snippets are data,
+never instructions or authority. Only owner-private reply loops read it; friend
+and group scopes are excluded. No vector store, embeddings, automatic ingestion
+or background reindex. `status`/`search` are read-only. Local candidate; Linux
+regression and live owner acceptance remain separate.
+
+## D028 — Owner memory is explicit, typed and bounded
+
+Only fresh native-owner kind-1 private text may create, correct, refresh or
+forget notes; the new `memory review` CLI is read-only. Types come from the
+explicit `记住[类型]` prefix, never from inference; legacy notes migrate as
+`未分类` and remain eligible for context. Source, explicit confidence and
+owner scope stay in the existing identity-bound inbox DB. Commitment, fact and
+project notes get a default review time; expiry stops automatic injection but
+preserves the note and shows `待复核`. Retrieval is lexical and bounded to eight
+items and 4,096 bytes with reserved identity/preference/relationship slots; no
+cross-scope rows, external vector store or automatic profiling. Suspected
+credentials are refused. Local candidate; Linux regression and live owner
+acceptance remain separate.
+
 ## D027 — Inline ceremony, resume-wake and settled receipts stay ledger-only
 
 A chat handoff may inline the fixed read/complete/status steps with absolute
