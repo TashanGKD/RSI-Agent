@@ -13,6 +13,8 @@ from rsi_agent.wechat import environment, private_file
 CLIENT = 'rsi-owner'
 FRIEND_CLIENT = 'rsi-friend'
 FRIEND_MODE = 'friend-private-chat'
+# Sent once, only to friends registered with scope greeting=True, before they have written.
+GREETING = '你好呀，我是星语，很高兴认识你！'
 # operations.recipes.main_window refusals raised before its first click; navigation.begin
 # calls it before activating the window or saving a journal, so no navigation exists.
 UNSTARTED_LAYOUT_REASONS = frozenset({
@@ -314,7 +316,15 @@ def handle(installation, owner, request):
     from operations.cli import load_config
     from operations.public_api import PublicAPI
     from receive_source import sid
-    server = sid(request['server_id'])
+    if request['server_id'] == 'greeting':
+        scope = owner['send_scope']
+        if 'friend_peer' not in owner or scope.get('greeting') is not True or op in ('image_send', 'cleanup'):
+            raise ValueError('The greeting belongs to a newly added friend.')
+        if op == 'submit' and request['text'] != GREETING:
+            raise ValueError('Only the fixed one-time greeting is allowed.')
+        server = 'greeting:' + str(scope['since'])
+    else:
+        server = sid(request['server_id'])
     rid = request_id(owner['account'], peer, server, client)
     policy = load_config(root / 'operations-state/config.json')
     if policy['account'] != owner['account']:
