@@ -103,6 +103,44 @@ class ReplyLoopTests(unittest.TestCase):
         self.model.reply.assert_called_once_with('查看记忆', [], allow_engineering=False)
         self.assertEqual(list(self.effects), ['1'])
 
+    def test_new_friend_is_greeted_once_before_writing(self):
+        from trigger.reply_io import GREETING
+        self.owner.update(peer='fixture_friend', scope={'mode': 'friend-private-chat', 'since': 100, 'greeting': True})
+        self.batch = {'events': []}
+        loop = self.loop()
+        self.assertEqual(loop.cycle(), {'state': 'sent', 'greeting': True, 'counts': {}})
+        self.assertEqual([r for r in self.calls if r['op'] == 'submit'],
+                         [{'op': 'submit', 'server_id': 'greeting', 'text': GREETING}])
+        self.assertEqual(loop.cycle()['state'], 'idle')
+        loop.close()
+        self.assertEqual(self.loop().cycle()['state'], 'idle')
+        self.assertEqual(list(self.effects), ['greeting'])
+        self.model.reply.assert_not_called()
+
+    def test_friend_who_wrote_first_gets_the_reply_and_no_greeting(self):
+        self.owner.update(peer='fixture_friend', scope={'mode': 'friend-private-chat', 'since': 100, 'greeting': True})
+        self.batch['events'] = [event(1, peer='fixture_friend', sender='fixture_friend')]
+        loop = self.loop()
+        self.assertEqual(loop.cycle()['state'], 'sent')
+        self.batch = {'events': []}
+        self.assertEqual(loop.cycle()['state'], 'idle')
+        self.assertEqual(list(self.effects), ['1'])
+
+    def test_unknown_greeting_is_never_sent_twice_and_old_friends_are_not_greeted(self):
+        self.owner.update(peer='fixture_friend', scope={'mode': 'friend-private-chat', 'since': 100, 'greeting': True})
+        self.batch = {'events': []}
+        self.unknown = True
+        loop = self.loop()
+        self.assertEqual(loop.cycle()['state'], 'attention')
+        self.assertEqual(loop.cycle()['state'], 'idle')
+        self.assertEqual(list(self.effects), ['greeting'])
+        loop.close()
+        self.path.unlink()
+        self.effects.clear()
+        self.owner.update(scope={'mode': 'friend-private-chat', 'since': 100})
+        self.assertEqual(self.loop().cycle()['state'], 'idle')
+        self.assertEqual(self.effects, {})
+
     def test_unknown_blocks_new_messages_and_never_replays(self):
         self.unknown = True
         loop = self.loop()
@@ -382,6 +420,21 @@ class ReplyNativeTests(unittest.TestCase):
         row = self.api.s.get(CLIENT, request_id('fixture_account', 'fixture_owner', '1'))
         self.assertEqual(row['peer'], 'fixture_owner')
         self.assertEqual(row['preview']['confirmationSource'], 'programmatic')
+
+    def test_greeting_key_is_fixed_text_for_flagged_new_friends_only(self):
+        from trigger.reply_io import FRIEND_CLIENT, GREETING
+        with self.assertRaisesRegex(ValueError, 'newly added friend'):
+            self.call('submit', server_id='greeting', text=GREETING)
+        self.owner.update(friend_peer='fixture_friend', send_scope={'mode': 'friend-private-chat', 'since': 100})
+        with patch('trigger.reply_io.require_friend'):
+            with self.assertRaisesRegex(ValueError, 'newly added friend'):
+                self.call('submit', server_id='greeting', text=GREETING)
+            self.owner['send_scope']['greeting'] = True
+            with self.assertRaisesRegex(ValueError, 'fixed one-time greeting'):
+                self.call('submit', server_id='greeting', text='别的话')
+            self.assertEqual(self.call('submit', server_id='greeting', text=GREETING)['state'], 'queued')
+        row = self.api.s.get(FRIEND_CLIENT, request_id('fixture_account', 'fixture_friend', 'greeting:100', FRIEND_CLIENT))
+        self.assertEqual((row['peer'], row['payload']['text']), ('fixture_friend', GREETING))
 
     def test_foreign_queued_and_active_jobs_are_not_claimed_or_changed(self):
         foreign = self.api.s.submit({'client': 'operator', 'request_id': 'foreign', 'peer': 'other',

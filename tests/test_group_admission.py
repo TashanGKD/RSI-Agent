@@ -91,7 +91,7 @@ class AdmissionTests(unittest.TestCase):
         binding = json.loads(Path(config['binding']).read_text())
         self.assertEqual((binding['owner_peer'], binding['friend_peer']), ('owner', 'friend'))
         self.assertEqual(binding['send_scope'],
-                         {'mode': 'friend-private-chat', 'since': 115, 'bootstrap_server_id': '42'})
+                         {'mode': 'friend-private-chat', 'since': 115, 'greeting': True, 'bootstrap_server_id': '42'})
         self.assertEqual(self.refresh()['friends_added'], 0)
 
     def test_native_friend_catalog_rejects_pending_deleted_and_ambiguous_contacts(self):

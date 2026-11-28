@@ -16,7 +16,7 @@ from .media import image_part, pdf_part, document_part, MediaPending, MediaUnava
 from .link_reader import linked_pages, video_link
 from rsi_agent.wechat import private_file
 from . import owner_memory
-from .reply_io import FRIEND_MODE
+from .reply_io import FRIEND_MODE, GREETING
 from .voice_input import VoiceInput
 from .local_codex import settings as codex_settings, instruction as codex_instruction, initialize as codex_initialize, enqueue as codex_enqueue
 
@@ -93,6 +93,9 @@ class ReplyLoop:
         self.friend = owner['scope']['mode'] == FRIEND_MODE
         if self.friend:
             self.model.engineering = False
+        self.greets = self.friend and owner['scope'].get('greeting') is True
+        if self.greets:
+            self.db.execute('CREATE TABLE IF NOT EXISTS greeting(state TEXT NOT NULL)')
         self.memory_enabled = owner['scope']['mode'] == 'owner-private-text' and not owner['peer'].endswith('@chatroom')
         if self.memory_enabled:
             owner_memory.initialize(self.db)
@@ -281,6 +284,18 @@ class ReplyLoop:
         # Consumer commit precedes source ACK; a lost ACK is harmless on replay.
         if batch.get('batch_id'):
             self.io({key: batch[key] for key in ('batch_id', 'batch_hash', 'ack_ids')} | {'op': 'ack'})
+        if self.greets:
+            greeted = self.db.execute('SELECT state FROM greeting').fetchone()
+            if greeted is None and self.db.execute('SELECT 1 FROM inbox LIMIT 1').fetchone():
+                with self.db:  # The friend wrote first; the normal reply answers instead.
+                    self.db.execute("INSERT INTO greeting VALUES('skipped')")
+            elif greeted is None or greeted[0] == 'pending':
+                state, _ = self.deliver('greeting', GREETING)
+                with self.db:
+                    self.db.execute('DELETE FROM greeting')
+                    self.db.execute('INSERT INTO greeting VALUES(?)', (state,))
+                # attention (failed or unknown) is final: the greeting is never sent twice.
+                return {'state': state, 'greeting': True, 'counts': self.counts()}
         row = self.db.execute("SELECT * FROM inbox WHERE state IN ('new','pending') ORDER BY created,id LIMIT 1").fetchone()
         if row is None:
             waiting = self.db.execute("SELECT 1 FROM inbox WHERE state='local_codex'").fetchone()

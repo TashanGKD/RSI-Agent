@@ -219,7 +219,8 @@ def refresh_friends(registry, owner_config, snapshot, policy, uid, gid):
             continue
         if len(value['friends']) >= 100:
             raise ValueError('Friend conversation registry capacity reached.')
-        scope = {'mode': FRIEND_MODE, 'since': max(policy['conversation_since'], policy['last_checked'])}
+        scope = {'mode': FRIEND_MODE, 'since': max(policy['conversation_since'], policy['last_checked']),
+                 'greeting': True}
         bootstrap = policy.get('friend_bootstrap') or {}
         if bootstrap.get('peer') == contact['peer']:
             scope['bootstrap_server_id'] = bootstrap['server_id']
