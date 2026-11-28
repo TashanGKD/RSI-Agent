@@ -4,6 +4,14 @@ import hashlib,json,os,re,subprocess,sys,time
 from pathlib import Path
 ROOT=Path(os.environ.get('WECHAT_TOOL_ROOT','/var/lib/secretary-wechat'))
 COMMON=Path(__file__).resolve().parent
+# Official "Select File" layouts by client size: (file-name field, File name label, Open)
+# offsets from the dialog's own top-left. 647x432 is the unmanaged remote display,
+# always at the root origin; 624x412 is the same Qt dialog framed by Openbox on WSL.
+CHOOSER_LAYOUTS={(647,432):((260,375),(20,375),(595,375)),(624,412):((260,358),(20,358),(572,359))}
+def chooser_layout(w):
+    size=(w['width'],w['height'])
+    if size not in CHOOSER_LAYOUTS or (size==(647,432) and (w['x'],w['y'])!=(0,0)):return None
+    return [(w['x']+dx,w['y']+dy) for dx,dy in CHOOSER_LAYOUTS[size]]
 def preview_matches(text,name):
     return bool(re.search(r'(?<![A-Za-z0-9_.-])'+re.escape(name)+r'(?![A-Za-z0-9_.-])',text))
 
@@ -45,7 +53,7 @@ def chooser_present():
     s=subprocess.run(['xwininfo','-root','-tree'],env=env,capture_output=True,text=True,check=True,timeout=5).stdout
     rows=re.findall(r'0x[0-9a-f]+ "Select File": \("wechat" "wechat"\)\s+(\d+)x(\d+)\+(-?\d+)\+(-?\d+)',s)
     if not rows:return False
-    if rows!=[('647','432','0','0')]:raise ValueError('unrecognized file chooser layout; leave untouched')
+    if rows!=[('647','432','0','0')] and not (len(rows)==1 and rows[0][:2]==('624','412')):raise ValueError('unrecognized file chooser layout; leave untouched')
     return True
 
 def native_receipt(j):

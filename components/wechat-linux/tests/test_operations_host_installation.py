@@ -13,6 +13,28 @@ from operations.windows import parse_app_windows
 
 
 class HostInstallationTests(unittest.TestCase):
+    def test_file_chooser_layouts_follow_the_dialog_and_reject_unknown_sizes(self):
+        from host_support.file_transport import chooser_layout, chooser_present
+        # Remote unmanaged display: fixed at the root origin, original click points.
+        self.assertEqual(chooser_layout({'x': 0, 'y': 0, 'width': 647, 'height': 432}),
+                         [(260, 375), (20, 375), (595, 375)])
+        self.assertIsNone(chooser_layout({'x': 5, 'y': 0, 'width': 647, 'height': 432}))
+        # WSL Openbox frame: measured 2026-11-29 with the dialog at 341,213.
+        self.assertEqual(chooser_layout({'x': 341, 'y': 213, 'width': 624, 'height': 412}),
+                         [(601, 571), (361, 571), (913, 572)])
+        self.assertIsNone(chooser_layout({'x': 0, 'y': 0, 'width': 640, 'height': 480}))
+        tree = '     0x4001a2 "Select File": ("wechat" "wechat")  {}  +341+213\n'
+        run = lambda raw: patch('host_support.file_transport.subprocess.run',
+                                return_value=SimpleNamespace(stdout=raw))
+        with run(tree.format('624x412+1+16')), patch('host_support.file_transport.xauthority', return_value='x'):
+            self.assertTrue(chooser_present())
+        with run(tree.format('640x480+1+16')), patch('host_support.file_transport.xauthority', return_value='x'):
+            with self.assertRaises(ValueError):
+                chooser_present()
+        with run(tree.format('624x412+1+16') * 2), patch('host_support.file_transport.xauthority', return_value='x'):
+            with self.assertRaises(ValueError):
+                chooser_present()
+
     def test_calibrated_editor_excludes_its_frame_and_still_protects_content(self):
         from PIL import Image, ImageDraw
         path = Path(__file__).resolve().parents[1] / 'host_support/file_transport.py'
