@@ -104,13 +104,17 @@ def prepare(driver,j):
   else:
    from .recipes import controls
    phase='file-chooser';asset=driver.assets.get(j['client'],j['payload']['asset']);ui.click([ui.cfg['header_box'][0]+105,ui.cfg['send'][1]]);ui.settle(450)
-   dialogs=[w for w in driver.app_windows() if w['title']=='Select File' and (w['width'],w['height'],w['x'],w['y'])==(647,432,0,0)]
+   helper=driver._file_helper()
+   dialogs=[w for w in driver.app_windows() if w['title']=='Select File' and helper.chooser_layout(w)]
    if len(dialogs)!=1:raise BeforeEffect('one supported official file chooser required')
+   field,label,opener=helper.chooser_layout(dialogs[0])
    parked.update(ownChooser=dialogs[0]);composer.save(driver.root,j,parked)
-   ui.click([260,375]);ui.ctrl('a');ui.clip.set_text(asset['path'],-1);ui.settle(70);ui.ctrl('v');ui.settle(150);ui.ctrl('a');ui.ctrl('c');ui.settle(130)
-   if ui.clip.wait_for_text()!=asset['path'] or not driver._file_helper().chooser_present():raise BeforeEffect('file chooser path differs from the frozen asset')
-   ui.click([20,375]);ui.settle(100);ui.click([595,375]);ui.settle(500)
-   if driver._file_helper().chooser_present():raise BeforeEffect('file chooser did not complete')
+   # Under a window manager the click first focuses the dialog; select-all sent at once
+   # is lost and the paste lands after the default name (seen on WSL Openbox).
+   ui.click(list(field));ui.settle(150);ui.ctrl('a');ui.settle(50);ui.clip.set_text(asset['path'],-1);ui.settle(70);ui.ctrl('v');ui.settle(150);ui.ctrl('a');ui.ctrl('c');ui.settle(130)
+   if ui.clip.wait_for_text()!=asset['path'] or not helper.chooser_present():raise BeforeEffect('file chooser path differs from the frozen asset')
+   ui.click(list(label));ui.settle(100);ui.click(list(opener));ui.settle(500)
+   if helper.chooser_present():raise BeforeEffect('file chooser did not complete')
    parked.pop('ownChooser',None)
    from .fast import asset_identity
    from .contract import digest
